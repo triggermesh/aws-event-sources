@@ -1,0 +1,6 @@
+awsiot
+.env
+vendor
+*.crt
+*.key
+*.pem
