@@ -1,0 +1,37 @@
+---
+apiVersion: sources.eventing.knative.dev/v1alpha1
+kind: ContainerSource
+metadata:
+  name: awsiotsource
+spec:
+  image: gcr.io/triggermesh/awsiot:latest
+  sink:
+    apiVersion: eventing.knative.dev/v1alpha1
+    kind: Channel
+    name: default
+  env:
+    - name: ROOT_CA_PATH
+      value: /tmp/rootca.crt
+    - name: ROOT_CA
+      valueFrom:
+        secretKeyRef:
+          name: awsiot
+          key: rootca.crt
+    - name: CERTIFICATE_PATH
+          value: /tmp/certificate.pem.crt
+    - name: CERTIFICATE
+      valueFrom:
+        secretKeyRef:
+          name: awsiot
+          key: certificate.pem.crt
+    - name: PRIVATE_KEY_PATH
+          value: /tmp/private.pem.key
+    - name: PRIVATE_KEY
+      valueFrom:
+        secretKeyRef:
+          name: awsiot
+          key: private.pem.key
+    - name: THING_TOPIC
+      value: topic
+    - name: THING_SHADOW_ENDPOINT
+      value: blahqjmv85rx59-ats.iot.us-west-2.amazonaws.com
