@@ -112,7 +112,7 @@ func (sqsMsg) ReceiveMsg(sqsClient *sqs.SQS, sink string) {
 			}
 
 			//Delete message from queue if we pushed successfully
-			err = deleteMessage(sqsClient, msg)
+			err = deleteMessage(sqsClient, queueURL, msg)
 			if err != nil {
 				log.Error(err)
 				continue
@@ -122,14 +122,15 @@ func (sqsMsg) ReceiveMsg(sqsClient *sqs.SQS, sink string) {
 }
 
 //Deletes message from sqs queue
-func deleteMessage(sqsClient *sqs.SQS, msg *sqs.ReceiveMessageOutput) error {
+func deleteMessage(sqsClient *sqs.SQS, queueURL string, msg *sqs.ReceiveMessageOutput) error {
 	deleteParams := &sqs.DeleteMessageInput{
-		QueueUrl:      aws.String(queueEnv),
+		QueueUrl:      aws.String(queueURL),
 		ReceiptHandle: msg.Messages[0].ReceiptHandle,
 	}
 	_, err := sqsClient.DeleteMessage(deleteParams)
 	if err != nil {
 		return err
 	}
+	log.Info("Message deleted!")
 	return nil
 }
