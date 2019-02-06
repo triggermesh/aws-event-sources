@@ -1,4 +1,4 @@
-![TriggerMesh Knative Lambda Sources]("TriggerMesh Knative Lambda Sources")
+![TriggerMesh Knative Lambda Sources](./klass.png "TriggerMesh Knative Lambda Sources")
 
 Knative Lambda Sources (KLASS)
 
