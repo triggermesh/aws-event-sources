@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/csv"
 	"flag"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,14 +25,12 @@ func main() {
 
 	accountAccessKeyID := os.Getenv("AWS_ACCESS_KEY_ID")
 	accountSecretAccessKey := os.Getenv("AWS_SECRET_ACCESS_KEY")
-	accountSecureToken := os.Getenv("AWS_SECURE_TOKEN")
 	accountRegion := os.Getenv("AWS_REGION")
 	myBucket := os.Getenv("AWS_BUCKET")
-	myObjectKey := os.Getenv("AWS_OBJECT_KEY")
 
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(accountRegion),
-		Credentials: credentials.NewStaticCredentials(accountAccessKeyID, accountSecretAccessKey, accountSecureToken),
+		Credentials: credentials.NewStaticCredentials(accountAccessKeyID, accountSecretAccessKey, ""),
 	})
 	if err != nil {
 		log.Errorf("NewSession failed: %v", err)
@@ -43,9 +39,25 @@ func main() {
 
 	svc := s3.New(sess)
 
+	input := &s3.ListObjectsInput{
+		Bucket: aws.String(myBucket),
+	}
+
+	result, err := svc.ListObjects(input)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for _, object := range result.Contents {
+		connectToObjectEvent(svc, myBucket, object.Key)
+	}
+
+}
+
+func connectToObjectEvent(svc *s3.S3, bucket string, objectKey *string) {
 	resp, err := svc.SelectObjectContent(&s3.SelectObjectContentInput{
-		Bucket:         aws.String(myBucket),
-		Key:            aws.String(myObjectKey),
+		Bucket:         aws.String(bucket),
+		Key:            objectKey,
 		Expression:     aws.String("SELECT * FROM S3Object"),
 		ExpressionType: aws.String(s3.ExpressionTypeSql),
 		InputSerialization: &s3.InputSerialization{
@@ -62,32 +74,5 @@ func main() {
 		return
 	}
 
-	defer resp.EventStream.Close()
-
-	results, resultWriter := io.Pipe()
-	go func() {
-		defer resultWriter.Close()
-		for event := range resp.EventStream.Events() {
-			switch e := event.(type) {
-			case *s3.RecordsEvent:
-				resultWriter.Write(e.Payload)
-			case *s3.StatsEvent:
-				fmt.Printf("Processed %d bytes\n", *e.Details.BytesProcessed)
-			}
-		}
-	}()
-
-	// Printout the results
-	resReader := csv.NewReader(results)
-	for {
-		record, err := resReader.Read()
-		if err == io.EOF {
-			break
-		}
-		fmt.Println(record)
-	}
-
-	if err := resp.EventStream.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "reading from event stream failed, %v\n", err)
-	}
+	log.Info(resp)
 }

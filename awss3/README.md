@@ -19,7 +19,6 @@ Define a few environment variables:
 
 ```
 export AWS_BUCKET=your_bucket_name
-export AWS_OBJECT_KEY=your_object_key
 export AWS_REGION=us-east-1
 export AWS_ACCESS_KEY_ID=<>
 export AWS_SECRET_ACCESS_KEY=<>
@@ -38,7 +37,6 @@ If you don't have a local Go environment, use Docker:
 
 ```
 docker run -ti -e AWS_BUCKET="your_bucket_name" \
-               -e AWS_OBJECT_KEY="your_object_key" \
                -e AWS_REGION="us-east-1" \
                -e AWS_ACCESS_KEY_ID="fgfdgsdfg" \
                -e AWS_SECRET_ACCESS_KEY="dsgdgsfgsfdgdsf" \

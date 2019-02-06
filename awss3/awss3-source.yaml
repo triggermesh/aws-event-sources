@@ -24,5 +24,3 @@ spec:
       value: us-west-2
     - name: AWS_BUCKET
       value: myBucket
-    - name: AWS_OBJECT_KEY
-      value: myObjectKey
