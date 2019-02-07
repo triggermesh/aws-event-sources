@@ -1,6 +1,20 @@
 ## AWS S3 Event source for knative eventing
 
-This event source is meant to be used as a Container Source with a Knative cluster to consume messages from a AWS S3 Event Stream and send them to a Knative service/function.
+This event source is meant to be used as a Container Source with a Knative cluster to consume messages from a AWS S3 Bucket and send them to a Knative service/function using SQS source.
+
+### Setup
+
+In SQS Service: 
+1. Create a queue to recieve events from your S3 service.
+2. Select created queue and navigate to `permissions` tab. Add a permission to send messages to your queue from your S3 service with your aws account number. If you do not know this number, you can allow `Everybody`, but use it for testing only purposes. 
+
+You now have properly configured queue to get messages from S3. 
+
+In S3 Service: 
+1. Create a bucket in S3 service
+2. Enter your bucket and select `Properties` tab. 
+3. Scroll down to `Advanced settings` and find `Events` there you can add notification for events that happen in your Bucket. 
+4. Configure which Events you would like to track and in the section `Send to` select `SQS Queue`. Select the Queue configured to get S3 events to send events to. 
 
 ### Local build
 
@@ -18,7 +32,7 @@ go build .
 Define a few environment variables:
 
 ```
-export AWS_BUCKET=your_bucket_name
+export QUEUE=your_queue_name
 export AWS_REGION=us-east-1
 export AWS_ACCESS_KEY_ID=<>
 export AWS_SECRET_ACCESS_KEY=<>
@@ -36,7 +50,7 @@ $ ./awss3
 If you don't have a local Go environment, use Docker:
 
 ```
-docker run -ti -e AWS_BUCKET="your_bucket_name" \
+docker run -ti -e QUEUE="your_queue_name" \
                -e AWS_REGION="us-east-1" \
                -e AWS_ACCESS_KEY_ID="fgfdgsdfg" \
                -e AWS_SECRET_ACCESS_KEY="dsgdgsfgsfdgdsf" \

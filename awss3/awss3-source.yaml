@@ -22,5 +22,5 @@ spec:
           key: aws_secret_access_key
     - name: AWS_REGION
       value: us-west-2
-    - name: AWS_BUCKET
-      value: myBucket
+    - name: QUEUE
+      value: myQueue
