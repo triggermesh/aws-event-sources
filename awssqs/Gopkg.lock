@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:b53f02c7f012acb4c369ada7e1319f7e4c097bfc194f6dcc89c86b99307756a8"
+  digest = "1:637857b829e597b16feffd68098f3bf54cb5be5ca64ae6524b967c3b58af6903"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -34,11 +34,12 @@
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
     "service/sqs",
+    "service/sqs/sqsiface",
     "service/sts",
   ]
   pruneopts = "UT"
-  revision = "2598a5134c77e8121a3a558f263a2dc50479a93f"
-  version = "v1.16.24"
+  revision = "c4511ae0c07d9e349f4157a579b06b7aab213da0"
+  version = "v1.16.29"
 
 [[projects]]
   branch = "master"
@@ -50,6 +51,14 @@
   ]
   pruneopts = "UT"
   revision = "feec6e002535db7561a364f82f67d2c9ebe4596a"
+
+[[projects]]
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  pruneopts = "UT"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:bb81097a5b62634f3e9fec1014657855610c82d19b9a40c17612e32651e35dca"
@@ -67,6 +76,14 @@
   version = "v1.0.1"
 
 [[projects]]
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  pruneopts = "UT"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:87c2e02fb01c27060ccc5ba7c5a407cc91147726f8f40b70cceeedbc52b1f3a8"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
@@ -75,31 +92,39 @@
   version = "v1.3.0"
 
 [[projects]]
+  digest = "1:972c2427413d41a1e06ca4897e8528e5a1622894050e2f527b38ddf0f343f759"
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  pruneopts = "UT"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
+
+[[projects]]
   branch = "master"
   digest = "1:b88ef716e15cd387197fc2e9f6c7155a72fa28c72b084e2dcb47b09e03996d70"
   name = "github.com/triggermesh/sources"
   packages = ["tmevents"]
   pruneopts = "UT"
-  revision = "4e73d83e382781fe049f553b15fd3623c7629376"
+  revision = "674837abbb5269a46e380864330e5f2b99a319f6"
 
 [[projects]]
   branch = "master"
-  digest = "1:38f553aff0273ad6f367cb0a0f8b6eecbaef8dc6cb8b50e57b6a81c1d5b1e332"
+  digest = "1:fde12c4da6237363bf36b81b59aa36a43d28061167ec4acb0d41fc49464e28b9"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "057139ce5d2bdbe6fe73c53679e24e9cf007f637"
+  revision = "b8fe1690c61389d7d2a8074a507d1d40c5d30448"
 
 [[projects]]
   branch = "master"
-  digest = "1:bb644db32f5bc1e327a0f748ec871edc4dc46f19b4fbbc15bfd95b1460646537"
+  digest = "1:a1914323eabb0da3b4392fb0d34b1ae5b6b531323daf4eeddc355d8000982052"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "c6b37f3e92850b723493d63fd35aad34e19e048d"
+  revision = "41f3e6584952bb034a481797859f6ab34b6803bd"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -109,7 +134,9 @@
     "github.com/aws/aws-sdk-go/aws/credentials",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/sqs",
+    "github.com/aws/aws-sdk-go/service/sqs/sqsiface",
     "github.com/sirupsen/logrus",
+    "github.com/stretchr/testify/assert",
     "github.com/triggermesh/sources/tmevents",
   ]
   solver-name = "gps-cdcl"
