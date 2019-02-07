@@ -1,6 +1,6 @@
 ## AWS S3 Event source for knative eventing
 
-This event source is meant to be used as a Container Source with a Knative cluster to consume messages from a AWS S3 Bucket and send them to a Knative service/function using SQS source.
+This event source is meant to be used as a Container Source with a Knative cluster to consume events from an AWS S3 bucket via a SQS queue. As such the user needs to configure the S3 to SQS connection in the AWS console and then use the TriggerMesh SQS source.
 
 ### Setup
 
