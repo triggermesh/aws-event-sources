@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -13,53 +14,65 @@ import (
 type mockedReceiveMsgs struct {
 	sqsiface.SQSAPI
 	Resp sqs.ReceiveMessageOutput
+	err  error
 }
 
 type mockedDeleteMsgs struct {
 	sqsiface.SQSAPI
 	Resp sqs.DeleteMessageOutput
+	err  error
 }
 
 type mockedListQueues struct {
 	sqsiface.SQSAPI
 	Resp sqs.ListQueuesOutput
+	err  error
 }
 
 func (m mockedReceiveMsgs) ReceiveMessage(in *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error) {
-	return &m.Resp, nil
+	return &m.Resp, m.err
 }
 
 func (m mockedDeleteMsgs) DeleteMessage(in *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error) {
-	return &m.Resp, nil
+	return &m.Resp, m.err
 }
 
 func (m mockedListQueues) ListQueues(in *sqs.ListQueuesInput) (*sqs.ListQueuesOutput, error) {
-	return &m.Resp, nil
+	return &m.Resp, m.err
 }
 
 func TestQueueLookup(t *testing.T) {
 	cases := []struct {
 		Resp     sqs.ListQueuesOutput
+		err      error
 		Expected string
 	}{
 		{ // Case 1, expect parsed responses
 			Resp: sqs.ListQueuesOutput{
 				QueueUrls: []*string{aws.String("testQueueURL")}},
+			err:      nil,
 			Expected: "testQueueURL",
 		},
-		{ // Case 1, expect parsed responses
+		{ // Case 2, expect parsed responses
 			Resp: sqs.ListQueuesOutput{
 				QueueUrls: []*string{aws.String("testQueueURL"), aws.String("testQueueURLFoo")}},
+			err:      nil,
 			Expected: "testQueueURL",
+		},
+		{ // Case 3, expect error
+			Resp: sqs.ListQueuesOutput{
+				QueueUrls: []*string{}},
+			err:      errors.New("No such queue"),
+			Expected: "",
 		},
 	}
 
 	for _, c := range cases {
 		q := Queue{
-			Client: mockedListQueues{Resp: c.Resp},
+			Client: mockedListQueues{Resp: c.Resp, err: c.err},
 		}
 		url, err := q.QueueLookup("testQueue")
-		assert.NoError(t, err)
+		assert.Equal(t, c.err, err)
 		assert.Equal(t, c.Expected, url)
 	}
 }
