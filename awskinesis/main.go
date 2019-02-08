@@ -74,40 +74,44 @@ func main() {
 	}
 
 	for {
-		for i, input := range inputs {
-
-			recordsOutput, err := stream.getRecords(input)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-
-			for _, record := range recordsOutput.Records {
-				go func(record *kinesis.Record) {
-					err := sendCloudevent(record, sink)
-					if err != nil {
-						log.Errorf("SendCloudEvent failed: %v", err)
-					}
-				}(record)
-			}
-
-			//remove old imput
-			inputs = append(inputs[:i], inputs[i+1:]...)
-
-			//generate new input
-			input = kinesis.GetRecordsInput{
-				ShardIterator: recordsOutput.NextShardIterator,
-			}
-
-			//add newly generated input to the slice
-			//so that new iteration would begin with new sharIterator
-			inputs = append(inputs, input)
-
-			if len(recordsOutput.Records) == 0 {
-				continue
-			}
+		err := stream.processInputs(inputs)
+		if err != nil {
+			log.Error(err)
 		}
 	}
+}
+
+func (s Stream) processInputs(inputs []kinesis.GetRecordsInput) error {
+
+	for i, input := range inputs {
+
+		recordsOutput, err := s.Client.GetRecords(&input)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+
+		for _, record := range recordsOutput.Records {
+			err := sendCloudevent(record, sink)
+			if err != nil {
+				log.Errorf("SendCloudEvent failed: %v", err)
+			}
+		}
+
+		//remove old imput
+		inputs = append(inputs[:i], inputs[i+1:]...)
+
+		//generate new input
+		input = kinesis.GetRecordsInput{
+			ShardIterator: recordsOutput.NextShardIterator,
+		}
+
+		//add newly generated input to the slice
+		//so that new iteration would begin with new sharIterator
+		inputs = append(inputs, input)
+	}
+
+	return nil
 }
 
 func (s Stream) getRecordsInputs() ([]kinesis.GetRecordsInput, error) {
@@ -145,16 +149,6 @@ func (s Stream) getRecordsInputs() ([]kinesis.GetRecordsInput, error) {
 	}
 
 	return inputs, err
-}
-
-func (s Stream) getRecords(input kinesis.GetRecordsInput) (*kinesis.GetRecordsOutput, error) {
-	recordsOutput, err := s.Client.GetRecords(&input)
-	if err != nil {
-		log.Errorf("GetRecords failed: %v", err)
-		return recordsOutput, err
-	}
-
-	return recordsOutput, nil
 }
 
 func sendCloudevent(record *kinesis.Record, sink string) error {

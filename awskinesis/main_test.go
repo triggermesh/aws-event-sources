@@ -17,14 +17,70 @@ limitations under the License.
 package main
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 )
+
+type mockedGetRecords struct {
+	kinesisiface.KinesisAPI
+	Resp kinesis.GetRecordsOutput
+	err  error
+}
+
+func (m mockedGetRecords) GetRecords(in *kinesis.GetRecordsInput) (*kinesis.GetRecordsOutput, error) {
+	return &m.Resp, m.err
+}
+
+func TestProcessInputs(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+
+	now := time.Now()
+	sink = "https://foo.com"
+
+	records := []*kinesis.Record{
+		{
+			SequenceNumber:              aws.String("1"),
+			ApproximateArrivalTimestamp: &now,
+			Data: []byte("foo"),
+		},
+	}
+
+	s := Stream{
+		Client: mockedGetRecords{Resp: kinesis.GetRecordsOutput{
+			NextShardIterator: aws.String("nextIterator"),
+			Records:           records,
+		}, err: nil},
+	}
+
+	inputs := []kinesis.GetRecordsInput{
+		{},
+	}
+
+	err := s.processInputs(inputs)
+	assert.NoError(t, err)
+
+	s = Stream{
+		Client: mockedGetRecords{Resp: kinesis.GetRecordsOutput{}, err: errors.New("error")},
+	}
+
+	inputs = []kinesis.GetRecordsInput{
+		{},
+	}
+
+	err = s.processInputs(inputs)
+	assert.NoError(t, err)
+
+}
 
 func TestSendCloudevent(t *testing.T) {
 	httpmock.Activate()
