@@ -34,7 +34,17 @@ type mockedGetRecords struct {
 	err  error
 }
 
+type mockedGetShardIterator struct {
+	kinesisiface.KinesisAPI
+	Resp kinesis.GetShardIteratorOutput
+	err  error
+}
+
 func (m mockedGetRecords) GetRecords(in *kinesis.GetRecordsInput) (*kinesis.GetRecordsOutput, error) {
+	return &m.Resp, m.err
+}
+
+func (m mockedGetShardIterator) GetShardIterator(in *kinesis.GetShardIteratorInput) (*kinesis.GetShardIteratorOutput, error) {
 	return &m.Resp, m.err
 }
 
@@ -73,12 +83,31 @@ func TestProcessInputs(t *testing.T) {
 		Client: mockedGetRecords{Resp: kinesis.GetRecordsOutput{}, err: errors.New("error")},
 	}
 
-	inputs = []kinesis.GetRecordsInput{
-		{},
-	}
-
 	err = s.processInputs(inputs)
 	assert.NoError(t, err)
+
+}
+
+func TestGetRecordsInputs(t *testing.T) {
+	s := Stream{
+		Client: mockedGetShardIterator{Resp: kinesis.GetShardIteratorOutput{ShardIterator: aws.String("shardIterator")}, err: nil},
+		Stream: aws.String("bar"),
+	}
+
+	shards := []*kinesis.Shard{
+		{ShardId: aws.String("1")},
+	}
+
+	inputs := s.getRecordsInputs(shards)
+	assert.Equal(t, 1, len(inputs))
+
+	s = Stream{
+		Client: mockedGetShardIterator{Resp: kinesis.GetShardIteratorOutput{}, err: errors.New("err")},
+		Stream: aws.String("bar"),
+	}
+
+	inputs = s.getRecordsInputs(shards)
+	assert.Equal(t, 0, len(inputs))
 
 }
 

@@ -67,11 +67,14 @@ func main() {
 
 	stream := Stream{kinesis.New(sess), &streamName}
 
-	//Obtain records inputs for different shards
-	inputs, err := stream.getRecordsInputs()
+	// Get info about a particular stream
+	myStream, err := stream.Client.DescribeStream(&kinesis.DescribeStreamInput{StreamName: stream.Stream})
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	//Obtain records inputs for different shards
+	inputs := stream.getRecordsInputs(myStream.StreamDescription.Shards)
 
 	for {
 		err := stream.processInputs(inputs)
@@ -79,6 +82,35 @@ func main() {
 			log.Error(err)
 		}
 	}
+}
+
+func (s Stream) getRecordsInputs(shards []*kinesis.Shard) []kinesis.GetRecordsInput {
+	inputs := []kinesis.GetRecordsInput{}
+
+	//Kinesis stream might have several shards and each of them had "LATEST" Iterator.
+	for _, shard := range shards {
+
+		// Obtain starting Shard Iterator. This is needed to not process already processed records
+		myShardIterator, err := s.Client.GetShardIterator(&kinesis.GetShardIteratorInput{
+			ShardId:           shard.ShardId,
+			ShardIteratorType: aws.String("LATEST"),
+			StreamName:        s.Stream,
+		})
+
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+
+		// set records output limit. Should not be more than 10000, othervise panics
+		input := kinesis.GetRecordsInput{
+			ShardIterator: myShardIterator.ShardIterator,
+		}
+
+		inputs = append(inputs, input)
+	}
+
+	return inputs
 }
 
 func (s Stream) processInputs(inputs []kinesis.GetRecordsInput) error {
@@ -112,43 +144,6 @@ func (s Stream) processInputs(inputs []kinesis.GetRecordsInput) error {
 	}
 
 	return nil
-}
-
-func (s Stream) getRecordsInputs() ([]kinesis.GetRecordsInput, error) {
-	inputs := []kinesis.GetRecordsInput{}
-
-	// Get info about a particular stream
-	myStream, err := s.Client.DescribeStream(&kinesis.DescribeStreamInput{
-		StreamName: s.Stream,
-	})
-	if err != nil {
-		return inputs, err
-	}
-
-	//Kinesis stream might have several shards and each of them had "LATEST" Iterator.
-	for _, shard := range myStream.StreamDescription.Shards {
-
-		// Obtain starting Shard Iterator. This is needed to not process already processed records
-		myShardIterator, err := s.Client.GetShardIterator(&kinesis.GetShardIteratorInput{
-			ShardId:           shard.ShardId,
-			ShardIteratorType: aws.String("LATEST"),
-			StreamName:        s.Stream,
-		})
-
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-
-		// set records output limit. Should not be more than 10000, othervise panics
-		input := kinesis.GetRecordsInput{
-			ShardIterator: myShardIterator.ShardIterator,
-		}
-
-		inputs = append(inputs, input)
-	}
-
-	return inputs, err
 }
 
 func sendCloudevent(record *kinesis.Record, sink string) error {
