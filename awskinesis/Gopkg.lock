@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:863b6696aeb97ea119e129001c09310e167a4adee572c1eecd00de5be2054204"
+  digest = "1:749e01674e6ab3e82fa10c3730d2f027cfdaf0b97df67c5d57106d8a456c29c9"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -36,6 +36,7 @@
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
     "service/kinesis",
+    "service/kinesis/kinesisiface",
     "service/sts",
   ]
   pruneopts = "UT"
@@ -54,6 +55,22 @@
   revision = "3a3d34a7231e937edfa20964dc25c29081c3ebea"
 
 [[projects]]
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  pruneopts = "UT"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:867a400cf7d2eb7db0735058ab9c89a061bb8f44b9b68b148a8503d0bc5529f3"
+  name = "github.com/jarcoal/httpmock"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "53def6cd0f87425f5425d4f0f27f66f048759b94"
+
+[[projects]]
   digest = "1:bb81097a5b62634f3e9fec1014657855610c82d19b9a40c17612e32651e35dca"
   name = "github.com/jmespath/go-jmespath"
   packages = ["."]
@@ -69,12 +86,28 @@
   version = "v1.0.1"
 
 [[projects]]
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  pruneopts = "UT"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:69b1cc331fca23d702bd72f860c6a647afd0aa9fcbc1d0659b1365e26546dd70"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   pruneopts = "UT"
   revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
   version = "v1.2.0"
+
+[[projects]]
+  digest = "1:972c2427413d41a1e06ca4897e8528e5a1622894050e2f527b38ddf0f343f759"
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  pruneopts = "UT"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
@@ -108,9 +141,13 @@
   analyzer-version = 1
   input-imports = [
     "github.com/aws/aws-sdk-go/aws",
+    "github.com/aws/aws-sdk-go/aws/credentials",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/kinesis",
+    "github.com/aws/aws-sdk-go/service/kinesis/kinesisiface",
+    "github.com/jarcoal/httpmock",
     "github.com/sirupsen/logrus",
+    "github.com/stretchr/testify/assert",
     "github.com/triggermesh/sources/tmevents",
   ]
   solver-name = "gps-cdcl"
