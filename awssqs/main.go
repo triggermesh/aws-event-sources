@@ -107,7 +107,7 @@ func main() {
 			continue
 		}
 
-		err = pushMessage(msgs[0])
+		err = pushMessage(msgs[0], sink)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -151,7 +151,7 @@ func (q *Queue) GetMessages(waitTimeout int64) ([]*sqs.Message, error) {
 	return resp.Messages, nil
 }
 
-func pushMessage(msg *sqs.Message) error {
+func pushMessage(msg *sqs.Message, url string) error {
 	log.Info("Processing message with ID: ", aws.StringValue(msg.MessageId))
 	log.Info(msg)
 
@@ -171,12 +171,7 @@ func pushMessage(msg *sqs.Message) error {
 		EventSource: "sqs",
 	}
 
-	//for testing this function. Maybe we should modify tmevents to be able to better test it.
-	if dryRun {
-		return nil
-	}
-
-	err = tmevents.PushEvent(&eventInfo, sink)
+	err = tmevents.PushEvent(&eventInfo, url)
 	if err != nil {
 		return err
 	}

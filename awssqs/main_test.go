@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -97,7 +98,12 @@ func TestGetMessages(t *testing.T) {
 
 func TestPushMessage(t *testing.T) {
 	msg := sqs.Message{}
-	err := pushMessage(&msg)
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+
+	err := pushMessage(&msg, "")
 	assert.Error(t, err)
 
 	msg = sqs.Message{
@@ -108,7 +114,7 @@ func TestPushMessage(t *testing.T) {
 		},
 	}
 	dryRun = true
-	err = pushMessage(&msg)
+	err = pushMessage(&msg, "https://foo.com")
 	assert.NoError(t, err)
 }
 
