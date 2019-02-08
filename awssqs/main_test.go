@@ -80,6 +80,7 @@ func TestQueueLookup(t *testing.T) {
 func TestGetMessages(t *testing.T) {
 	cases := []struct {
 		Resp     sqs.ReceiveMessageOutput
+		err      error
 		Expected []sqs.Message
 	}{
 		{ // Case 1, expect parsed responses
@@ -88,23 +89,25 @@ func TestGetMessages(t *testing.T) {
 					{},
 				},
 			},
+			err: nil,
 			Expected: []sqs.Message{
 				{},
 			},
 		},
 		{ // Case 2, not messages returned
 			Resp:     sqs.ReceiveMessageOutput{},
+			err:      errors.New("No messages found"),
 			Expected: []sqs.Message{},
 		},
 	}
 
 	for _, c := range cases {
 		q := Queue{
-			Client: mockedReceiveMsgs{Resp: c.Resp},
+			Client: mockedReceiveMsgs{Resp: c.Resp, err: c.err},
 			URL:    aws.String("mockURL"),
 		}
 		msgs, err := q.GetMessages(20)
-		assert.NoError(t, err)
+		assert.Equal(t, c.err, err)
 		assert.Equal(t, len(c.Expected), len(msgs))
 	}
 }
@@ -134,7 +137,7 @@ func TestPushMessage(t *testing.T) {
 func TestDeleteMessage(t *testing.T) {
 
 	q := Queue{
-		Client: mockedDeleteMsgs{Resp: sqs.DeleteMessageOutput{}},
+		Client: mockedDeleteMsgs{Resp: sqs.DeleteMessageOutput{}, err: nil},
 		URL:    aws.String("mockURL"),
 	}
 
@@ -143,4 +146,15 @@ func TestDeleteMessage(t *testing.T) {
 	}
 	err := q.DeleteMessage(msg.ReceiptHandle)
 	assert.NoError(t, err)
+
+	q = Queue{
+		Client: mockedDeleteMsgs{Resp: sqs.DeleteMessageOutput{}, err: errors.New("Could not delete msg")},
+		URL:    aws.String("mockURL"),
+	}
+
+	msg = sqs.Message{
+		ReceiptHandle: aws.String("foo"),
+	}
+	err = q.DeleteMessage(msg.ReceiptHandle)
+	assert.Error(t, err)
 }

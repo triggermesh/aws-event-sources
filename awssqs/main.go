@@ -19,7 +19,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -146,7 +145,7 @@ func (q *Queue) GetMessages(waitTimeout int64) ([]*sqs.Message, error) {
 	}
 	resp, err := q.Client.ReceiveMessage(&params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get messages, %v", err)
+		return nil, err
 	}
 	return resp.Messages, nil
 }
