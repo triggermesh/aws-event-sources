@@ -17,101 +17,115 @@ limitations under the License.
 package main
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kinesis"
-	"github.com/sirupsen/logrus"
+	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
+	"github.com/jarcoal/httpmock"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestGetShards(t *testing.T) {
-	stream := "teststream"
-	shardCount := int64(2)
-	region = "us-west-2"
-	enforceConsumerDeletion := true
+type mockedGetRecords struct {
+	kinesisiface.KinesisAPI
+	Resp kinesis.GetRecordsOutput
+	err  error
+}
 
-	mySession, err := session.NewSession(aws.NewConfig())
-	if err != nil {
-		logrus.Fatal(err)
+type mockedGetShardIterator struct {
+	kinesisiface.KinesisAPI
+	Resp kinesis.GetShardIteratorOutput
+	err  error
+}
+
+func (m mockedGetRecords) GetRecords(in *kinesis.GetRecordsInput) (*kinesis.GetRecordsOutput, error) {
+	return &m.Resp, m.err
+}
+
+func (m mockedGetShardIterator) GetShardIterator(in *kinesis.GetShardIteratorInput) (*kinesis.GetShardIteratorOutput, error) {
+	return &m.Resp, m.err
+}
+
+func TestProcessInputs(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+
+	now := time.Now()
+	sink = "https://foo.com"
+
+	records := []*kinesis.Record{
+		{
+			SequenceNumber:              aws.String("1"),
+			ApproximateArrivalTimestamp: &now,
+			Data: []byte("foo"),
+		},
 	}
 
-	c := KinesisStreamConsumer{
-		client: kinesis.New(mySession, aws.NewConfig().WithRegion(region)),
+	s := Stream{
+		Client: mockedGetRecords{Resp: kinesis.GetRecordsOutput{
+			NextShardIterator: aws.String("nextIterator"),
+			Records:           records,
+		}, err: nil},
 	}
 
-	createStreamInput := kinesis.CreateStreamInput{
-		ShardCount: &shardCount,
-		StreamName: &stream,
-	}
-	logrus.Info("Creating Stream")
-	_, err = c.client.CreateStream(&createStreamInput)
-	if err != nil {
-		logrus.Error(err)
+	inputs := []kinesis.GetRecordsInput{
+		{},
 	}
 
-	time.Sleep(20 * time.Second) // need to wait before stream creates
+	err := s.processInputs(inputs)
+	assert.NoError(t, err)
 
-	for i := 0; i <= 10; i++ {
-		myRecord := kinesis.PutRecordInput{}
-		myRecord.SetData([]byte(fmt.Sprintf("Record #%v", i)))
-		//to get 50% of data into a different shard
-		if i%2 == 0 {
-			myRecord.SetExplicitHashKey("170141183460469231731687303715884105729")
-			myRecord.SetPartitionKey("test2ndShard")
-		} else {
-			myRecord.SetPartitionKey("testKey")
-		}
-
-		myRecord.SetStreamName(stream)
-
-		_, err := c.client.PutRecord(&myRecord)
-
-		if err != nil {
-			logrus.Error("PutRecord failed: ", err)
-		}
-		logrus.Info("record inserted!")
+	s = Stream{
+		Client: mockedGetRecords{Resp: kinesis.GetRecordsOutput{}, err: errors.New("error")},
 	}
 
-	inputs, err := c.getInputs()
-	if err != nil {
-		t.Error(err)
+	err = s.processInputs(inputs)
+	assert.NoError(t, err)
+
+}
+
+func TestGetRecordsInputs(t *testing.T) {
+	s := Stream{
+		Client: mockedGetShardIterator{Resp: kinesis.GetShardIteratorOutput{ShardIterator: aws.String("shardIterator")}, err: nil},
+		Stream: aws.String("bar"),
 	}
 
-	if int64(len(inputs)) != shardCount {
-		t.Errorf("Wrong number of inputs in the stream. Expecting %v, got %v", shardCount, int64(len(inputs)))
+	shards := []*kinesis.Shard{
+		{ShardId: aws.String("1")},
 	}
 
-	_, recordsFromFirstShard, err := c.getRecords(inputs[0])
+	inputs := s.getRecordsInputs(shards)
+	assert.Equal(t, 1, len(inputs))
 
-	if err != nil {
-		t.Error(err)
+	s = Stream{
+		Client: mockedGetShardIterator{Resp: kinesis.GetShardIteratorOutput{}, err: errors.New("err")},
+		Stream: aws.String("bar"),
 	}
 
-	if len(recordsFromFirstShard) != 5 {
-		t.Errorf("Wrong number of records in the shard. Expecting %v, got %v", 5, len(recordsFromFirstShard))
-	}
+	inputs = s.getRecordsInputs(shards)
+	assert.Equal(t, 0, len(inputs))
 
-	_, recordsFromSecondShard, err := c.getRecords(inputs[1])
+}
 
-	if err != nil {
-		t.Error(err)
-	}
+func TestSendCloudevent(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
 
-	if len(recordsFromSecondShard) != 5 {
-		t.Errorf("Wrong number of records in the shard. Expecting %v, got %v", 5, len(recordsFromSecondShard))
-	}
+	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
 
-	deleteStreamInput := kinesis.DeleteStreamInput{
-		EnforceConsumerDeletion: &enforceConsumerDeletion,
-		StreamName:              &stream,
+	now := time.Now()
+	record := kinesis.Record{
+		Data: []byte("foo"),
+		ApproximateArrivalTimestamp: &now,
+		SequenceNumber:              aws.String("1"),
 	}
-	logrus.Info("Deleting Stream")
-	_, err = c.client.DeleteStream(&deleteStreamInput)
-	if err != nil {
-		t.Error(err)
-	}
+	err := sendCloudevent(&record, "")
+	assert.Error(t, err)
 
+	err = sendCloudevent(&record, "https://foo.com")
+	assert.NoError(t, err)
 }

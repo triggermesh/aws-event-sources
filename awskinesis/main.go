@@ -20,12 +20,12 @@ package main
 import (
 	"flag"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
 	log "github.com/sirupsen/logrus"
 	"github.com/triggermesh/sources/tmevents"
 )
@@ -33,33 +33,29 @@ import (
 var (
 	accountAccessKeyID     string
 	accountSecretAccessKey string
-	stream                 string
+	streamName             string
 	region                 string
 	sink                   string
-
-	shardIteratorType  string
-	recordsOutputLimit int64
 )
 
-//KinesisStreamConsumer contains Kiness client and stream name
-type KinesisStreamConsumer struct {
-	client *kinesis.Kinesis
+// Stream provides the ability to operate on Kinesis stream.
+type Stream struct {
+	Client kinesisiface.KinesisAPI
+	Stream *string
 }
 
 func init() {
 	flag.StringVar(&sink, "sink", "", "where to sink events to")
-
-	accountAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
-	accountSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
-	stream = os.Getenv("STREAM")
-	region = os.Getenv("AWS_REGION")
-	shardIteratorType = "LATEST"
-	recordsOutputLimit = int64(10)
-
 }
 
 func main() {
 	flag.Parse()
+
+	accountAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+	accountSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
+	region = os.Getenv("AWS_REGION")
+	streamName = os.Getenv("STREAM")
+
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(region),
 		Credentials: credentials.NewStaticCredentials(accountAccessKeyID, accountSecretAccessKey, ""),
@@ -69,62 +65,36 @@ func main() {
 		log.Fatal(err)
 	}
 
-	consumer := KinesisStreamConsumer{kinesis.New(sess)}
+	stream := Stream{kinesis.New(sess), &streamName}
 
-	inputs, err := consumer.getInputs()
+	// Get info about a particular stream
+	myStream, err := stream.Client.DescribeStream(&kinesis.DescribeStreamInput{StreamName: stream.Stream})
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	//Obtain records inputs for different shards
+	inputs := stream.getRecordsInputs(myStream.StreamDescription.Shards)
+
 	for {
-		for i, input := range inputs {
-
-			recordsOutput, _, err := consumer.getRecords(input)
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-
-			//remove old imput
-			inputs = append(inputs[:i], inputs[i+1:]...)
-
-			//generate new input
-			input = kinesis.GetRecordsInput{
-				ShardIterator: recordsOutput.NextShardIterator,
-				Limit:         &recordsOutputLimit,
-			}
-
-			//add newly generated input to the slice
-			//so that new iteration would begin with new sharIterator
-			inputs = append(inputs, input)
-
-			if len(recordsOutput.Records) == 0 {
-				log.Info("No records. Sleep for 10 seconds")
-				time.Sleep(10 * time.Second)
-			}
+		err := stream.processInputs(inputs)
+		if err != nil {
+			log.Error(err)
 		}
 	}
 }
 
-func (c KinesisStreamConsumer) getInputs() ([]kinesis.GetRecordsInput, error) {
+func (s Stream) getRecordsInputs(shards []*kinesis.Shard) []kinesis.GetRecordsInput {
 	inputs := []kinesis.GetRecordsInput{}
 
-	// Get info about a particular stream
-	myStream, err := c.client.DescribeStream(&kinesis.DescribeStreamInput{
-		StreamName: &stream,
-	})
-	if err != nil {
-		log.Error(err)
-		return inputs, err
-	}
-
-	for _, shard := range myStream.StreamDescription.Shards {
+	//Kinesis stream might have several shards and each of them had "LATEST" Iterator.
+	for _, shard := range shards {
 
 		// Obtain starting Shard Iterator. This is needed to not process already processed records
-		myShardIterator, err := c.client.GetShardIterator(&kinesis.GetShardIteratorInput{
+		myShardIterator, err := s.Client.GetShardIterator(&kinesis.GetShardIteratorInput{
 			ShardId:           shard.ShardId,
-			ShardIteratorType: &shardIteratorType,
-			StreamName:        &stream,
+			ShardIteratorType: aws.String("LATEST"),
+			StreamName:        s.Stream,
 		})
 
 		if err != nil {
@@ -135,34 +105,45 @@ func (c KinesisStreamConsumer) getInputs() ([]kinesis.GetRecordsInput, error) {
 		// set records output limit. Should not be more than 10000, othervise panics
 		input := kinesis.GetRecordsInput{
 			ShardIterator: myShardIterator.ShardIterator,
-			Limit:         &recordsOutputLimit,
 		}
 
 		inputs = append(inputs, input)
 	}
 
-	return inputs, err
+	return inputs
 }
 
-func (c KinesisStreamConsumer) getRecords(input kinesis.GetRecordsInput) (*kinesis.GetRecordsOutput, []*kinesis.Record, error) {
-	records := []*kinesis.Record{}
-	recordsOutput, err := c.client.GetRecords(&input)
-	if err != nil {
-		log.Errorf("GetRecords failed: %v", err)
-		return recordsOutput, records, err
-	}
+func (s Stream) processInputs(inputs []kinesis.GetRecordsInput) error {
 
-	for _, record := range recordsOutput.Records {
-		records = append(records, record)
-		go func(record *kinesis.Record) {
+	for i, input := range inputs {
+
+		recordsOutput, err := s.Client.GetRecords(&input)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+
+		for _, record := range recordsOutput.Records {
 			err := sendCloudevent(record, sink)
 			if err != nil {
 				log.Errorf("SendCloudEvent failed: %v", err)
 			}
-		}(record)
+		}
+
+		//remove old imput
+		inputs = append(inputs[:i], inputs[i+1:]...)
+
+		//generate new input
+		input = kinesis.GetRecordsInput{
+			ShardIterator: recordsOutput.NextShardIterator,
+		}
+
+		//add newly generated input to the slice
+		//so that new iteration would begin with new sharIterator
+		inputs = append(inputs, input)
 	}
 
-	return recordsOutput, records, nil
+	return nil
 }
 
 func sendCloudevent(record *kinesis.Record, sink string) error {

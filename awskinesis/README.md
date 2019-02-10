@@ -18,7 +18,6 @@ export STREAM=default
 export AWS_REGION=us-east-1
 export AWS_ACCESS_KEY_ID=<>
 export AWS_SECRET_ACCESS_KEY=<>
-export AWS_SECURE_TOKEN=<>
 
 ```
 
@@ -33,7 +32,6 @@ docker run -ti -e STREAM="stream_name" \
                -e AWS_REGION="us-east-1" \
                -e AWS_ACCESS_KEY_ID="fgfdgsdfg" \
                -e AWS_SECRET_ACCESS_KEY="dsgdgsfgsfdgdsf" \
-               -e AWS_SECURE_TOKEN="dsgdgsfgsfdgdsf" \
                gcr.io/triggermesh/awskinesis:latest
 ```
 
@@ -44,7 +42,6 @@ Create secret called awscreds with the creds file:
 ```
  kubectl create secret generic awscreds --from-literal=aws_access_key_id=<replace_with_key> \
                                         --from-literal=aws_secret_access_key=<replace_with_key> \
-                                        --from-literal=aws_secure_token=<replace_with_token> \
 ```
 
 Edit the Container source manifest and apply it:
