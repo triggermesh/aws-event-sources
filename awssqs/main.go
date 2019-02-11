@@ -123,7 +123,15 @@ func main() {
 			QueueUrl:       q.URL,
 		})
 
-		err = pushMessage(msgs[0], attributes.Attributes["QueueArn"], sink)
+		c := cloudevents.NewClient(
+			sink,
+			cloudevents.Builder{
+				Source:    "aws:sqs",
+				EventType: "SQS message",
+			},
+		)
+
+		err = pushMessage(c, msgs[0], attributes.Attributes["QueueArn"])
 		if err != nil {
 			log.Error(err)
 			continue
@@ -167,17 +175,9 @@ func (q *Queue) GetMessages(waitTimeout int64) ([]*sqs.Message, error) {
 	return resp.Messages, nil
 }
 
-func pushMessage(msg *sqs.Message, queueARN *string, url string) error {
+func pushMessage(c *cloudevents.Client, msg *sqs.Message, queueARN *string) error {
 	log.Info("Processing message with ID: ", aws.StringValue(msg.MessageId))
 	log.Info(msg)
-
-	c := cloudevents.NewClient(
-		sink,
-		cloudevents.Builder{
-			Source:    "aws:sqs",
-			EventType: "SQS message",
-		},
-	)
 
 	sqsEvent := Event{
 		MessageID:         msg.MessageId,
