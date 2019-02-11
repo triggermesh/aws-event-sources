@@ -66,12 +66,22 @@ func TestProcessInputs(t *testing.T) {
 		},
 	}
 
+	c := cloudevents.NewClient(
+		"https://foo.com",
+		cloudevents.Builder{
+			Source:    "aws:kinesis",
+			EventType: "Kinesis Record",
+		},
+	)
+
 	s := Stream{
 		Client: mockedGetRecords{Resp: kinesis.GetRecordsOutput{
 			NextShardIterator: aws.String("nextIterator"),
 			Records:           records,
 		}, err: nil},
 	}
+
+	s.cloudEventsClient = c
 
 	inputs := []kinesis.GetRecordsInput{
 		{},
@@ -83,6 +93,8 @@ func TestProcessInputs(t *testing.T) {
 	s = Stream{
 		Client: mockedGetRecords{Resp: kinesis.GetRecordsOutput{}, err: errors.New("error")},
 	}
+
+	s.cloudEventsClient = c
 
 	err = s.processInputs(inputs, []*string{aws.String("shardID")})
 	assert.NoError(t, err)
