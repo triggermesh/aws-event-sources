@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
 	"github.com/jarcoal/httpmock"
+	"github.com/knative/pkg/cloudevents"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -76,14 +77,14 @@ func TestProcessInputs(t *testing.T) {
 		{},
 	}
 
-	err := s.processInputs(inputs)
+	err := s.processInputs(inputs, []*string{aws.String("shardID")})
 	assert.NoError(t, err)
 
 	s = Stream{
 		Client: mockedGetRecords{Resp: kinesis.GetRecordsOutput{}, err: errors.New("error")},
 	}
 
-	err = s.processInputs(inputs)
+	err = s.processInputs(inputs, []*string{aws.String("shardID")})
 	assert.NoError(t, err)
 
 }
@@ -98,7 +99,7 @@ func TestGetRecordsInputs(t *testing.T) {
 		{ShardId: aws.String("1")},
 	}
 
-	inputs := s.getRecordsInputs(shards)
+	inputs, _ := s.getRecordsInputs(shards)
 	assert.Equal(t, 1, len(inputs))
 
 	s = Stream{
@@ -106,7 +107,7 @@ func TestGetRecordsInputs(t *testing.T) {
 		Stream: aws.String("bar"),
 	}
 
-	inputs = s.getRecordsInputs(shards)
+	inputs, _ = s.getRecordsInputs(shards)
 	assert.Equal(t, 0, len(inputs))
 
 }
@@ -117,15 +118,19 @@ func TestSendCloudevent(t *testing.T) {
 
 	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
 
-	now := time.Now()
 	record := kinesis.Record{
-		Data: []byte("foo"),
-		ApproximateArrivalTimestamp: &now,
-		SequenceNumber:              aws.String("1"),
+		Data:           []byte("foo"),
+		SequenceNumber: aws.String("1"),
 	}
-	err := sendCloudevent(&record, "")
-	assert.Error(t, err)
 
-	err = sendCloudevent(&record, "https://foo.com")
+	c := cloudevents.NewClient(
+		"https://foo.com",
+		cloudevents.Builder{
+			Source:    "aws:kinesis",
+			EventType: "Kinesis Record",
+		},
+	)
+
+	err := sendCloudevent(c, &record, aws.String(""))
 	assert.NoError(t, err)
 }

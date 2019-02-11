@@ -44,23 +44,20 @@
   version = "v1.16.11"
 
 [[projects]]
-  branch = "master"
-  digest = "1:b95c3763b72359370262246870366418c1d17446195e3c73921135c2537b9655"
-  name = "github.com/cloudevents/sdk-go"
-  packages = [
-    ".",
-    "v02",
-  ]
-  pruneopts = "UT"
-  revision = "3a3d34a7231e937edfa20964dc25c29081c3ebea"
-
-[[projects]]
   digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   pruneopts = "UT"
   revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
   version = "v1.1.1"
+
+[[projects]]
+  digest = "1:236d7e1bdb50d8f68559af37dbcf9d142d56b431c9b2176d41e2a009b664cda8"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -76,6 +73,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "c2b33e84"
+
+[[projects]]
+  branch = "master"
+  digest = "1:7dd6d64fbc607130797538d9f5800d57c522352e074ae0ffd1b3a7e8f12c6f22"
+  name = "github.com/knative/pkg"
+  packages = ["cloudevents"]
+  pruneopts = "UT"
+  revision = "5db4e8e38e5682fd28c4849ffa3135da7787edb6"
 
 [[projects]]
   digest = "1:0a69a1c0db3591fcefb47f115b224592c8dfa4368b7ba9fae509d5e16cdc95c8"
@@ -111,14 +116,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b88ef716e15cd387197fc2e9f6c7155a72fa28c72b084e2dcb47b09e03996d70"
-  name = "github.com/triggermesh/sources"
-  packages = ["tmevents"]
-  pruneopts = "UT"
-  revision = "a1c7e8ed43692ec3993d7fe48f13358b74677990"
-
-[[projects]]
-  branch = "master"
   digest = "1:38f553aff0273ad6f367cb0a0f8b6eecbaef8dc6cb8b50e57b6a81c1d5b1e332"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
@@ -146,9 +143,9 @@
     "github.com/aws/aws-sdk-go/service/kinesis",
     "github.com/aws/aws-sdk-go/service/kinesis/kinesisiface",
     "github.com/jarcoal/httpmock",
+    "github.com/knative/pkg/cloudevents",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
-    "github.com/triggermesh/sources/tmevents",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
