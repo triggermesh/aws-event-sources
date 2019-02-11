@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 	"github.com/jarcoal/httpmock"
+	"github.com/knative/pkg/cloudevents"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -129,24 +130,26 @@ func TestGetMessages(t *testing.T) {
 }
 
 func TestPushMessage(t *testing.T) {
-	msg := sqs.Message{}
+	msg := sqs.Message{
+		MessageId: aws.String("foo"),
+		Body:      aws.String("bar"),
+		Attributes: map[string]*string{
+			"SentTimestamp": aws.String("1549540781"),
+		}}
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
 	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
 
-	err := pushMessage(&msg, "")
-	assert.Error(t, err)
-
-	msg = sqs.Message{
-		MessageId: aws.String("foo"),
-		Body:      aws.String("bar"),
-		Attributes: map[string]*string{
-			"SentTimestamp": aws.String("1549540781"),
+	c := cloudevents.NewClient(
+		"https://foo.com",
+		cloudevents.Builder{
+			Source:    "aws:sqs",
+			EventType: "SQS message",
 		},
-	}
-	dryRun = true
-	err = pushMessage(&msg, "https://foo.com")
+	)
+
+	err := pushMessage(c, &msg, aws.String("testQueueARN"))
 	assert.NoError(t, err)
 }
 

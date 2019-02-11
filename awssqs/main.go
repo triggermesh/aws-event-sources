@@ -20,11 +20,10 @@ package main
 import (
 	"flag"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/triggermesh/sources/tmevents"
+	"github.com/knative/pkg/cloudevents"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -34,12 +33,25 @@ import (
 )
 
 var sink string
-var dryRun bool
+var region string
 
 // Queue provides the ability to handle SQS messages.
 type Queue struct {
 	Client sqsiface.SQSAPI
 	URL    *string
+}
+
+// Event represent a sample of Amazon SQS Event
+type Event struct {
+	MessageID         *string                               `json:"messageId"`
+	ReceiptHandle     *string                               `json:"receiptHandle"`
+	Body              *string                               `json:"body"`
+	Attributes        map[string]*string                    `json:"attributes"`
+	MessageAttributes map[string]*sqs.MessageAttributeValue `json:"messageAttributes"`
+	Md5OfBody         *string                               `json:"md5OfBody"`
+	EventSource       *string                               `json:"eventSource"`
+	EventSourceARN    *string                               `json:"eventSourceARN"`
+	AwsRegion         *string                               `json:"awsRegion"`
 }
 
 func init() {
@@ -59,7 +71,7 @@ func main() {
 	if !ok {
 		log.Fatal("AWS_SECRET_ACCESS_KEY env variable is not set!")
 	}
-	region, ok := os.LookupEnv("AWS_REGION")
+	region, ok = os.LookupEnv("AWS_REGION")
 	if !ok {
 		log.Fatal("AWS_REGION env variable is not set!")
 	}
@@ -106,7 +118,20 @@ func main() {
 			continue
 		}
 
-		err = pushMessage(msgs[0], sink)
+		attributes, err := q.Client.GetQueueAttributes(&sqs.GetQueueAttributesInput{
+			AttributeNames: []*string{aws.String("QueueArn")},
+			QueueUrl:       q.URL,
+		})
+
+		c := cloudevents.NewClient(
+			sink,
+			cloudevents.Builder{
+				Source:    "aws:sqs",
+				EventType: "SQS message",
+			},
+		)
+
+		err = pushMessage(c, msgs[0], attributes.Attributes["QueueArn"])
 		if err != nil {
 			log.Error(err)
 			continue
@@ -150,29 +175,24 @@ func (q *Queue) GetMessages(waitTimeout int64) ([]*sqs.Message, error) {
 	return resp.Messages, nil
 }
 
-func pushMessage(msg *sqs.Message, url string) error {
+func pushMessage(c *cloudevents.Client, msg *sqs.Message, queueARN *string) error {
 	log.Info("Processing message with ID: ", aws.StringValue(msg.MessageId))
 	log.Info(msg)
 
-	//Parse out timestamp
-	msgAttributes := aws.StringValueMap(msg.Attributes)
-	timeInt, err := strconv.ParseInt(msgAttributes["SentTimestamp"], 10, 64)
-	if err != nil {
-		return err
+	sqsEvent := Event{
+		MessageID:         msg.MessageId,
+		ReceiptHandle:     msg.ReceiptHandle,
+		Body:              msg.Body,
+		Attributes:        msg.Attributes,
+		MessageAttributes: msg.MessageAttributes,
+		Md5OfBody:         msg.MD5OfBody,
+		EventSource:       aws.String("aws:sqs"),
+		EventSourceARN:    queueARN,
+		AwsRegion:         aws.String(region),
 	}
 
-	//Craft event info and push it
-	eventInfo := tmevents.EventInfo{
-		EventData:   []byte(aws.StringValue(msg.Body)),
-		EventID:     aws.StringValue(msg.MessageId),
-		EventTime:   time.Unix(timeInt, 0),
-		EventType:   "cloudevent.greet.you",
-		EventSource: "sqs",
-	}
-
-	err = tmevents.PushEvent(&eventInfo, url)
-	if err != nil {
-		return err
+	if err := c.Send(sqsEvent); err != nil {
+		log.Printf("error sending: %v", err)
 	}
 
 	return nil
