@@ -19,6 +19,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -26,8 +27,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
+	"github.com/knative/pkg/cloudevents"
 	log "github.com/sirupsen/logrus"
-	"github.com/triggermesh/sources/tmevents"
 )
 
 var (
@@ -36,12 +37,33 @@ var (
 	streamName             string
 	region                 string
 	sink                   string
+	streamARN              *string
 )
 
 // Stream provides the ability to operate on Kinesis stream.
 type Stream struct {
-	Client kinesisiface.KinesisAPI
-	Stream *string
+	Client            kinesisiface.KinesisAPI
+	Stream            *string
+	cloudEventsClient *cloudevents.Client
+}
+
+type Kinesis struct {
+	ParticionKey         *string `json:"partitionKey"`
+	Data                 []byte  `json:"data"`
+	SequenceNumber       *string `json:"sequenceNumber"`
+	KinesisSchemaVersion *string `json:"kinesisSchemaVersion"`
+}
+
+// Event represents Amazon Kinesis Data Streams Event
+type Event struct {
+	EventID      *string `json:"eventID"`
+	EventVersion *string `json:"eventVersion"`
+	Kinesis      Kinesis `json:"kinesis"`
+	//InvokeIdentityArn string `json:"invokeIdentityArn"`
+	EventName      *string `json:"eventName"`
+	EventSourceARN *string `json:"eventSourceARN"`
+	EventSource    *string `json:"eventSource"`
+	AWSRegion      *string `json:"awsRegion"`
 }
 
 func init() {
@@ -65,7 +87,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	stream := Stream{kinesis.New(sess), &streamName}
+	c := cloudevents.NewClient(
+		sink,
+		cloudevents.Builder{
+			Source:    "aws:kinesis",
+			EventType: "Kinesis Record",
+		},
+	)
+
+	stream := Stream{kinesis.New(sess), &streamName, c}
 
 	// Get info about a particular stream
 	myStream, err := stream.Client.DescribeStream(&kinesis.DescribeStreamInput{StreamName: stream.Stream})
@@ -73,19 +103,22 @@ func main() {
 		log.Fatal(err)
 	}
 
+	streamARN = myStream.StreamDescription.StreamARN
+
 	//Obtain records inputs for different shards
-	inputs := stream.getRecordsInputs(myStream.StreamDescription.Shards)
+	inputs, shardIDs := stream.getRecordsInputs(myStream.StreamDescription.Shards)
 
 	for {
-		err := stream.processInputs(inputs)
+		err := stream.processInputs(inputs, shardIDs)
 		if err != nil {
 			log.Error(err)
 		}
 	}
 }
 
-func (s Stream) getRecordsInputs(shards []*kinesis.Shard) []kinesis.GetRecordsInput {
+func (s Stream) getRecordsInputs(shards []*kinesis.Shard) ([]kinesis.GetRecordsInput, []*string) {
 	inputs := []kinesis.GetRecordsInput{}
+	shardIDs := []*string{}
 
 	//Kinesis stream might have several shards and each of them had "LATEST" Iterator.
 	for _, shard := range shards {
@@ -108,14 +141,16 @@ func (s Stream) getRecordsInputs(shards []*kinesis.Shard) []kinesis.GetRecordsIn
 		}
 
 		inputs = append(inputs, input)
+		shardIDs = append(shardIDs, shard.ShardId)
 	}
 
-	return inputs
+	return inputs, shardIDs
 }
 
-func (s Stream) processInputs(inputs []kinesis.GetRecordsInput) error {
+func (s Stream) processInputs(inputs []kinesis.GetRecordsInput, shardIDs []*string) error {
 
 	for i, input := range inputs {
+		shardID := shardIDs[i]
 
 		recordsOutput, err := s.Client.GetRecords(&input)
 		if err != nil {
@@ -124,7 +159,7 @@ func (s Stream) processInputs(inputs []kinesis.GetRecordsInput) error {
 		}
 
 		for _, record := range recordsOutput.Records {
-			err := sendCloudevent(record, sink)
+			err := sendCloudevent(s.cloudEventsClient, record, shardID)
 			if err != nil {
 				log.Errorf("SendCloudEvent failed: %v", err)
 			}
@@ -146,20 +181,27 @@ func (s Stream) processInputs(inputs []kinesis.GetRecordsInput) error {
 	return nil
 }
 
-func sendCloudevent(record *kinesis.Record, sink string) error {
+func sendCloudevent(c *cloudevents.Client, record *kinesis.Record, shardID *string) error {
 	log.Info("Processing record ID: ", *record.SequenceNumber)
 
-	eventInfo := tmevents.EventInfo{
-		EventData:   record.Data,
-		EventID:     *record.SequenceNumber,
-		EventTime:   *record.ApproximateArrivalTimestamp,
-		EventType:   "cloudevent.greet.you",
-		EventSource: "aws-kinesis stream",
+	kinesisEvent := Event{
+		EventID:        aws.String(fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber)),
+		EventVersion:   aws.String("1.0"),
+		EventName:      aws.String("aws:kinesis:record"),
+		EventSourceARN: streamARN,
+		EventSource:    aws.String("aws:kinesis"),
+		AWSRegion:      aws.String(region),
+		Kinesis: Kinesis{
+			ParticionKey:         record.PartitionKey,
+			Data:                 record.Data,
+			SequenceNumber:       record.SequenceNumber,
+			KinesisSchemaVersion: aws.String("1.0"),
+		},
 	}
 
-	err := tmevents.PushEvent(&eventInfo, sink)
-	if err != nil {
-		return err
+	if err := c.Send(kinesisEvent); err != nil {
+		log.Printf("error sending: %v", err)
 	}
+
 	return nil
 }
