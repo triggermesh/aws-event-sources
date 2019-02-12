@@ -19,6 +19,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codecommit"
+	"github.com/knative/pkg/cloudevents"
 	log "github.com/sirupsen/logrus"
 	"github.com/triggermesh/sources/tmevents"
 )
@@ -46,7 +48,9 @@ var (
 
 //СodeCommitClient struct represent CC Client
 type СodeCommitClient struct {
-	Client *codecommit.CodeCommit
+	Client            *codecommit.CodeCommit
+	CloudEventsClient *cloudevents.Client
+	GitEvents         []string
 }
 
 func init() {
@@ -81,60 +85,75 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Info("Started new session")
+	cloudEvents := cloudevents.NewClient(
+		sink,
+		cloudevents.Builder{
+			Source: "aws:codecommit",
+		},
+	)
+
 	cc := СodeCommitClient{
-		Client: codecommit.New(sess),
+		Client:            codecommit.New(sess),
+		CloudEventsClient: cloudEvents,
+		GitEvents:         strings.Split(gitEventsEnv, ","),
 	}
 
-	cc.ReceiveMsg()
+	gitCommit, pullRequests, err := cc.SeedCommitsAndPRs()
+	if err != nil {
+		log.Fatal(err)
+	}
 
+	cc.ReceiveMsg(gitCommit, pullRequests)
 }
 
-//ReceiveMsg implements the receive interface for codecommit
-func (cc *СodeCommitClient) ReceiveMsg() {
+//SeedCommitsAndPRs prepares commit and PRs
+func (cc *СodeCommitClient) SeedCommitsAndPRs() (gitCommit string, pullRequests map[string]*codecommit.PullRequest, err error) {
 	log.Info("Started receiving messages")
-	//Parse out git events we're looking for
-	gitEvents := strings.Split(gitEventsEnv, ",")
 
-	var gitCommit string
-	var pullRequests map[string]*codecommit.PullRequest
-	var err error
-
-	//Seed commit and PRs
-	for _, gitEvent := range gitEvents {
+	for _, gitEvent := range cc.GitEvents {
 		switch gitEvent {
 
 		case "push":
-			gitCommit, err = cc.commitID()
+			gitCommit, err = cc.getCommitID()
 			if err != nil {
-				log.Fatal("Unable to seed commits: ", err)
+				return gitCommit, pullRequests, err
 			}
 
 		case "pull_request":
 			pullRequests = make(map[string]*codecommit.PullRequest)
 			pullRequestsOutput, err := cc.Client.ListPullRequests(&codecommit.ListPullRequestsInput{
-				RepositoryName: aws.String(repoNameEnv)})
+				RepositoryName: aws.String(repoNameEnv),
+			})
 			if err != nil {
-				log.Fatal("Unable to seed PRs: ", err)
+				return gitCommit, pullRequests, err
 			}
+
 			for _, pr := range aws.StringValueSlice(pullRequestsOutput.PullRequestIds) {
 				err = cc.appendPR(pr, &pullRequests)
 				if err != nil {
-					log.Fatal("Unable to seed PRs: ", err)
+					return gitCommit, pullRequests, err
 				}
 			}
+		default:
+			return gitCommit, pullRequests, fmt.Errorf("unexpected git event %s", gitEvent)
 		}
 	}
+
+	return gitCommit, pullRequests, nil
+}
+
+//ReceiveMsg implements the receive interface for codecommit
+func (cc *СodeCommitClient) ReceiveMsg(gitCommit string, pullRequests map[string]*codecommit.PullRequest) {
 
 	//Look for new messages every x seconds
 	for range time.Tick(time.Duration(syncTime) * time.Second) {
 
-		for _, gitEvent := range gitEvents {
+		for _, gitEvent := range cc.GitEvents {
 			switch gitEvent {
 
 			//If push in events, get last commit ID. Send event if it's changed since last time.
 			case "push":
-				gitCommitTemp, err := cc.commitID()
+				gitCommitTemp, err := cc.getCommitID()
 				if err != nil {
 					log.Fatal(err)
 				}
@@ -201,8 +220,21 @@ func (cc *СodeCommitClient) appendPR(prID string, prList *map[string]*codecommi
 	return nil
 }
 
+//commitID returns latest commit hash on the branch
+func (cc СodeCommitClient) getCommitID() (string, error) {
+	branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
+		BranchName:     aws.String(repoBranchEnv),
+		RepositoryName: aws.String(repoNameEnv)})
+	if err != nil {
+		return "", err
+	}
+
+	return aws.StringValue(branchInfo.Branch.CommitId), nil
+}
+
 //sendPREvent sends an event contianing PR info when a PR is open/closed
 func (cc *СodeCommitClient) sendPREvent(pr *codecommit.PullRequest, eventType, sink string) error {
+
 	eventInfo := tmevents.EventInfo{
 		EventData:   []byte(aws.StringValue(pr.Title)),
 		EventID:     aws.StringValue(pr.PullRequestId),
@@ -219,18 +251,6 @@ func (cc *СodeCommitClient) sendPREvent(pr *codecommit.PullRequest, eventType, 
 	}
 
 	return nil
-}
-
-//commitID returns latest commit hash on the branch
-func (cc СodeCommitClient) commitID() (string, error) {
-	branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
-		BranchName:     aws.String(repoBranchEnv),
-		RepositoryName: aws.String(repoNameEnv)})
-	if err != nil {
-		return "", err
-	}
-
-	return aws.StringValue(branchInfo.Branch.CommitId), nil
 }
 
 //sendPush sends an event containing data about a git commit that was pushed to a branch
