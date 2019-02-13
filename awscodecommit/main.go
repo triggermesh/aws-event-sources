@@ -126,17 +126,21 @@ func main() {
 }
 
 //SeedCommitsAndPRs prepares commit and PRs
-func (cc *СodeCommitClient) SeedCommitsAndPRs() (gitCommit string, pullRequests map[string]*codecommit.PullRequest, err error) {
+func (cc *СodeCommitClient) SeedCommitsAndPRs() (gitCommit *string, pullRequests map[string]*codecommit.PullRequest, err error) {
 	log.Info("Started receiving messages")
 
 	for _, gitEvent := range cc.GitEvents {
 		switch gitEvent {
 
 		case "push":
-			gitCommit, err = cc.getCommitID()
+			branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
+				BranchName:     aws.String(repoBranchEnv),
+				RepositoryName: aws.String(repoNameEnv),
+			})
 			if err != nil {
 				return gitCommit, pullRequests, err
 			}
+			gitCommit = branchInfo.Branch.CommitId
 
 		case "pull_request":
 			pullRequests = make(map[string]*codecommit.PullRequest)
@@ -162,7 +166,7 @@ func (cc *СodeCommitClient) SeedCommitsAndPRs() (gitCommit string, pullRequests
 }
 
 //ReceiveMsg implements the receive interface for codecommit
-func (cc *СodeCommitClient) ReceiveMsg(gitCommit string, pullRequests map[string]*codecommit.PullRequest) {
+func (cc *СodeCommitClient) ReceiveMsg(gitCommit *string, pullRequests map[string]*codecommit.PullRequest) {
 
 	//Look for new messages every x seconds
 	for range time.Tick(time.Duration(syncTime) * time.Second) {
@@ -172,10 +176,13 @@ func (cc *СodeCommitClient) ReceiveMsg(gitCommit string, pullRequests map[strin
 
 			//If push in events, get last commit ID. Send event if it's changed since last time.
 			case "push":
-				gitCommitTemp, err := cc.getCommitID()
+				branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
+					BranchName:     aws.String(repoBranchEnv),
+					RepositoryName: aws.String(repoNameEnv)})
 				if err != nil {
 					log.Fatal(err)
 				}
+				gitCommitTemp := branchInfo.Branch.CommitId
 				if gitCommitTemp != gitCommit {
 					gitCommit = gitCommitTemp
 					err = cc.sendPushEvent(gitCommit)
@@ -239,18 +246,6 @@ func (cc *СodeCommitClient) appendPR(prID string, prList *map[string]*codecommi
 	return nil
 }
 
-//commitID returns latest commit hash on the branch
-func (cc СodeCommitClient) getCommitID() (string, error) {
-	branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
-		BranchName:     aws.String(repoBranchEnv),
-		RepositoryName: aws.String(repoNameEnv)})
-	if err != nil {
-		return "", err
-	}
-
-	return aws.StringValue(branchInfo.Branch.CommitId), nil
-}
-
 //sendPREvent sends an event contianing PR info when a PR is open/closed
 func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest, eventType string) error {
 
@@ -271,11 +266,11 @@ func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest, ev
 }
 
 //sendPush sends an event containing data about a git commit that was pushed to a branch
-func (cc СodeCommitClient) sendPushEvent(commitHash string) error {
+func (cc СodeCommitClient) sendPushEvent(commitHash *string) error {
 
 	//Fetch full commit info
 	commitOutput, err := cc.Client.GetCommit(&codecommit.GetCommitInput{
-		CommitId:       aws.String(commitHash),
+		CommitId:       commitHash,
 		RepositoryName: aws.String(repoNameEnv)})
 	if err != nil {
 		return err
@@ -287,7 +282,7 @@ func (cc СodeCommitClient) sendPushEvent(commitHash string) error {
 		Commit:           commit,
 		CommitRepository: aws.String(repoNameEnv),
 		CommitBranch:     aws.String(repoBranchEnv),
-		CommitHash:       aws.String(commitHash),
+		CommitHash:       commitHash,
 		EventSource:      aws.String("aws:codecommit"),
 		AwsRegion:        aws.String(awsRegionEnv),
 	}
