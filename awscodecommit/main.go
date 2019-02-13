@@ -178,7 +178,7 @@ func (cc *СodeCommitClient) ReceiveMsg(gitCommit string, pullRequests map[strin
 				}
 				if gitCommitTemp != gitCommit {
 					gitCommit = gitCommitTemp
-					err = cc.sendPushEvent(gitCommit, sink)
+					err = cc.sendPushEvent(gitCommit)
 					if err != nil {
 						log.Error("Failed to send push event. ", err)
 					}
@@ -207,7 +207,7 @@ func (cc *СodeCommitClient) ReceiveMsg(gitCommit string, pullRequests map[strin
 						}
 						if localStatus != aws.StringValue(prInfo.PullRequest.PullRequestStatus) {
 							pullRequests[pr] = prInfo.PullRequest
-							err = cc.sendPREvent(pullRequests[pr], "pr_"+strings.ToLower(aws.StringValue(pullRequests[pr].PullRequestStatus)), sink)
+							err = cc.sendPREvent(pullRequests[pr], "pr_"+strings.ToLower(aws.StringValue(pullRequests[pr].PullRequestStatus)))
 							if err != nil {
 								log.Error("Error sending PR event: ", err)
 							}
@@ -215,7 +215,7 @@ func (cc *СodeCommitClient) ReceiveMsg(gitCommit string, pullRequests map[strin
 						// If we don't know about this PR, assume it's new and pr_open event
 					} else {
 						cc.appendPR(pr, &pullRequests)
-						err = cc.sendPREvent(pullRequests[pr], "pr_open", sink)
+						err = cc.sendPREvent(pullRequests[pr], "pr_open")
 						if err != nil {
 							log.Error("Error sending PR event: ", err)
 						}
@@ -252,7 +252,7 @@ func (cc СodeCommitClient) getCommitID() (string, error) {
 }
 
 //sendPREvent sends an event contianing PR info when a PR is open/closed
-func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest, eventType, sink string) error {
+func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest, eventType string) error {
 
 	codecommitEvent := PRMessageEvent{
 		PullRequest: pullRequest,
@@ -271,7 +271,7 @@ func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest, ev
 }
 
 //sendPush sends an event containing data about a git commit that was pushed to a branch
-func (cc СodeCommitClient) sendPushEvent(commitHash, sink string) error {
+func (cc СodeCommitClient) sendPushEvent(commitHash string) error {
 
 	//Fetch full commit info
 	commitOutput, err := cc.Client.GetCommit(&codecommit.GetCommitInput{
