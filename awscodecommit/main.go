@@ -30,7 +30,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/knative/pkg/cloudevents"
 	log "github.com/sirupsen/logrus"
-	"github.com/triggermesh/sources/tmevents"
 )
 
 var (
@@ -48,18 +47,22 @@ var (
 
 // PushMessageEvent represent a push message event from codeCommit source
 type PushMessageEvent struct {
-	AdditionalData   *string              `json:"additionalData"`
-	Author           *codecommit.UserInfo `json:"author"`
-	CommitID         *string              `json:"commitId"`
-	Committer        *codecommit.UserInfo `json:"committer"`
-	Message          *string              `json:"message"`
-	Parents          []*string            `json:"parents"`
-	TreeID           *string              `json:"treeId"`
-	CommitRepository *string              `json:"commitRepository"`
-	CommitBranch     *string              `json:"commitBranch"`
-	CommitHash       *string              `json:"commitHash"`
-	EventSource      *string              `json:"eventSource"`
-	AwsRegion        *string              `json:"awsRegion"`
+	Commit           *codecommit.Commit `json:"commit"`
+	CommitRepository *string            `json:"commitRepository"`
+	CommitBranch     *string            `json:"commitBranch"`
+	CommitHash       *string            `json:"commitHash"`
+	EventSource      *string            `json:"eventSource"`
+	AwsRegion        *string            `json:"awsRegion"`
+}
+
+// PRMessageEvent represent a PR message event from codeCommit source
+type PRMessageEvent struct {
+	PullRequest *codecommit.PullRequest `json:"PullRequest"`
+	EventType   *string                 `json:"EventType"`
+	Repository  *string                 `json:"Repository"`
+	Branch      *string                 `json:"Branch"`
+	EventSource *string                 `json:"eventSource"`
+	AwsRegion   *string                 `json:"awsRegion"`
 }
 
 //СodeCommitClient struct represent CC Client
@@ -249,21 +252,19 @@ func (cc СodeCommitClient) getCommitID() (string, error) {
 }
 
 //sendPREvent sends an event contianing PR info when a PR is open/closed
-func (cc *СodeCommitClient) sendPREvent(pr *codecommit.PullRequest, eventType, sink string) error {
+func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest, eventType, sink string) error {
 
-	eventInfo := tmevents.EventInfo{
-		EventData:   []byte(aws.StringValue(pr.Title)),
-		EventID:     aws.StringValue(pr.PullRequestId),
-		EventTime:   time.Now(),
-		EventType:   eventType,
-		EventSource: "codecommit",
+	codecommitEvent := PRMessageEvent{
+		PullRequest: pullRequest,
+		EventType:   aws.String(eventType),
+		Repository:  aws.String(repoNameEnv),
+		Branch:      aws.String(repoBranchEnv),
+		EventSource: aws.String("aws:codecommit"),
+		AwsRegion:   aws.String(awsRegionEnv),
 	}
 
-	log.Debug(eventInfo)
-
-	err := tmevents.PushEvent(&eventInfo, sink)
-	if err != nil {
-		return err
+	if err := cc.CloudEventsClient.Send(codecommitEvent); err != nil {
+		log.Printf("error sending: %v", err)
 	}
 
 	return nil
@@ -283,13 +284,7 @@ func (cc СodeCommitClient) sendPushEvent(commitHash, sink string) error {
 	commit := commitOutput.Commit
 
 	codecommitEvent := PushMessageEvent{
-		AdditionalData:   commit.AdditionalData,
-		Author:           commit.Author,
-		CommitID:         commit.CommitId,
-		Committer:        commit.Committer,
-		Message:          commit.Message,
-		Parents:          commit.Parents,
-		TreeID:           commit.TreeId,
+		Commit:           commit,
 		CommitRepository: aws.String(repoNameEnv),
 		CommitBranch:     aws.String(repoBranchEnv),
 		CommitHash:       aws.String(commitHash),
