@@ -19,10 +19,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -43,6 +41,8 @@ var (
 	accountAccessKeyID     string
 	accountSecretAccessKey string
 	syncTime               = 10
+	lastCommit             string
+	nextToken              *string
 )
 
 // PushMessageEvent represent a push message event from codeCommit source
@@ -69,7 +69,6 @@ type PRMessageEvent struct {
 type СodeCommitClient struct {
 	Client            *codecommit.CodeCommit
 	CloudEventsClient *cloudevents.Client
-	GitEvents         []string
 }
 
 func init() {
@@ -105,165 +104,143 @@ func main() {
 	}
 
 	cloudEvents := cloudevents.NewClient(
-		sink,
+		"https://27d02e0d.ngrok.io",
 		cloudevents.Builder{
-			Source: "aws:codecommit",
+			Source:    "aws:codecommit",
+			EventType: "codecommit event",
 		},
 	)
 
 	cc := СodeCommitClient{
 		Client:            codecommit.New(sess),
 		CloudEventsClient: cloudEvents,
-		GitEvents:         strings.Split(gitEventsEnv, ","),
 	}
 
-	gitCommit, pullRequests, err := cc.SeedCommitsAndPRs()
-	if err != nil {
-		log.Fatal(err)
-	}
+	if strings.Contains(gitEventsEnv, "push") {
+		log.Info("Push Events Enabled!")
 
-	cc.ReceiveMsg(gitCommit, pullRequests)
-}
-
-//SeedCommitsAndPRs prepares commit and PRs
-func (cc *СodeCommitClient) SeedCommitsAndPRs() (gitCommit *string, pullRequests map[string]*codecommit.PullRequest, err error) {
-	log.Info("Started receiving messages")
-
-	for _, gitEvent := range cc.GitEvents {
-		switch gitEvent {
-
-		case "push":
-			branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
-				BranchName:     aws.String(repoBranchEnv),
-				RepositoryName: aws.String(repoNameEnv),
-			})
-			if err != nil {
-				return gitCommit, pullRequests, err
-			}
-			gitCommit = branchInfo.Branch.CommitId
-
-		case "pull_request":
-			pullRequests = make(map[string]*codecommit.PullRequest)
-			pullRequestsOutput, err := cc.Client.ListPullRequests(&codecommit.ListPullRequestsInput{
-				RepositoryName: aws.String(repoNameEnv),
-			})
-			if err != nil {
-				return gitCommit, pullRequests, err
-			}
-
-			for _, pr := range aws.StringValueSlice(pullRequestsOutput.PullRequestIds) {
-				err = cc.appendPR(pr, &pullRequests)
-				if err != nil {
-					return gitCommit, pullRequests, err
-				}
-			}
-		default:
-			return gitCommit, pullRequests, fmt.Errorf("unexpected git event %s", gitEvent)
+		branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
+			BranchName:     aws.String(repoBranchEnv),
+			RepositoryName: aws.String(repoNameEnv),
+		})
+		if err != nil {
+			log.Fatal(err)
 		}
+
+		lastCommit = *branchInfo.Branch.CommitId
+
 	}
 
-	return gitCommit, pullRequests, nil
-}
+	if strings.Contains(gitEventsEnv, "pull_request") {
+		log.Info("Pull Request Events Enabled!")
 
-//ReceiveMsg implements the receive interface for codecommit
-func (cc *СodeCommitClient) ReceiveMsg(gitCommit *string, pullRequests map[string]*codecommit.PullRequest) {
+		//Get pull request IDs
+		pullRequestsOutput, err := cc.Client.ListPullRequests(&codecommit.ListPullRequestsInput{
+			RepositoryName: aws.String(repoNameEnv),
+		})
 
-	//Look for new messages every x seconds
-	for range time.Tick(time.Duration(syncTime) * time.Second) {
+		if err != nil {
+			log.Fatal(err)
+		}
 
-		for _, gitEvent := range cc.GitEvents {
-			switch gitEvent {
+		if len(pullRequestsOutput.PullRequestIds) != 0 {
+			nextToken = pullRequestsOutput.NextToken
+		}
 
-			//If push in events, get last commit ID. Send event if it's changed since last time.
-			case "push":
-				branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
-					BranchName:     aws.String(repoBranchEnv),
-					RepositoryName: aws.String(repoNameEnv)})
-				if err != nil {
-					log.Fatal(err)
-				}
-				gitCommitID := branchInfo.Branch.CommitId
-				if gitCommitID != gitCommit {
-					//Fetch full commit info
-					commitOutput, err := cc.Client.GetCommit(&codecommit.GetCommitInput{
-						CommitId:       gitCommitID,
-						RepositoryName: aws.String(repoNameEnv),
-					})
-					if err != nil {
-						log.Fatal(err)
-					}
+	}
 
-					err = cc.sendCommitEvent(commitOutput.Commit)
-					if err != nil {
-						log.Error("Failed to send push event. ", err)
-					}
-				}
+	if !strings.Contains("gitEventsEnv", "pull_request") && strings.Contains("gitEventsEnv", "push") {
+		log.Fatal("error identifying events type. Please, select either `pull_request` or `push` event or both")
+	}
 
-			//If PR in events, fetch PRs and push msg if necessary
-			case "pull_request":
-				//Get pull request IDs
-				pullRequestsOutput, err := cc.Client.ListPullRequests(&codecommit.ListPullRequestsInput{
-					RepositoryName: aws.String(repoNameEnv)})
-				if err != nil {
-					log.Error("Unable to pull PRs: ", err)
-					break
-				}
-				//Check if we already know about the PR ID
-				for _, pr := range aws.StringValueSlice(pullRequestsOutput.PullRequestIds) {
-					_, ok := pullRequests[pr]
-					//If we already know about it, check if statuses match. Send event if not.
-					if ok {
-						localStatus := aws.StringValue(pullRequests[pr].PullRequestStatus)
-						prInfo, err := cc.Client.GetPullRequest(&codecommit.GetPullRequestInput{
-							PullRequestId: aws.String(pr),
-						})
-						if err != nil {
-							log.Error(err)
-						}
-						if localStatus != aws.StringValue(prInfo.PullRequest.PullRequestStatus) {
-							pullRequests[pr] = prInfo.PullRequest
-							err = cc.sendPREvent(pullRequests[pr], "pr_"+strings.ToLower(aws.StringValue(pullRequests[pr].PullRequestStatus)))
-							if err != nil {
-								log.Error("Error sending PR event: ", err)
-							}
-						}
-						// If we don't know about this PR, assume it's new and pr_open event
-					} else {
-						cc.appendPR(pr, &pullRequests)
-						err = cc.sendPREvent(pullRequests[pr], "pr_open")
-						if err != nil {
-							log.Error("Error sending PR event: ", err)
-						}
-					}
-				}
+	//range time.Tick(time.Duration(syncTime) * time.Second)
+	for {
+		if strings.Contains(gitEventsEnv, "push") {
+			err := cc.processCommits()
+			if err != nil {
+				log.Error(err)
 			}
 		}
+
+		if strings.Contains(gitEventsEnv, "pull_request") && nextToken != aws.String("") {
+			err = cc.processPullRequest()
+			if err != nil {
+				log.Error(err)
+			}
+		}
+
 	}
+
 }
 
-//appendPR is here to add PRs to a list we've gotta keep up with so we can see when they are added and closed
-func (cc *СodeCommitClient) appendPR(prID string, prList *map[string]*codecommit.PullRequest) error {
-	prInfo, err := cc.Client.GetPullRequest(&codecommit.GetPullRequestInput{
-		PullRequestId: aws.String(prID),
+func (cc СodeCommitClient) processCommits() error {
+	branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
+		BranchName:     aws.String(repoBranchEnv),
+		RepositoryName: aws.String(repoNameEnv),
 	})
 	if err != nil {
 		return err
 	}
 
-	(*prList)[prID] = prInfo.PullRequest
+	commitOutput, err := cc.Client.GetCommit(&codecommit.GetCommitInput{
+		CommitId:       branchInfo.Branch.CommitId,
+		RepositoryName: aws.String(repoNameEnv),
+	})
+	if err != nil {
+		return err
+	}
+
+	if *commitOutput.Commit.CommitId == lastCommit {
+		return nil
+	}
+
+	lastCommit = *commitOutput.Commit.CommitId
+
+	err = cc.sendCommitEvent(commitOutput.Commit)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
-//sendPREvent sends an event contianing PR info when a PR is open/closed
-func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest, eventType string) error {
+func (cc СodeCommitClient) processPullRequest() error {
 
-	codecommitEvent := PRMessageEvent{
-		PullRequest: pullRequest,
-		EventType:   aws.String(eventType),
-		Repository:  aws.String(repoNameEnv),
-		Branch:      aws.String(repoBranchEnv),
-		EventSource: aws.String("aws:codecommit"),
-		AwsRegion:   aws.String(awsRegionEnv),
+	//Get pull request IDs
+	pullRequestsOutput, err := cc.Client.ListPullRequests(&codecommit.ListPullRequestsInput{
+		NextToken:      nextToken,
+		RepositoryName: aws.String(repoNameEnv),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	nextToken = pullRequestsOutput.NextToken
+
+	for _, pr := range aws.StringValueSlice(pullRequestsOutput.PullRequestIds) {
+		prInfo, err := cc.Client.GetPullRequest(&codecommit.GetPullRequestInput{
+			PullRequestId: aws.String(pr),
+		})
+		if err != nil {
+			log.Error(err)
+		}
+		err = cc.sendPREvent(prInfo.PullRequest)
+	}
+
+	return nil
+}
+
+//sendPush sends an event containing data about a git commit that was pushed to a branch
+func (cc СodeCommitClient) sendCommitEvent(commit *codecommit.Commit) error {
+	log.Info("send Commit Event")
+
+	codecommitEvent := PushMessageEvent{
+		Commit:           commit,
+		CommitRepository: aws.String(repoNameEnv),
+		CommitBranch:     aws.String(repoBranchEnv),
+		EventSource:      aws.String("aws:codecommit"),
+		AwsRegion:        aws.String(awsRegionEnv),
 	}
 
 	if err := cc.CloudEventsClient.Send(codecommitEvent); err != nil {
@@ -273,15 +250,15 @@ func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest, ev
 	return nil
 }
 
-//sendPush sends an event containing data about a git commit that was pushed to a branch
-func (cc СodeCommitClient) sendCommitEvent(commit *codecommit.Commit) error {
+func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest) error {
+	log.Info("send Pull Request Event")
 
-	codecommitEvent := PushMessageEvent{
-		Commit:           commit,
-		CommitRepository: aws.String(repoNameEnv),
-		CommitBranch:     aws.String(repoBranchEnv),
-		EventSource:      aws.String("aws:codecommit"),
-		AwsRegion:        aws.String(awsRegionEnv),
+	codecommitEvent := PRMessageEvent{
+		PullRequest: pullRequest,
+		Repository:  aws.String(repoNameEnv),
+		Branch:      aws.String(repoBranchEnv),
+		EventSource: aws.String("aws:codecommit"),
+		AwsRegion:   aws.String(awsRegionEnv),
 	}
 
 	if err := cc.CloudEventsClient.Send(codecommitEvent); err != nil {
