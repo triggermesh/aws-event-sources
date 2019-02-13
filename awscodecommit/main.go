@@ -46,6 +46,22 @@ var (
 	syncTime               = 10
 )
 
+// PushMessageEvent represent a push message event from codeCommit source
+type PushMessageEvent struct {
+	AdditionalData   *string              `json:"additionalData"`
+	Author           *codecommit.UserInfo `json:"author"`
+	CommitID         *string              `json:"commitId"`
+	Committer        *codecommit.UserInfo `json:"committer"`
+	Message          *string              `json:"message"`
+	Parents          []*string            `json:"parents"`
+	TreeID           *string              `json:"treeId"`
+	CommitRepository *string              `json:"commitRepository"`
+	CommitBranch     *string              `json:"commitBranch"`
+	CommitHash       *string              `json:"commitHash"`
+	EventSource      *string              `json:"eventSource"`
+	AwsRegion        *string              `json:"awsRegion"`
+}
+
 //СodeCommitClient struct represent CC Client
 type СodeCommitClient struct {
 	Client            *codecommit.CodeCommit
@@ -263,21 +279,26 @@ func (cc СodeCommitClient) sendPushEvent(commitHash, sink string) error {
 	if err != nil {
 		return err
 	}
+
 	commit := commitOutput.Commit
 
-	eventInfo := tmevents.EventInfo{
-		EventData:   []byte(aws.StringValue(commit.Message)),
-		EventID:     aws.StringValue(commit.CommitId),
-		EventTime:   time.Now(),
-		EventType:   "push",
-		EventSource: "codecommit",
+	codecommitEvent := PushMessageEvent{
+		AdditionalData:   commit.AdditionalData,
+		Author:           commit.Author,
+		CommitID:         commit.CommitId,
+		Committer:        commit.Committer,
+		Message:          commit.Message,
+		Parents:          commit.Parents,
+		TreeID:           commit.TreeId,
+		CommitRepository: aws.String(repoNameEnv),
+		CommitBranch:     aws.String(repoBranchEnv),
+		CommitHash:       aws.String(commitHash),
+		EventSource:      aws.String("aws:codecommit"),
+		AwsRegion:        aws.String(awsRegionEnv),
 	}
 
-	log.Debug(eventInfo)
-
-	err = tmevents.PushEvent(&eventInfo, sink)
-	if err != nil {
-		return err
+	if err := cc.CloudEventsClient.Send(codecommitEvent); err != nil {
+		log.Printf("error sending: %v", err)
 	}
 
 	return nil
