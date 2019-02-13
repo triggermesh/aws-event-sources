@@ -182,10 +182,18 @@ func (cc *СodeCommitClient) ReceiveMsg(gitCommit *string, pullRequests map[stri
 				if err != nil {
 					log.Fatal(err)
 				}
-				gitCommitTemp := branchInfo.Branch.CommitId
-				if gitCommitTemp != gitCommit {
-					gitCommit = gitCommitTemp
-					err = cc.sendPushEvent(gitCommit)
+				gitCommitID := branchInfo.Branch.CommitId
+				if gitCommitID != gitCommit {
+					//Fetch full commit info
+					commitOutput, err := cc.Client.GetCommit(&codecommit.GetCommitInput{
+						CommitId:       gitCommitID,
+						RepositoryName: aws.String(repoNameEnv),
+					})
+					if err != nil {
+						log.Fatal(err)
+					}
+
+					err = cc.sendCommitEvent(commitOutput.Commit)
 					if err != nil {
 						log.Error("Failed to send push event. ", err)
 					}
@@ -266,23 +274,12 @@ func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest, ev
 }
 
 //sendPush sends an event containing data about a git commit that was pushed to a branch
-func (cc СodeCommitClient) sendPushEvent(commitHash *string) error {
-
-	//Fetch full commit info
-	commitOutput, err := cc.Client.GetCommit(&codecommit.GetCommitInput{
-		CommitId:       commitHash,
-		RepositoryName: aws.String(repoNameEnv)})
-	if err != nil {
-		return err
-	}
-
-	commit := commitOutput.Commit
+func (cc СodeCommitClient) sendCommitEvent(commit *codecommit.Commit) error {
 
 	codecommitEvent := PushMessageEvent{
 		Commit:           commit,
 		CommitRepository: aws.String(repoNameEnv),
 		CommitBranch:     aws.String(repoBranchEnv),
-		CommitHash:       commitHash,
 		EventSource:      aws.String("aws:codecommit"),
 		AwsRegion:        aws.String(awsRegionEnv),
 	}
