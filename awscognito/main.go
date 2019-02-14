@@ -20,14 +20,15 @@ package main
 import (
 	"flag"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitosync"
+	"github.com/knative/pkg/cloudevents"
 	log "github.com/sirupsen/logrus"
-	"github.com/triggermesh/sources/tmevents"
 )
 
 var (
@@ -36,15 +37,35 @@ var (
 	accountSecretAccessKey string
 	region                 string
 	identityPoolID         string
-	maxResults             int64
 )
+
+//Client struct represent all clients
+type Client struct {
+	CognitoIdentity *cognitoidentity.CognitoIdentity
+	CognitoSync     *cognitosync.CognitoSync
+	CloudEvents     *cloudevents.Client
+}
+
+//CognitoSyncEvent represents AWS CognitoSyncEvent payload
+type CognitoSyncEvent struct {
+	CreationDate     *time.Time
+	DataStorage      *int64
+	DatasetName      *string
+	IdentityID       *string
+	LastModifiedBy   *string
+	LastModifiedDate *time.Time
+	NumRecords       *int64
+	EventType        *string
+	Region           *string
+	IdentityPoolID   *string
+	DatasetRecords   []cognitosync.Record
+}
 
 func init() {
 	accountAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
 	accountSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
 	region = os.Getenv("AWS_REGION")
 	identityPoolID = os.Getenv("IDENTITY_POOL_ID")
-	maxResults = int64(10)
 
 	flag.StringVar(&sink, "sink", "", "where to sink events to")
 
@@ -62,80 +83,81 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ipConsumer := cognitoidentity.New(sess) // identity pool consumer
-	syncConsumer := cognitosync.New(sess)
+	itentityClient := cognitoidentity.New(sess)
+	syncClient := cognitosync.New(sess)
+	cloudEvents := cloudevents.NewClient(
+		sink,
+		cloudevents.Builder{
+			Source:    "aws:cognito",
+			EventType: "SyncTrigger",
+		},
+	)
 
-	descrIdentityPoolInput := cognitoidentity.DescribeIdentityPoolInput{
-		IdentityPoolId: &identityPoolID,
+	client := Client{
+		CognitoIdentity: itentityClient,
+		CognitoSync:     syncClient,
+		CloudEvents:     cloudEvents,
 	}
-	identityPoolOutput, err := ipConsumer.DescribeIdentityPool(&descrIdentityPoolInput)
+
+	_, err = client.CognitoIdentity.DescribeIdentityPool(&cognitoidentity.DescribeIdentityPoolInput{
+		IdentityPoolId: &identityPoolID,
+	})
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	log.Info(identityPoolOutput.GoString())
-
-	nextToken := "1"
-
-	listIdentitiesInput := cognitoidentity.ListIdentitiesInput{
-		IdentityPoolId: &identityPoolID,
-		MaxResults:     &maxResults,
-		NextToken:      &nextToken,
-	}
-
 	for {
 
-		listIdentitiesOutput, err := ipConsumer.ListIdentities(&listIdentitiesInput)
+		listIdentitiesOutput, err := client.CognitoIdentity.ListIdentities(&cognitoidentity.ListIdentitiesInput{
+			IdentityPoolId: &identityPoolID,
+		})
 		if err != nil {
 			log.Error(err)
 			continue
 		}
 
-		listIdentitiesInput.NextToken = listIdentitiesOutput.NextToken
-
 		for _, identity := range listIdentitiesOutput.Identities {
 
-			listDatasetsInput := cognitosync.ListDatasetsInput{
+			listDatasetsOutput, err := client.CognitoSync.ListDatasets(&cognitosync.ListDatasetsInput{
 				IdentityPoolId: &identityPoolID,
 				IdentityId:     identity.IdentityId,
-				MaxResults:     &maxResults,
-				NextToken:      &nextToken,
-			}
-			listDatasetsOutput, err := syncConsumer.ListDatasets(&listDatasetsInput)
+			})
 			if err != nil {
 				log.Fatal(err)
 			}
 
-			listDatasetsInput.NextToken = listDatasetsOutput.NextToken
-
 			for _, dataset := range listDatasetsOutput.Datasets {
-				go func(dataset *cognitosync.Dataset) {
-					err := sendCloudevent(dataset, sink)
-					if err != nil {
-						log.Errorf("SendCloudEvent failed: %v", err)
-					}
-				}(dataset)
+				records := []cognitosync.Record{}
+				err := client.sendCognitoEvent(dataset, records)
+				if err != nil {
+					log.Errorf("SendCloudEvent failed: %v", err)
+				}
 			}
-
 		}
 	}
 
 }
 
-func sendCloudevent(dataset *cognitosync.Dataset, sink string) error {
+func (client Client) sendCognitoEvent(dataset *cognitosync.Dataset, records []cognitosync.Record) error {
 	log.Info("Processing Dataset: ", *dataset.DatasetName)
 
-	eventInfo := tmevents.EventInfo{
-		EventData:   []byte(dataset.String()),
-		EventID:     *dataset.DatasetName,
-		EventTime:   *dataset.CreationDate,
-		EventType:   "cloudevent.greet.you",
-		EventSource: "aws cognito",
+	cognitoEvent := CognitoSyncEvent{
+		CreationDate:     dataset.CreationDate,
+		DataStorage:      dataset.DataStorage,
+		DatasetName:      dataset.DatasetName,
+		IdentityID:       dataset.IdentityId,
+		LastModifiedBy:   dataset.LastModifiedBy,
+		LastModifiedDate: dataset.LastModifiedDate,
+		NumRecords:       dataset.NumRecords,
+		EventType:        aws.String("SyncTrigger"),
+		Region:           aws.String(region),
+		IdentityPoolID:   aws.String(identityPoolID),
+		DatasetRecords:   records,
 	}
 
-	err := tmevents.PushEvent(&eventInfo, sink)
-	if err != nil {
+	if err := client.CloudEvents.Send(cognitoEvent); err != nil {
 		return err
 	}
+
 	return nil
 }
