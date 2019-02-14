@@ -106,24 +106,21 @@ func main() {
 			log.Error(err)
 		}
 
-		for _, identity := range identities {
+		datasets, err := client.getDatasets(identities)
+		if err != nil {
+			log.Error(err)
+		}
 
-			datasets, err := client.getDatasets(identity)
+		for _, dataset := range datasets {
+			records, err := client.getRecords(dataset)
 			if err != nil {
 				log.Error(err)
+				continue
 			}
 
-			for _, dataset := range datasets {
-				records, err := client.getRecords(dataset)
-				if err != nil {
-					log.Error(err)
-					continue
-				}
-
-				err = client.sendCognitoEvent(dataset, records)
-				if err != nil {
-					log.Errorf("SendCloudEvent failed: %v", err)
-				}
+			err = client.sendCognitoEvent(dataset, records)
+			if err != nil {
+				log.Errorf("SendCloudEvent failed: %v", err)
 			}
 		}
 	}
@@ -154,27 +151,29 @@ func (client Client) getIdentities() ([]*cognitoidentity.IdentityDescription, er
 	return identities, nil
 }
 
-func (client Client) getDatasets(identity *cognitoidentity.IdentityDescription) ([]*cognitosync.Dataset, error) {
+func (client Client) getDatasets(identities []*cognitoidentity.IdentityDescription) ([]*cognitosync.Dataset, error) {
 	datasets := []*cognitosync.Dataset{}
 
-	listDatasetsInput := cognitosync.ListDatasetsInput{
-		IdentityPoolId: &identityPoolID,
-		IdentityId:     identity.IdentityId,
-	}
-
-	for {
-		listDatasetsOutput, err := client.CognitoSync.ListDatasets(&listDatasetsInput)
-		if err != nil {
-			return datasets, err
+	for _, identity := range identities {
+		listDatasetsInput := cognitosync.ListDatasetsInput{
+			IdentityPoolId: &identityPoolID,
+			IdentityId:     identity.IdentityId,
 		}
 
-		datasets = append(datasets, listDatasetsOutput.Datasets...)
+		for {
+			listDatasetsOutput, err := client.CognitoSync.ListDatasets(&listDatasetsInput)
+			if err != nil {
+				return datasets, err
+			}
 
-		if listDatasetsOutput.NextToken == nil {
-			break
+			datasets = append(datasets, listDatasetsOutput.Datasets...)
+
+			if listDatasetsOutput.NextToken == nil {
+				break
+			}
+
+			listDatasetsInput.NextToken = listDatasetsOutput.NextToken
 		}
-
-		listDatasetsInput.NextToken = listDatasetsOutput.NextToken
 	}
 
 	return datasets, nil
