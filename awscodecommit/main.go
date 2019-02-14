@@ -237,6 +237,9 @@ func (cc СodeCommitClient) processPullRequest() error {
 			log.Error(err)
 		}
 		err = cc.sendPREvent(prInfo.PullRequest)
+		if err != nil {
+			log.Printf("error sending: %v", err)
+		}
 	}
 
 	return nil
@@ -255,7 +258,7 @@ func (cc СodeCommitClient) sendCommitEvent(commit *codecommit.Commit) error {
 	}
 
 	if err := cc.CloudEventsClient.Send(codecommitEvent); err != nil {
-		log.Printf("error sending: %v", err)
+		return err
 	}
 
 	return nil
@@ -273,7 +276,7 @@ func (cc СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest) err
 	}
 
 	if err := cc.CloudEventsClient.Send(codecommitEvent); err != nil {
-		log.Printf("error sending: %v", err)
+		return err
 	}
 
 	return nil
