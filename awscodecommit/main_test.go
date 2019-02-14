@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -51,7 +52,7 @@ func TestSendPREvent(t *testing.T) {
 	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
 
 	client := СodeCommitClient{
-		CloudEventsClient: cloudevents.NewClient(
+		CloudEventsClient: *cloudevents.NewClient(
 			"https://bar.com",
 			cloudevents.Builder{
 				Source:    "aws:codecommit",
@@ -73,7 +74,7 @@ func TestSendPREvent(t *testing.T) {
 		},
 	)
 
-	client.CloudEventsClient = c
+	client.CloudEventsClient = *c
 
 	err = client.sendPREvent(&pullRequest)
 	assert.NoError(t, err)
@@ -87,7 +88,7 @@ func TestSendCommitEvent(t *testing.T) {
 	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
 
 	client := СodeCommitClient{
-		CloudEventsClient: cloudevents.NewClient(
+		CloudEventsClient: *cloudevents.NewClient(
 			"https://bar.com",
 			cloudevents.Builder{
 				Source:    "aws:codecommit",
@@ -108,13 +109,56 @@ func TestSendCommitEvent(t *testing.T) {
 		},
 	)
 
-	client.CloudEventsClient = c
+	client.CloudEventsClient = *c
 
 	err = client.sendCommitEvent(&commit)
 	assert.NoError(t, err)
 }
 
 func TestProcessCommits(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
+
+	testCases := []struct {
+		GetBranchResp codecommit.GetBranchOutput
+		GetCommitResp codecommit.GetCommitOutput
+		GetBranchErr  error
+		GetCommitErr  error
+		Sink          string
+		Err           error
+	}{
+		{
+			GetBranchResp: codecommit.GetBranchOutput{},
+			GetBranchErr:  errors.New("get branch failed"),
+			Err:           errors.New("get branch failed"),
+		},
+	}
+
+	for _, tt := range testCases {
+
+		client := СodeCommitClient{
+			Client: mockedClientForCommits{
+				GetBranchResp: tt.GetBranchResp,
+				GetCommitResp: tt.GetCommitResp,
+				GetBranchErr:  tt.GetBranchErr,
+				GetCommitErr:  tt.GetCommitErr,
+			},
+			CloudEventsClient: *cloudevents.NewClient(
+				tt.Sink,
+				cloudevents.Builder{
+					Source:    "aws:codecommit",
+					EventType: "codecommit event",
+				},
+			),
+		}
+
+		err := client.processCommits()
+		assert.Equal(t, tt.Err, err)
+
+	}
 
 }
 
