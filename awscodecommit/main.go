@@ -72,6 +72,14 @@ type СodeCommitClient struct {
 
 func init() {
 	flag.StringVar(&sink, "sink", "", "where to sink events to")
+
+	//TODO: Make sure all these env vars exist
+	repoNameEnv = os.Getenv("REPO")
+	repoBranchEnv = os.Getenv("BRANCH")
+	gitEventsEnv = os.Getenv("EVENTS")
+	awsRegionEnv = os.Getenv("AWS_REGION")
+	accountAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+	accountSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
 }
 
 func main() {
@@ -83,14 +91,6 @@ func main() {
 	if varPresent {
 		log.SetLevel(log.DebugLevel)
 	}
-
-	//TODO: Make sure all these env vars exist
-	repoNameEnv = os.Getenv("REPO")
-	repoBranchEnv = os.Getenv("BRANCH")
-	gitEventsEnv = os.Getenv("EVENTS")
-	awsRegionEnv = os.Getenv("AWS_REGION")
-	accountAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
-	accountSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
 
 	//Create client for code commit
 	sess, err := session.NewSession(&aws.Config{
@@ -226,20 +226,23 @@ func (cc СodeCommitClient) processPullRequest() error {
 	}
 
 	for _, id := range prIDs {
+		log.Infof("Process ID [%v]", *id)
 		if contains(pullRequestIDs, *id) {
 			continue
 		}
 		pullRequestIDs = append(pullRequestIDs, id)
 
-		prInfo, err := cc.Client.GetPullRequest(&codecommit.GetPullRequestInput{
-			PullRequestId: id,
-		})
+		pri := codecommit.GetPullRequestInput{PullRequestId: id}
+
+		log.Info(pri)
+
+		prInfo, err := cc.Client.GetPullRequest(&pri)
 		if err != nil {
-			log.Error(err)
+			return err
 		}
 		err = cc.sendPREvent(prInfo.PullRequest)
 		if err != nil {
-			log.Printf("error sending: %v", err)
+			return err
 		}
 	}
 

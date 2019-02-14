@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"net/url"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -41,7 +40,7 @@ func (m mockedClientForPRs) ListPullRequests(in *codecommit.ListPullRequestsInpu
 	return &m.ListPRsResp, m.ListPRsErr
 }
 
-func (m mockedClientForPRs) GetPullRequests(in *codecommit.GetPullRequestInput) (*codecommit.GetPullRequestOutput, error) {
+func (m mockedClientForPRs) GetPullRequest(in *codecommit.GetPullRequestInput) (*codecommit.GetPullRequestOutput, error) {
 	return &m.GetPRResp, m.GetPRErr
 }
 
@@ -163,7 +162,8 @@ func TestProcessCommits(t *testing.T) {
 			GetCommitResp: codecommit.GetCommitOutput{Commit: &codecommit.Commit{CommitId: aws.String("bar")}},
 			GetBranchErr:  nil,
 			GetCommitErr:  nil,
-			Err:           &url.Error{"Post", "", errors.New("no responder found")},
+			Sink:          "https://bar.com",
+			Err:           errors.New("error sending cloudevent: Status[500] "),
 		},
 		{
 			GetBranchResp: codecommit.GetBranchOutput{
@@ -197,13 +197,88 @@ func TestProcessCommits(t *testing.T) {
 
 		err := client.processCommits()
 		assert.Equal(t, tt.Err, err)
+		lastCommit = "foo"
 
 	}
 
 }
 
 func TestProcessPullRequest(t *testing.T) {
+	pullRequestIDs = []*string{aws.String("1")}
 
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
+
+	testCases := []struct {
+		ListPRsResp codecommit.ListPullRequestsOutput
+		GetPRResp   codecommit.GetPullRequestOutput
+		ListPRsErr  error
+		GetPRErr    error
+		Sink        string
+		Err         error
+	}{
+		{
+			ListPRsResp: codecommit.ListPullRequestsOutput{},
+			ListPRsErr:  errors.New("failed to list pull requests"),
+			Err:         errors.New("failed to list pull requests"),
+		},
+		{
+			ListPRsResp: codecommit.ListPullRequestsOutput{PullRequestIds: []*string{aws.String("1")}},
+			ListPRsErr:  nil,
+			Err:         nil,
+		},
+		{
+			ListPRsResp: codecommit.ListPullRequestsOutput{PullRequestIds: []*string{aws.String("2")}},
+			GetPRResp:   codecommit.GetPullRequestOutput{PullRequest: &codecommit.PullRequest{}},
+			ListPRsErr:  nil,
+			GetPRErr:    errors.New("failed to get pull request"),
+			Err:         errors.New("failed to get pull request"),
+		},
+		{
+			ListPRsResp: codecommit.ListPullRequestsOutput{PullRequestIds: []*string{aws.String("2")}},
+			GetPRResp:   codecommit.GetPullRequestOutput{PullRequest: &codecommit.PullRequest{}},
+			ListPRsErr:  nil,
+			GetPRErr:    nil,
+			Sink:        "https://bar.com",
+			Err:         errors.New("error sending cloudevent: Status[500] "),
+		},
+		{
+			ListPRsResp: codecommit.ListPullRequestsOutput{PullRequestIds: []*string{aws.String("2")}},
+			GetPRResp:   codecommit.GetPullRequestOutput{PullRequest: &codecommit.PullRequest{}},
+			ListPRsErr:  nil,
+			GetPRErr:    nil,
+			Sink:        "https://foo.com",
+			Err:         nil,
+		},
+	}
+
+	for _, tt := range testCases {
+
+		client := СodeCommitClient{
+			Client: mockedClientForPRs{
+				ListPRsResp: tt.ListPRsResp,
+				GetPRResp:   tt.GetPRResp,
+				ListPRsErr:  tt.ListPRsErr,
+				GetPRErr:    tt.GetPRErr,
+			},
+			CloudEventsClient: *cloudevents.NewClient(
+				tt.Sink,
+				cloudevents.Builder{
+					Source:    "aws:codecommit",
+					EventType: "codecommit event",
+				},
+			),
+		}
+
+		err := client.processPullRequest()
+		assert.Equal(t, tt.Err, err)
+
+		pullRequestIDs = []*string{aws.String("1")}
+
+	}
 }
 
 func TestContains(t *testing.T) {
