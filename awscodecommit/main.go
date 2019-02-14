@@ -261,7 +261,7 @@ func (cc СodeCommitClient) sendCommitEvent(commit *codecommit.Commit) error {
 	return nil
 }
 
-func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest) error {
+func (cc СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest) error {
 	log.Info("send Pull Request Event")
 
 	codecommitEvent := PRMessageEvent{
