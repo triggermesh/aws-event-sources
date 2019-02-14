@@ -42,7 +42,7 @@ var (
 	accountSecretAccessKey string
 	syncTime               = 10
 	lastCommit             string
-	nextToken              *string
+	pullRequestIDs         []*string
 )
 
 // PushMessageEvent represent a push message event from codeCommit source
@@ -104,7 +104,7 @@ func main() {
 	}
 
 	cloudEvents := cloudevents.NewClient(
-		"https://27d02e0d.ngrok.io",
+		sink,
 		cloudevents.Builder{
 			Source:    "aws:codecommit",
 			EventType: "codecommit event",
@@ -143,9 +143,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if len(pullRequestsOutput.PullRequestIds) != 0 {
-			nextToken = pullRequestsOutput.NextToken
-		}
+		pullRequestIDs = pullRequestsOutput.PullRequestIds
 
 	}
 
@@ -162,7 +160,7 @@ func main() {
 			}
 		}
 
-		if strings.Contains(gitEventsEnv, "pull_request") && nextToken != aws.String("") {
+		if strings.Contains(gitEventsEnv, "pull_request") {
 			err = cc.processPullRequest()
 			if err != nil {
 				log.Error(err)
@@ -205,22 +203,37 @@ func (cc СodeCommitClient) processCommits() error {
 }
 
 func (cc СodeCommitClient) processPullRequest() error {
+	prIDs := []*string{}
 
-	//Get pull request IDs
-	pullRequestsOutput, err := cc.Client.ListPullRequests(&codecommit.ListPullRequestsInput{
-		NextToken:      nextToken,
+	input := codecommit.ListPullRequestsInput{
 		RepositoryName: aws.String(repoNameEnv),
-	})
-
-	if err != nil {
-		return err
 	}
 
-	nextToken = pullRequestsOutput.NextToken
+	for {
+		//Get pull request IDs
+		pullRequestsOutput, err := cc.Client.ListPullRequests(&input)
 
-	for _, pr := range aws.StringValueSlice(pullRequestsOutput.PullRequestIds) {
+		if err != nil {
+			return err
+		}
+
+		prIDs = append(prIDs, pullRequestsOutput.PullRequestIds...)
+
+		if pullRequestsOutput.NextToken == nil {
+			break
+		}
+
+		input.NextToken = pullRequestsOutput.NextToken
+	}
+
+	for _, id := range prIDs {
+		if contains(pullRequestIDs, *id) {
+			continue
+		}
+		pullRequestIDs = append(pullRequestIDs, id)
+
 		prInfo, err := cc.Client.GetPullRequest(&codecommit.GetPullRequestInput{
-			PullRequestId: aws.String(pr),
+			PullRequestId: id,
 		})
 		if err != nil {
 			log.Error(err)
@@ -266,4 +279,14 @@ func (cc *СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest) er
 	}
 
 	return nil
+}
+
+// Contains tells whether a contains x.
+func contains(a []*string, x string) bool {
+	for _, n := range a {
+		if x == *n {
+			return true
+		}
+	}
+	return false
 }
