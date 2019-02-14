@@ -35,8 +35,6 @@ var (
 	repoNameEnv            string
 	repoBranchEnv          string
 	gitEventsEnv           string
-	channelEnv             string
-	namespaceEnv           string
 	awsRegionEnv           string
 	accountAccessKeyID     string
 	accountSecretAccessKey string
