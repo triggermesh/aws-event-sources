@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codecommit"
+	"github.com/aws/aws-sdk-go/service/codecommit/codecommitiface"
 	"github.com/knative/pkg/cloudevents"
 	log "github.com/sirupsen/logrus"
 )
@@ -65,8 +66,8 @@ type PRMessageEvent struct {
 
 //СodeCommitClient struct represent CC Client
 type СodeCommitClient struct {
-	Client            *codecommit.CodeCommit
-	CloudEventsClient *cloudevents.Client
+	Client            codecommitiface.CodeCommitAPI
+	CloudEventsClient cloudevents.Client
 }
 
 func init() {
@@ -111,7 +112,7 @@ func main() {
 
 	cc := СodeCommitClient{
 		Client:            codecommit.New(sess),
-		CloudEventsClient: cloudEvents,
+		CloudEventsClient: *cloudEvents,
 	}
 
 	if strings.Contains(gitEventsEnv, "push") {
