@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"net/url"
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -116,6 +117,8 @@ func TestSendCommitEvent(t *testing.T) {
 }
 
 func TestProcessCommits(t *testing.T) {
+	lastCommit = "foo"
+
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -134,6 +137,43 @@ func TestProcessCommits(t *testing.T) {
 			GetBranchResp: codecommit.GetBranchOutput{},
 			GetBranchErr:  errors.New("get branch failed"),
 			Err:           errors.New("get branch failed"),
+		},
+		{
+			GetBranchResp: codecommit.GetBranchOutput{
+				Branch: &codecommit.BranchInfo{CommitId: aws.String("123")},
+			},
+			GetCommitResp: codecommit.GetCommitOutput{},
+			GetBranchErr:  nil,
+			GetCommitErr:  errors.New("get commit failed"),
+			Err:           errors.New("get commit failed"),
+		},
+		{
+			GetBranchResp: codecommit.GetBranchOutput{
+				Branch: &codecommit.BranchInfo{CommitId: aws.String("123")},
+			},
+			GetCommitResp: codecommit.GetCommitOutput{Commit: &codecommit.Commit{CommitId: aws.String("foo")}},
+			GetBranchErr:  nil,
+			GetCommitErr:  nil,
+			Err:           nil,
+		},
+		{
+			GetBranchResp: codecommit.GetBranchOutput{
+				Branch: &codecommit.BranchInfo{CommitId: aws.String("123")},
+			},
+			GetCommitResp: codecommit.GetCommitOutput{Commit: &codecommit.Commit{CommitId: aws.String("bar")}},
+			GetBranchErr:  nil,
+			GetCommitErr:  nil,
+			Err:           &url.Error{"Post", "", errors.New("no responder found")},
+		},
+		{
+			GetBranchResp: codecommit.GetBranchOutput{
+				Branch: &codecommit.BranchInfo{CommitId: aws.String("123")},
+			},
+			GetCommitResp: codecommit.GetCommitOutput{Commit: &codecommit.Commit{CommitId: aws.String("bar")}},
+			GetBranchErr:  nil,
+			GetCommitErr:  nil,
+			Sink:          "https://foo.com",
+			Err:           nil,
 		},
 	}
 
