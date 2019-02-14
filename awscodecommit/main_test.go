@@ -3,6 +3,7 @@ package main
 import (
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codecommit/codecommitiface"
 	"github.com/jarcoal/httpmock"
@@ -119,4 +120,20 @@ func TestProcessCommits(t *testing.T) {
 
 func TestProcessPullRequest(t *testing.T) {
 
+}
+
+func TestContains(t *testing.T) {
+	testCases := []struct {
+		slice   []*string
+		element string
+		result  bool
+	}{
+		{[]*string{aws.String("1"), aws.String("2"), aws.String("3")}, "1", true},
+		{[]*string{aws.String("1"), aws.String("2"), aws.String("3")}, "4", false},
+	}
+
+	for _, tt := range testCases {
+		r := contains(tt.slice, tt.element)
+		assert.Equal(t, tt.result, r)
+	}
 }
