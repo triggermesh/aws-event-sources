@@ -58,7 +58,7 @@ type CognitoSyncEvent struct {
 	EventType        *string
 	Region           *string
 	IdentityPoolID   *string
-	DatasetRecords   []cognitosync.Record
+	DatasetRecords   []*cognitosync.Record
 }
 
 func init() {
@@ -99,46 +99,115 @@ func main() {
 		CloudEvents:     cloudEvents,
 	}
 
-	_, err = client.CognitoIdentity.DescribeIdentityPool(&cognitoidentity.DescribeIdentityPoolInput{
-		IdentityPoolId: &identityPoolID,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	for {
 
-		listIdentitiesOutput, err := client.CognitoIdentity.ListIdentities(&cognitoidentity.ListIdentitiesInput{
-			IdentityPoolId: &identityPoolID,
-		})
+		identities, err := client.getIdentities()
 		if err != nil {
 			log.Error(err)
-			continue
 		}
 
-		for _, identity := range listIdentitiesOutput.Identities {
+		for _, identity := range identities {
 
-			listDatasetsOutput, err := client.CognitoSync.ListDatasets(&cognitosync.ListDatasetsInput{
-				IdentityPoolId: &identityPoolID,
-				IdentityId:     identity.IdentityId,
-			})
+			datasets, err := client.getDatasets(identity)
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
 			}
 
-			for _, dataset := range listDatasetsOutput.Datasets {
-				records := []cognitosync.Record{}
-				err := client.sendCognitoEvent(dataset, records)
+			for _, dataset := range datasets {
+				records, err := client.getRecords(dataset)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+
+				err = client.sendCognitoEvent(dataset, records)
 				if err != nil {
 					log.Errorf("SendCloudEvent failed: %v", err)
 				}
 			}
 		}
 	}
-
 }
 
-func (client Client) sendCognitoEvent(dataset *cognitosync.Dataset, records []cognitosync.Record) error {
+func (client Client) getIdentities() ([]*cognitoidentity.IdentityDescription, error) {
+	identities := []*cognitoidentity.IdentityDescription{}
+
+	listIdentitiesInput := cognitoidentity.ListIdentitiesInput{
+		IdentityPoolId: &identityPoolID,
+	}
+
+	for {
+		listIdentitiesOutput, err := client.CognitoIdentity.ListIdentities(&listIdentitiesInput)
+		if err != nil {
+			return identities, err
+		}
+
+		identities = append(identities, listIdentitiesOutput.Identities...)
+
+		if listIdentitiesOutput.NextToken == nil {
+			break
+		}
+
+		listIdentitiesInput.NextToken = listIdentitiesOutput.NextToken
+	}
+
+	return identities, nil
+}
+
+func (client Client) getDatasets(identity *cognitoidentity.IdentityDescription) ([]*cognitosync.Dataset, error) {
+	datasets := []*cognitosync.Dataset{}
+
+	listDatasetsInput := cognitosync.ListDatasetsInput{
+		IdentityPoolId: &identityPoolID,
+		IdentityId:     identity.IdentityId,
+	}
+
+	for {
+		listDatasetsOutput, err := client.CognitoSync.ListDatasets(&listDatasetsInput)
+		if err != nil {
+			return datasets, err
+		}
+
+		datasets = append(datasets, listDatasetsOutput.Datasets...)
+
+		if listDatasetsOutput.NextToken == nil {
+			break
+		}
+
+		listDatasetsInput.NextToken = listDatasetsOutput.NextToken
+	}
+
+	return datasets, nil
+}
+
+func (client Client) getRecords(dataset *cognitosync.Dataset) ([]*cognitosync.Record, error) {
+	records := []*cognitosync.Record{}
+
+	input := cognitosync.ListRecordsInput{
+		DatasetName:    dataset.DatasetName,
+		IdentityId:     dataset.IdentityId,
+		IdentityPoolId: aws.String(identityPoolID),
+	}
+
+	for {
+		recordsOutput, err := client.CognitoSync.ListRecords(&input)
+		if err != nil {
+			return records, err
+		}
+
+		records = append(records, recordsOutput.Records...)
+
+		if recordsOutput.NextToken == nil {
+			break
+		}
+
+		input.NextToken = recordsOutput.NextToken
+	}
+
+	return records, nil
+}
+
+func (client Client) sendCognitoEvent(dataset *cognitosync.Dataset, records []*cognitosync.Record) error {
 	log.Info("Processing Dataset: ", *dataset.DatasetName)
 
 	cognitoEvent := CognitoSyncEvent{
