@@ -1,0 +1,36 @@
+#################
+## AWS Sources ##
+#################
+steps:
+## Build DynamoDB source
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awsdynamodb:$REVISION_ID', '-t', 'gcr.io/$PROJECT_ID/awsdynamodb:latest', '-f' ,'./awsdynamodb/Dockerfile', '.' ]
+
+## Build SQS source
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awssqssource:$REVISION_ID', '-t', 'gcr.io/$PROJECT_ID/awssqssource:latest', '-f' ,'./awssqs/Dockerfile', '.' ]
+
+## Build CodeCommit source
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awscodecommit:$REVISION_ID', '-t', 'gcr.io/$PROJECT_ID/awscodecommit:latest', '-f' ,'./awscodecommit/Dockerfile', '.' ]
+
+## Build Cognito source
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awscognito:$REVISION_ID', '-t', 'gcr.io/$PROJECT_ID/awscognito:latest', '-f' ,'./awscognito/Dockerfile', '.' ]
+
+## Build Kinesis source
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awskinesis:$REVISION_ID', '-t', 'gcr.io/$PROJECT_ID/awskinesis:latest', '-f' ,'./awskinesis/Dockerfile', '.' ]
+
+## Build Kinesis source
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awss3:$REVISION_ID', '-t', 'gcr.io/$PROJECT_ID/awss3:latest', '-f' ,'./awss3/Dockerfile', '.' ]
+
+
+images: 
+  - 'gcr.io/$PROJECT_ID/awssqssource'
+  - 'gcr.io/$PROJECT_ID/awsdynamodb'
+  - 'gcr.io/$PROJECT_ID/awscognito'
+  - 'gcr.io/$PROJECT_ID/awskinesis'
+  - 'gcr.io/$PROJECT_ID/awscodecommit'
+  - 'gcr.io/$PROJECT_ID/awss3'
