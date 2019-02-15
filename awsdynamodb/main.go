@@ -99,12 +99,14 @@ func main() {
 		}
 
 		streamsDescriptions, err := client.getStreamsDescriptions(streams)
-
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		shardIterators := client.getShardIterators(streamsDescriptions)
+		shardIterators, err := client.getShardIterators(streamsDescriptions)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		records, err := client.getLatestRecords(shardIterators)
 		if err != nil {
@@ -162,7 +164,7 @@ func (c Client) getStreamsDescriptions(streams []*dynamodbstreams.Stream) ([]*dy
 	return streamsDescriptions, nil
 }
 
-func (c Client) getShardIterators(streamsDescriptions []*dynamodbstreams.StreamDescription) []*string {
+func (c Client) getShardIterators(streamsDescriptions []*dynamodbstreams.StreamDescription) ([]*string, error) {
 	shardIterators := []*string{}
 
 	for _, streamDescription := range streamsDescriptions {
@@ -173,17 +175,19 @@ func (c Client) getShardIterators(streamsDescriptions []*dynamodbstreams.StreamD
 				StreamArn:         streamDescription.StreamArn,
 			}
 
-			_, result := c.StreamsClient.GetShardIteratorRequest(&getShardIteratorInput)
+			result, err := c.StreamsClient.GetShardIterator(&getShardIteratorInput)
+			if err != nil {
+				return shardIterators, err
+			}
 
 			shardIterators = append(shardIterators, result.ShardIterator)
 		}
 	}
 
-	return shardIterators
+	return shardIterators, nil
 }
 
 func (c Client) getLatestRecords(shardIterators []*string) ([]*dynamodbstreams.Record, error) {
-	// Get Records out of shard iterators.
 	records := []*dynamodbstreams.Record{}
 
 	for _, shardIterator := range shardIterators {
@@ -192,7 +196,6 @@ func (c Client) getLatestRecords(shardIterators []*string) ([]*dynamodbstreams.R
 		}
 
 		for {
-
 			getRecordsOutput, err := c.StreamsClient.GetRecords(&getRecordsInput)
 			if err != nil {
 				return records, err
@@ -204,7 +207,6 @@ func (c Client) getLatestRecords(shardIterators []*string) ([]*dynamodbstreams.R
 				break
 			}
 			getRecordsInput.ShardIterator = getRecordsOutput.NextShardIterator
-
 		}
 	}
 
