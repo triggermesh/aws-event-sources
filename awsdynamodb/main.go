@@ -137,10 +137,11 @@ func (c Client) getStreams() ([]*dynamodbstreams.Stream, error) {
 
 		streams = append(streams, listStreamOutput.Streams...)
 
+		listStreamsInput.ExclusiveStartStreamArn = listStreamOutput.LastEvaluatedStreamArn
+
 		if listStreamOutput.LastEvaluatedStreamArn == nil {
 			break
 		}
-		listStreamsInput.ExclusiveStartStreamArn = listStreamOutput.LastEvaluatedStreamArn
 	}
 
 	return streams, nil
@@ -203,10 +204,11 @@ func (c Client) getLatestRecords(shardIterators []*string) ([]*dynamodbstreams.R
 
 			records = append(records, getRecordsOutput.Records...)
 
+			getRecordsInput.ShardIterator = getRecordsOutput.NextShardIterator
 			if getRecordsOutput.NextShardIterator == nil {
 				break
 			}
-			getRecordsInput.ShardIterator = getRecordsOutput.NextShardIterator
+
 		}
 	}
 

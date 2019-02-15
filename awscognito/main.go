@@ -143,16 +143,11 @@ func (client Client) getIdentities() ([]*cognitoidentity.IdentityDescription, er
 
 		identities = append(identities, listIdentitiesOutput.Identities...)
 
+		listIdentitiesInput.NextToken = listIdentitiesOutput.NextToken
 		if listIdentitiesOutput.NextToken == nil {
 			break
 		}
 
-		listIdentitiesInput.NextToken = listIdentitiesOutput.NextToken
-
-		//for testing purposes
-		if listIdentitiesInput.NextToken == listIdentitiesOutput.NextToken {
-			break
-		}
 	}
 
 	return identities, nil
@@ -175,16 +170,11 @@ func (client Client) getDatasets(identities []*cognitoidentity.IdentityDescripti
 
 			datasets = append(datasets, listDatasetsOutput.Datasets...)
 
+			listDatasetsInput.NextToken = listDatasetsOutput.NextToken
 			if listDatasetsOutput.NextToken == nil {
 				break
 			}
 
-			listDatasetsInput.NextToken = listDatasetsOutput.NextToken
-
-			//for testing purposes
-			if listDatasetsInput.NextToken == listDatasetsOutput.NextToken {
-				break
-			}
 		}
 	}
 
@@ -208,13 +198,8 @@ func (client Client) getRecords(dataset *cognitosync.Dataset) ([]*cognitosync.Re
 
 		records = append(records, recordsOutput.Records...)
 
-		if recordsOutput.NextToken == nil {
-			break
-		}
-
 		input.NextToken = recordsOutput.NextToken
-		//for testing purposes
-		if input.NextToken == recordsOutput.NextToken {
+		if recordsOutput.NextToken == nil {
 			break
 		}
 	}
