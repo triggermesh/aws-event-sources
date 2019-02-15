@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:c522f166f9eb05cab9f2517abf4c3f317ae4436939efbfee7e928edfd758d954"
+  digest = "1:d4a53614469b97f2cfe692a16f1b3e19882e5f4c7cbc603e500ffffaed0e10be"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -37,23 +37,38 @@
     "private/protocol/restjson",
     "private/protocol/xml/xmlutil",
     "service/cognitoidentity",
+    "service/cognitoidentity/cognitoidentityiface",
     "service/cognitosync",
+    "service/cognitosync/cognitosynciface",
     "service/sts",
   ]
   pruneopts = "UT"
-  revision = "6d55516ad2946220d9e26804f224c1c215f293ea"
-  version = "v1.16.17"
+  revision = "4e2e7c3c80cfb77d22990cadb2c17096d2614938"
+  version = "v1.16.35"
+
+[[projects]]
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  pruneopts = "UT"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
+
+[[projects]]
+  digest = "1:236d7e1bdb50d8f68559af37dbcf9d142d56b431c9b2176d41e2a009b664cda8"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:b150e2124ce64cf44c57761d5008749eed1283339b9d9c65cd69e73da57776f8"
-  name = "github.com/cloudevents/sdk-go"
-  packages = [
-    ".",
-    "v02",
-  ]
+  digest = "1:867a400cf7d2eb7db0735058ab9c89a061bb8f44b9b68b148a8503d0bc5529f3"
+  name = "github.com/jarcoal/httpmock"
+  packages = ["."]
   pruneopts = "UT"
-  revision = "feec6e002535db7561a364f82f67d2c9ebe4596a"
+  revision = "53def6cd0f87425f5425d4f0f27f66f048759b94"
 
 [[projects]]
   digest = "1:bb81097a5b62634f3e9fec1014657855610c82d19b9a40c17612e32651e35dca"
@@ -61,6 +76,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "c2b33e84"
+
+[[projects]]
+  branch = "master"
+  digest = "1:7dd6d64fbc607130797538d9f5800d57c522352e074ae0ffd1b3a7e8f12c6f22"
+  name = "github.com/knative/pkg"
+  packages = ["cloudevents"]
+  pruneopts = "UT"
+  revision = "0183bf9cdc7349e3c76c26e51f84689b411fccea"
 
 [[projects]]
   digest = "1:0a69a1c0db3591fcefb47f115b224592c8dfa4368b7ba9fae509d5e16cdc95c8"
@@ -71,6 +94,14 @@
   version = "v1.0.1"
 
 [[projects]]
+  digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  pruneopts = "UT"
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
+
+[[projects]]
   digest = "1:87c2e02fb01c27060ccc5ba7c5a407cc91147726f8f40b70cceeedbc52b1f3a8"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
@@ -79,31 +110,31 @@
   version = "v1.3.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:b88ef716e15cd387197fc2e9f6c7155a72fa28c72b084e2dcb47b09e03996d70"
-  name = "github.com/triggermesh/sources"
-  packages = ["tmevents"]
+  digest = "1:972c2427413d41a1e06ca4897e8528e5a1622894050e2f527b38ddf0f343f759"
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
   pruneopts = "UT"
-  revision = "976224907cee36e34ee891f281d0b60e10c48026"
+  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:38f553aff0273ad6f367cb0a0f8b6eecbaef8dc6cb8b50e57b6a81c1d5b1e332"
+  digest = "1:fde12c4da6237363bf36b81b59aa36a43d28061167ec4acb0d41fc49464e28b9"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "ff983b9c42bc9fbf91556e191cc8efb585c16908"
+  revision = "74369b46fc6756741c016591724fd1cb8e26845f"
 
 [[projects]]
   branch = "master"
-  digest = "1:5ee4df7ab18e945607ac822de8d10b180baea263b5e8676a1041727543b9c1e4"
+  digest = "1:0d703f14f9bbbe1070ff0ce86d749dcbc9d68fb0ae554252c09bd4bb37a072e7"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "48ac38b7c8cbedd50b1613c0fccacfc7d88dfcdf"
+  revision = "e77772198cdc3dbfcf7f2de96630204df9fd3a0b"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -113,9 +144,13 @@
     "github.com/aws/aws-sdk-go/aws/credentials",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/cognitoidentity",
+    "github.com/aws/aws-sdk-go/service/cognitoidentity/cognitoidentityiface",
     "github.com/aws/aws-sdk-go/service/cognitosync",
+    "github.com/aws/aws-sdk-go/service/cognitosync/cognitosynciface",
+    "github.com/jarcoal/httpmock",
+    "github.com/knative/pkg/cloudevents",
     "github.com/sirupsen/logrus",
-    "github.com/triggermesh/sources/tmevents",
+    "github.com/stretchr/testify/assert",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
