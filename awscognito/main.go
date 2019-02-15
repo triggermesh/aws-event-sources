@@ -26,7 +26,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity/cognitoidentityiface"
 	"github.com/aws/aws-sdk-go/service/cognitosync"
+	"github.com/aws/aws-sdk-go/service/cognitosync/cognitosynciface"
 	"github.com/knative/pkg/cloudevents"
 	log "github.com/sirupsen/logrus"
 )
@@ -41,8 +43,8 @@ var (
 
 //Client struct represent all clients
 type Client struct {
-	CognitoIdentity *cognitoidentity.CognitoIdentity
-	CognitoSync     *cognitosync.CognitoSync
+	CognitoIdentity cognitoidentityiface.CognitoIdentityAPI
+	CognitoSync     cognitosynciface.CognitoSyncAPI
 	CloudEvents     *cloudevents.Client
 }
 
