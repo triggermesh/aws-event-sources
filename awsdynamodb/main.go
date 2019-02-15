@@ -81,7 +81,7 @@ func main() {
 	streamsClient := dynamodbstreams.New(sess)
 
 	cloudEvents := cloudevents.NewClient(
-		"https://27d02e0d.ngrok.io",
+		sink,
 		cloudevents.Builder{
 			Source:    "aws:dynamodb",
 			EventType: "dynamodb event",
