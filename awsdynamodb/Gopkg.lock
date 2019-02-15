@@ -2,7 +2,7 @@
 
 
 [[projects]]
-  digest = "1:e698a2b9f7994c7466d8e06918dfedad3691e86f4eef062e297be0dc36860dd1"
+  digest = "1:d89237580f92163aa23ecc9939f51372c7f552908973b5baae987d11510d5c49"
   name = "github.com/aws/aws-sdk-go"
   packages = [
     "aws",
@@ -37,25 +37,29 @@
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
     "service/dynamodb",
-    "service/dynamodb/dynamodbiface",
     "service/dynamodbstreams",
     "service/dynamodbstreams/dynamodbstreamsiface",
     "service/sts",
   ]
   pruneopts = "UT"
-  revision = "3991042237b45cf58c9d5f34295942d5533c28c6"
-  version = "v1.16.11"
+  revision = "4e2e7c3c80cfb77d22990cadb2c17096d2614938"
+  version = "v1.16.35"
 
 [[projects]]
-  branch = "master"
-  digest = "1:b95c3763b72359370262246870366418c1d17446195e3c73921135c2537b9655"
-  name = "github.com/cloudevents/sdk-go"
-  packages = [
-    ".",
-    "v02",
-  ]
+  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
   pruneopts = "UT"
-  revision = "3a3d34a7231e937edfa20964dc25c29081c3ebea"
+  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
+  version = "v1.1.1"
+
+[[projects]]
+  digest = "1:236d7e1bdb50d8f68559af37dbcf9d142d56b431c9b2176d41e2a009b664cda8"
+  name = "github.com/google/uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "9b3b1e0f5f99ae461456d768e7d301a7acdaa2d8"
+  version = "v1.1.0"
 
 [[projects]]
   digest = "1:bb81097a5b62634f3e9fec1014657855610c82d19b9a40c17612e32651e35dca"
@@ -63,6 +67,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "c2b33e84"
+
+[[projects]]
+  branch = "master"
+  digest = "1:7dd6d64fbc607130797538d9f5800d57c522352e074ae0ffd1b3a7e8f12c6f22"
+  name = "github.com/knative/pkg"
+  packages = ["cloudevents"]
+  pruneopts = "UT"
+  revision = "0183bf9cdc7349e3c76c26e51f84689b411fccea"
 
 [[projects]]
   digest = "1:0a69a1c0db3591fcefb47f115b224592c8dfa4368b7ba9fae509d5e16cdc95c8"
@@ -73,47 +85,31 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:69b1cc331fca23d702bd72f860c6a647afd0aa9fcbc1d0659b1365e26546dd70"
+  digest = "1:87c2e02fb01c27060ccc5ba7c5a407cc91147726f8f40b70cceeedbc52b1f3a8"
   name = "github.com/sirupsen/logrus"
   packages = ["."]
   pruneopts = "UT"
-  revision = "bcd833dfe83d3cebad139e4a29ed79cb2318bf95"
-  version = "v1.2.0"
+  revision = "e1e72e9de974bd926e5c56f83753fba2df402ce5"
+  version = "v1.3.0"
 
 [[projects]]
   branch = "master"
-  digest = "1:b88ef716e15cd387197fc2e9f6c7155a72fa28c72b084e2dcb47b09e03996d70"
-  name = "github.com/triggermesh/sources"
-  packages = ["tmevents"]
-  pruneopts = "UT"
-  revision = "c67275da1b497134b4ea44414ab5719ed8c999f4"
-
-[[projects]]
-  digest = "1:f8a7d9f4ab77f151ae738bab9a0386cfb441c75e639f3ca9d0e00139d8cf8ab5"
-  name = "github.com/urakozz/go-dynamodb-stream-subscriber"
-  packages = ["stream"]
-  pruneopts = "UT"
-  revision = "5b7f8b6a8bdae1bebbb33d5f22eb1ce5f2213a03"
-  version = "1.1.0"
-
-[[projects]]
-  branch = "master"
-  digest = "1:38f553aff0273ad6f367cb0a0f8b6eecbaef8dc6cb8b50e57b6a81c1d5b1e332"
+  digest = "1:fde12c4da6237363bf36b81b59aa36a43d28061167ec4acb0d41fc49464e28b9"
   name = "golang.org/x/crypto"
   packages = ["ssh/terminal"]
   pruneopts = "UT"
-  revision = "505ab145d0a99da450461ae2c1a9f6cd10d1f447"
+  revision = "74369b46fc6756741c016591724fd1cb8e26845f"
 
 [[projects]]
   branch = "master"
-  digest = "1:3d5e79e10549fd9119cbefd614b6d351ef5bd0be2f2b103a4199788e784cbc68"
+  digest = "1:0d703f14f9bbbe1070ff0ce86d749dcbc9d68fb0ae554252c09bd4bb37a072e7"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "b4a75ba826a64a70990f11a225237acd6ef35c9f"
+  revision = "e77772198cdc3dbfcf7f2de96630204df9fd3a0b"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -122,11 +118,10 @@
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/credentials",
     "github.com/aws/aws-sdk-go/aws/session",
-    "github.com/aws/aws-sdk-go/service/dynamodb",
     "github.com/aws/aws-sdk-go/service/dynamodbstreams",
+    "github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface",
+    "github.com/knative/pkg/cloudevents",
     "github.com/sirupsen/logrus",
-    "github.com/triggermesh/sources/tmevents",
-    "github.com/urakozz/go-dynamodb-stream-subscriber/stream",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

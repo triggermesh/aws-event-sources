@@ -27,19 +27,15 @@
 
 [[constraint]]
   name = "github.com/aws/aws-sdk-go"
-  version = "1.16.11"
-
-[[constraint]]
-  name = "github.com/sirupsen/logrus"
-  version = "1.2.0"
+  version = "1.16.35"
 
 [[constraint]]
   branch = "master"
-  name = "github.com/triggermesh/sources"
+  name = "github.com/knative/pkg"
 
 [[constraint]]
-  name = "github.com/urakozz/go-dynamodb-stream-subscriber"
-  version = "1.1.0"
+  name = "github.com/sirupsen/logrus"
+  version = "1.3.0"
 
 [prune]
   go-tests = true
