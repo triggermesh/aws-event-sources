@@ -7,6 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
+	"github.com/jarcoal/httpmock"
+	"github.com/knative/pkg/cloudevents"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -106,12 +108,99 @@ func TestGetStreamsDescriptions(t *testing.T) {
 
 func TestGetShardIterators(t *testing.T) {
 
+	streamDescriptions := []*dynamodbstreams.StreamDescription{
+		{
+			Shards: []*dynamodbstreams.Shard{{}},
+		},
+	}
+
+	c := Client{
+		StreamsClient: mockedDynamoStreamsClient{
+			getShardIteratorOutput:      dynamodbstreams.GetShardIteratorOutput{},
+			getShardIteratorOutputError: errors.New("failed to get stream description"),
+		},
+	}
+
+	streamsDescriptions, err := c.getShardIterators(streamDescriptions)
+	assert.Error(t, err)
+	assert.Equal(t, 0, len(streamsDescriptions))
+
+	c = Client{
+		StreamsClient: mockedDynamoStreamsClient{
+			describeStreamOutput: dynamodbstreams.DescribeStreamOutput{
+				StreamDescription: &dynamodbstreams.StreamDescription{},
+			},
+			describeStreamOutputError: nil,
+		},
+	}
+
+	streamsDescriptions, err = c.getShardIterators(streamDescriptions)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(streamsDescriptions))
+
 }
 
 func TestGetLatestRecords(t *testing.T) {
+	shardIterators := []*string{aws.String("1")}
+
+	c := Client{
+		StreamsClient: mockedDynamoStreamsClient{
+			getRecordsOutput:      dynamodbstreams.GetRecordsOutput{},
+			getRecordsOutputError: errors.New("get records failed"),
+		},
+	}
+
+	streamsDescriptions, err := c.getLatestRecords(shardIterators)
+	assert.Error(t, err)
+	assert.Equal(t, 0, len(streamsDescriptions))
+
+	c = Client{
+		StreamsClient: mockedDynamoStreamsClient{
+			getRecordsOutput: dynamodbstreams.GetRecordsOutput{
+				Records: []*dynamodbstreams.Record{{}, {}},
+			},
+			getRecordsOutputError: nil,
+		},
+	}
+
+	streamsDescriptions, err = c.getLatestRecords(shardIterators)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(streamsDescriptions))
 
 }
 
 func TestSendCloudevent(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
 
+	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
+
+	record := dynamodbstreams.Record{EventID: aws.String("1")}
+
+	c := Client{
+		CloudEvents: cloudevents.NewClient(
+			"https://bar.com",
+			cloudevents.Builder{
+				Source:    "aws:dynamodb",
+				EventType: "DynamoDB update",
+			},
+		),
+	}
+
+	err := c.sendCloudEvent(&record)
+	assert.Error(t, err)
+
+	c = Client{
+		CloudEvents: cloudevents.NewClient(
+			"https://foo.com",
+			cloudevents.Builder{
+				Source:    "aws:dynamodb",
+				EventType: "DynamoDB update",
+			},
+		),
+	}
+
+	err = c.sendCloudEvent(&record)
+	assert.NoError(t, err)
 }

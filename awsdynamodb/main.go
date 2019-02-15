@@ -95,26 +95,26 @@ func main() {
 	for {
 		streams, err := client.getStreams()
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 
 		streamsDescriptions, err := client.getStreamsDescriptions(streams)
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 
 		shardIterators, err := client.getShardIterators(streamsDescriptions)
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 
 		records, err := client.getLatestRecords(shardIterators)
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 
 		for _, record := range records {
-			err := client.sendCloudevent(record)
+			err := client.sendCloudEvent(record)
 			if err != nil {
 				log.Error(err)
 			}
@@ -208,14 +208,13 @@ func (c Client) getLatestRecords(shardIterators []*string) ([]*dynamodbstreams.R
 			if getRecordsOutput.NextShardIterator == nil {
 				break
 			}
-
 		}
 	}
 
 	return records, nil
 }
 
-func (c Client) sendCloudevent(record *dynamodbstreams.Record) error {
+func (c Client) sendCloudEvent(record *dynamodbstreams.Record) error {
 
 	log.Info("Processing record ID: ", record.EventID)
 
