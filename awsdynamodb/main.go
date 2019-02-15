@@ -92,6 +92,35 @@ func main() {
 		CloudEvents:   cloudEvents,
 	}
 
+	for {
+		streams, err := client.getStreams()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		streamsDescriptions, err := client.getStreamsDescriptions(streams)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		shardIterators := client.getShardIterators(streamsDescriptions)
+
+		records, err := client.getLatestRecords(shardIterators)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		for _, record := range records {
+			err := client.sendCloudevent(record)
+			if err != nil {
+				log.Error(err)
+			}
+		}
+	}
+}
+
+func (c Client) getStreams() ([]*dynamodbstreams.Stream, error) {
 	streams := []*dynamodbstreams.Stream{}
 
 	listStreamsInput := dynamodbstreams.ListStreamsInput{
@@ -99,9 +128,9 @@ func main() {
 	}
 
 	for {
-		listStreamOutput, err := client.StreamsClient.ListStreams(&listStreamsInput)
+		listStreamOutput, err := c.StreamsClient.ListStreams(&listStreamsInput)
 		if err != nil {
-			log.Error(err)
+			return streams, err
 		}
 
 		streams = append(streams, listStreamOutput.Streams...)
@@ -112,24 +141,31 @@ func main() {
 		listStreamsInput.ExclusiveStartStreamArn = listStreamOutput.LastEvaluatedStreamArn
 	}
 
-	streamDescriptions := []*dynamodbstreams.StreamDescription{}
+	return streams, nil
+}
+
+func (c Client) getStreamsDescriptions(streams []*dynamodbstreams.Stream) ([]*dynamodbstreams.StreamDescription, error) {
+	streamsDescriptions := []*dynamodbstreams.StreamDescription{}
 
 	for _, stream := range streams {
 
-		describeStreamOutput, err := client.StreamsClient.DescribeStream(&dynamodbstreams.DescribeStreamInput{
+		describeStreamOutput, err := c.StreamsClient.DescribeStream(&dynamodbstreams.DescribeStreamInput{
 			StreamArn: stream.StreamArn,
 		})
 
 		if err != nil {
-			log.Error(err)
+			return streamsDescriptions, err
 		}
 
-		streamDescriptions = append(streamDescriptions, describeStreamOutput.StreamDescription)
+		streamsDescriptions = append(streamsDescriptions, describeStreamOutput.StreamDescription)
 	}
+	return streamsDescriptions, nil
+}
 
+func (c Client) getShardIterators(streamsDescriptions []*dynamodbstreams.StreamDescription) []*string {
 	shardIterators := []*string{}
 
-	for _, streamDescription := range streamDescriptions {
+	for _, streamDescription := range streamsDescriptions {
 		for _, shard := range streamDescription.Shards {
 			getShardIteratorInput := dynamodbstreams.GetShardIteratorInput{
 				ShardId:           shard.ShardId,
@@ -137,12 +173,16 @@ func main() {
 				StreamArn:         streamDescription.StreamArn,
 			}
 
-			_, result := client.StreamsClient.GetShardIteratorRequest(&getShardIteratorInput)
+			_, result := c.StreamsClient.GetShardIteratorRequest(&getShardIteratorInput)
 
 			shardIterators = append(shardIterators, result.ShardIterator)
 		}
 	}
 
+	return shardIterators
+}
+
+func (c Client) getLatestRecords(shardIterators []*string) ([]*dynamodbstreams.Record, error) {
 	// Get Records out of shard iterators.
 	records := []*dynamodbstreams.Record{}
 
@@ -153,9 +193,9 @@ func main() {
 
 		for {
 
-			getRecordsOutput, err := client.StreamsClient.GetRecords(&getRecordsInput)
+			getRecordsOutput, err := c.StreamsClient.GetRecords(&getRecordsInput)
 			if err != nil {
-				log.Error(err)
+				return records, err
 			}
 
 			records = append(records, getRecordsOutput.Records...)
@@ -168,13 +208,7 @@ func main() {
 		}
 	}
 
-	for _, record := range records {
-		err := client.sendCloudevent(record)
-		if err != nil {
-			log.Error(err)
-		}
-	}
-
+	return records, nil
 }
 
 func (c Client) sendCloudevent(record *dynamodbstreams.Record) error {
