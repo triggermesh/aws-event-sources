@@ -4,10 +4,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity/cognitoidentityiface"
 	"github.com/aws/aws-sdk-go/service/cognitosync"
 	"github.com/aws/aws-sdk-go/service/cognitosync/cognitosynciface"
+	"github.com/jarcoal/httpmock"
+	"github.com/knative/pkg/cloudevents"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,5 +70,40 @@ func TestGetRecords(t *testing.T) {
 
 }
 func TestSendCognitoEvent(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
 
+	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
+
+	dataset := cognitosync.Dataset{
+		DatasetName: aws.String("foo"),
+	}
+	records := []*cognitosync.Record{}
+
+	c := Client{
+		CloudEvents: cloudevents.NewClient(
+			"https://bar.com",
+			cloudevents.Builder{
+				Source:    "aws:cognito",
+				EventType: "SyncTrigger",
+			},
+		),
+	}
+
+	err := c.sendCognitoEvent(&dataset, records)
+	assert.Error(t, err)
+
+	c = Client{
+		CloudEvents: cloudevents.NewClient(
+			"https://foo.com",
+			cloudevents.Builder{
+				Source:    "aws:cognito",
+				EventType: "SyncTrigger",
+			},
+		),
+	}
+
+	err = c.sendCognitoEvent(&dataset, records)
+	assert.NoError(t, err)
 }
