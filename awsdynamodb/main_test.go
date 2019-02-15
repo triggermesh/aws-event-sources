@@ -141,7 +141,13 @@ func TestGetShardIterators(t *testing.T) {
 }
 
 func TestGetLatestRecords(t *testing.T) {
-	shardIterators := []*string{aws.String("1")}
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
+
+	shardIterator := aws.String("1")
 
 	c := Client{
 		StreamsClient: mockedDynamoStreamsClient{
@@ -150,22 +156,65 @@ func TestGetLatestRecords(t *testing.T) {
 		},
 	}
 
-	streamsDescriptions, err := c.getLatestRecords(shardIterators)
+	err := c.processLatestRecords(shardIterator)
 	assert.Error(t, err)
-	assert.Equal(t, 0, len(streamsDescriptions))
 
 	c = Client{
 		StreamsClient: mockedDynamoStreamsClient{
 			getRecordsOutput: dynamodbstreams.GetRecordsOutput{
-				Records: []*dynamodbstreams.Record{{}, {}},
+				Records: []*dynamodbstreams.Record{{EventID: aws.String("1")}},
 			},
 			getRecordsOutputError: nil,
 		},
+		CloudEvents: cloudevents.NewClient(
+			"https://foo.com",
+			cloudevents.Builder{
+				Source:    "aws:dynamodb",
+				EventType: "DynamoDB update",
+			},
+		),
 	}
 
-	streamsDescriptions, err = c.getLatestRecords(shardIterators)
+	err = c.processLatestRecords(shardIterator)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(streamsDescriptions))
+
+	c = Client{
+		StreamsClient: mockedDynamoStreamsClient{
+			getRecordsOutput: dynamodbstreams.GetRecordsOutput{
+				Records: []*dynamodbstreams.Record{{EventID: aws.String("1")}},
+			},
+			getRecordsOutputError: nil,
+		},
+		CloudEvents: cloudevents.NewClient(
+			"https://foo.com",
+			cloudevents.Builder{
+				Source:    "aws:dynamodb",
+				EventType: "DynamoDB update",
+			},
+		),
+	}
+
+	err = c.processLatestRecords(shardIterator)
+	assert.NoError(t, err)
+
+	c = Client{
+		StreamsClient: mockedDynamoStreamsClient{
+			getRecordsOutput: dynamodbstreams.GetRecordsOutput{
+				Records: []*dynamodbstreams.Record{{EventID: aws.String("1")}},
+			},
+			getRecordsOutputError: nil,
+		},
+		CloudEvents: cloudevents.NewClient(
+			"https://bar.com",
+			cloudevents.Builder{
+				Source:    "aws:dynamodb",
+				EventType: "DynamoDB update",
+			},
+		),
+	}
+
+	err = c.processLatestRecords(shardIterator)
+	assert.NoError(t, err)
 
 }
 

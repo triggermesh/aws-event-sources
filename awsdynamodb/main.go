@@ -20,6 +20,7 @@ package main
 import (
 	"flag"
 	"os"
+	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -80,7 +81,7 @@ func main() {
 	streamsClient := dynamodbstreams.New(sess)
 
 	cloudEvents := cloudevents.NewClient(
-		sink,
+		"https://27d02e0d.ngrok.io",
 		cloudevents.Builder{
 			Source:    "aws:dynamodb",
 			EventType: "dynamodb event",
@@ -92,33 +93,31 @@ func main() {
 		CloudEvents:   cloudEvents,
 	}
 
-	for {
-		streams, err := client.getStreams()
-		if err != nil {
-			log.Error(err)
-		}
+	log.Info("Begin listening for aws dynamo db streams")
 
-		streamsDescriptions, err := client.getStreamsDescriptions(streams)
-		if err != nil {
-			log.Error(err)
-		}
+	streams, err := client.getStreams()
+	if err != nil {
+		log.Error(err)
+	}
+
+	streamsDescriptions, err := client.getStreamsDescriptions(streams)
+	if err != nil {
+		log.Error(err)
+	}
+
+	for {
 
 		shardIterators, err := client.getShardIterators(streamsDescriptions)
 		if err != nil {
 			log.Error(err)
 		}
-
-		records, err := client.getLatestRecords(shardIterators)
-		if err != nil {
-			log.Error(err)
+		var wg sync.WaitGroup
+		wg.Add(len(shardIterators))
+		for _, shardIterator := range shardIterators {
+			go client.processLatestRecords(shardIterator)
+			wg.Done()
 		}
-
-		for _, record := range records {
-			err := client.sendCloudEvent(record)
-			if err != nil {
-				log.Error(err)
-			}
-		}
+		wg.Wait()
 	}
 }
 
@@ -188,30 +187,33 @@ func (c Client) getShardIterators(streamsDescriptions []*dynamodbstreams.StreamD
 	return shardIterators, nil
 }
 
-func (c Client) getLatestRecords(shardIterators []*string) ([]*dynamodbstreams.Record, error) {
-	records := []*dynamodbstreams.Record{}
+func (c Client) processLatestRecords(shardIterator *string) error {
 
-	for _, shardIterator := range shardIterators {
-		getRecordsInput := dynamodbstreams.GetRecordsInput{
-			ShardIterator: shardIterator,
-		}
-
-		for {
-			getRecordsOutput, err := c.StreamsClient.GetRecords(&getRecordsInput)
-			if err != nil {
-				return records, err
-			}
-
-			records = append(records, getRecordsOutput.Records...)
-
-			getRecordsInput.ShardIterator = getRecordsOutput.NextShardIterator
-			if getRecordsOutput.NextShardIterator == nil {
-				break
-			}
-		}
+	getRecordsInput := dynamodbstreams.GetRecordsInput{
+		ShardIterator: shardIterator,
 	}
 
-	return records, nil
+	getRecordsOutput, err := c.StreamsClient.GetRecords(&getRecordsInput)
+	if err != nil {
+		return err
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(getRecordsOutput.Records))
+	for _, record := range getRecordsOutput.Records {
+
+		go func(record *dynamodbstreams.Record) {
+			err := c.sendCloudEvent(record)
+			if err != nil {
+				log.Error(err)
+			}
+		}(record)
+		wg.Done()
+	}
+
+	wg.Wait()
+
+	return nil
 }
 
 func (c Client) sendCloudEvent(record *dynamodbstreams.Record) error {
