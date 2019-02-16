@@ -64,7 +64,7 @@ Given the above manifest stored as a file named `codecommit-source.yaml`. You ca
 kubectl apply -f codecommit-source.yaml
 ```
 
-For information on what is a knative [Channel]() please see the Knative [documentation]().
+For information on what is a knative [Channel](https://github.com/knative/docs/tree/master/eventing) please see the Knative [documentation](https://github.com/knative/docs/tree/master/eventing).
 
 ### Credentials
 
@@ -89,7 +89,7 @@ AWS Events are very rich. AWS SNS and AWS CloudWatch can be used with almost eve
 
 ## TriggerMesh Cloud Early Access
 
-These container sources can be used as is from this repo. You can also use them from our Cloud [https://cloud.triggermesh.io](https://cloud.triggermesh.io) where we have developed an enjoyable UI to configure them. Check ou this snapshot:
+These container sources can be used as is from this repo. You can also use them from our Cloud [https://cloud.triggermesh.io](https://cloud.triggermesh.io) where we have developed an enjoyable UI to configure them. Check out this snapshot:
 
 ![TM cloud sources](./images/sources.png)
 
