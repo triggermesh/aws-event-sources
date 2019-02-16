@@ -1,6 +1,5 @@
 FROM golang:alpine AS builder
 
-COPY ssh-info /root/.ssh
 COPY awscodecommit /go/src/awscodecommit
 WORKDIR /go/src/awscodecommit
 

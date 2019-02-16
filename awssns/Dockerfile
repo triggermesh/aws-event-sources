@@ -1,6 +1,5 @@
 FROM golang:alpine AS builder
 
-COPY ssh-info /root/.ssh
 COPY sns /go/src/sns
 WORKDIR /go/src/sns
 

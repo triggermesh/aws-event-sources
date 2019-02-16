@@ -1,6 +1,5 @@
 FROM golang:alpine AS builder
 
-COPY ssh-info /root/.ssh
 COPY awsdynamodb /go/src/awsdynamodb
 WORKDIR /go/src/awsdynamodb
 

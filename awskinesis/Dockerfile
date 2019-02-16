@@ -1,6 +1,5 @@
 FROM golang:alpine AS builder
 
-COPY ssh-info /root/.ssh
 COPY awskinesis /go/src/awskinesis
 WORKDIR /go/src/awskinesis
 

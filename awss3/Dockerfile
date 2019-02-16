@@ -1,6 +1,5 @@
 FROM golang:alpine AS builder
 
-COPY ssh-info /root/.ssh
 COPY awss3 /go/src/awss3
 WORKDIR /go/src/awss3
 

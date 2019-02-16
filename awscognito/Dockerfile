@@ -1,6 +1,5 @@
 FROM golang:alpine AS builder
 
-COPY ssh-info /root/.ssh
 COPY awscognito /go/src/awscognito
 WORKDIR /go/src/awscognito
 

@@ -1,6 +1,5 @@
 FROM golang:alpine AS builder
 
-COPY ssh-info /root/.ssh
 COPY awssqs /go/src/sqs
 WORKDIR /go/src/sqs
 
