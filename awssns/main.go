@@ -21,41 +21,61 @@ import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/service/sns/snsiface"
+	"github.com/knative/pkg/cloudevents"
 	log "github.com/sirupsen/logrus"
-	"github.com/triggermesh/sources/tmevents"
 )
 
 const port = ":8081"
 
 var (
-	topicEnv     string
-	domainEnv    string
-	protocolEnv  string
-	channelEnv   string
-	namespaceEnv string
-	awsRegionEnv string
-	awsCredsFile string
-	sink         string
+	topicEnv               string
+	accountRegion          string
+	accountAccessKeyID     string
+	accountSecretAccessKey string
+	sink                   string
+	protocol               string
+	host                   string
 )
 
-type snsMsg struct{}
+//Client struct represent all clients
+type Client struct {
+	CloudEvents *cloudevents.Client
+	SNSClient   snsiface.SNSAPI
+}
+
+type SNSEventRecord struct {
+	EventVersion         string    `json:"EventVersion"`
+	EventSubscriptionArn string    `json:"EventSubscriptionArn"`
+	EventSource          string    `json:"EventSource"`
+	SNS                  SNSEntity `json:"Sns"`
+}
+
+type SNSEntity struct {
+	Signature         string                 `json:"Signature"`
+	MessageID         string                 `json:"MessageId"`
+	Type              string                 `json:"Type"`
+	TopicArn          string                 `json:"TopicArn"`
+	MessageAttributes map[string]interface{} `json:"MessageAttributes"`
+	SignatureVersion  string                 `json:"SignatureVersion"`
+	Timestamp         time.Time              `json:"Timestamp"`
+	SigningCertURL    string                 `json:"SigningCertUrl"`
+	Message           string                 `json:"Message"`
+	UnsubscribeURL    string                 `json:"UnsubscribeUrl"`
+	Subject           string                 `json:"Subject"`
+}
 
 func init() {
 	flag.StringVar(&sink, "sink", "", "where to sink events to")
-}
-
-func main() {
-
-	flag.Parse()
 
 	//Set logging output levels
 	_, varPresent := os.LookupEnv("DEBUG")
@@ -63,28 +83,80 @@ func main() {
 		log.SetLevel(log.DebugLevel)
 	}
 
-	domainEnv = os.Getenv("DOMAIN")
 	topicEnv = os.Getenv("TOPIC")
-	protocolEnv = os.Getenv("PROTOCOL")
-	channelEnv = os.Getenv("CHANNEL")
-	namespaceEnv = os.Getenv("NAMESPACE")
-	awsRegionEnv = os.Getenv("AWS_REGION")
-	awsCredsFile = os.Getenv("AWS_CREDS")
+	accountRegion = os.Getenv("AWS_REGION")
+	accountAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+	accountSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
+}
+
+func main() {
+
+	flag.Parse()
+
+	protocol = strings.Split(sink, "://")[0]
+	host = strings.Split(sink, "://")[1]
+
+	//Create client for SNS
+	sess, err := session.NewSession(&aws.Config{
+		Region:      aws.String(accountRegion),
+		Credentials: credentials.NewStaticCredentials(accountAccessKeyID, accountSecretAccessKey, ""),
+	})
+	if err != nil {
+		log.Fatal("Unable to create SNS client: ", err)
+	}
+
+	client := Client{
+		CloudEvents: cloudevents.NewClient(
+			sink,
+			cloudevents.Builder{
+				Source:    "aws:sns",
+				EventType: "SNS Event",
+			},
+		),
+		SNSClient: sns.New(sess),
+	}
 
 	//Setup subscription in the background. Will keep us from having chicken/egg between server
 	//being ready to respond and us having the info we need for the subscription request
-	go topicSubscribe()
+	go func() {
+		for {
+			err := client.attempSubscription()
+			if err == nil {
+				break
+			}
+			log.Error(err)
+		}
+	}()
 
 	//Start server
-	m := snsMsg{}
-	http.HandleFunc("/", m.ReceiveMsg)
-	http.HandleFunc("/healthz", health)
+	http.HandleFunc("/", client.HandleNotification)
+	http.HandleFunc("/health", healthCheckHandler)
 	log.Info("Beginning to serve on port " + port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
-//ReceiveMsg implements the receive interface for sns
-func (snsMsg) ReceiveMsg(w http.ResponseWriter, r *http.Request) {
+func (c Client) attempSubscription() error {
+	time.Sleep(10 * time.Second)
+
+	topic, err := c.SNSClient.CreateTopic(&sns.CreateTopicInput{Name: aws.String(topicEnv)})
+	if err != nil {
+		return err
+	}
+
+	_, err = c.SNSClient.Subscribe(&sns.SubscribeInput{
+		Endpoint: &sink,
+		Protocol: &protocol,
+		TopicArn: topic.TopicArn,
+	})
+	if err != nil {
+		return err
+	}
+	log.Debug("Finished subscription flow")
+	return nil
+}
+
+//HandleNotification implements the receive interface for sns
+func (c Client) HandleNotification(w http.ResponseWriter, r *http.Request) {
 
 	//Fish out notification body
 	var notification interface{}
@@ -96,6 +168,7 @@ func (snsMsg) ReceiveMsg(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error("Failed to parse notification: ", err)
 	}
+	log.Info(string(body))
 	data := notification.(map[string]interface{})
 
 	//If the message is about our subscription, curl the confirmation endpoint.
@@ -112,72 +185,36 @@ func (snsMsg) ReceiveMsg(w http.ResponseWriter, r *http.Request) {
 	} else if data["Type"].(string) == "Notification" {
 
 		eventTime, _ := time.Parse(time.RFC3339, data["Timestamp"].(string))
-		eventInfo := tmevents.EventInfo{
-			EventData:   []byte(data["Message"].(string)),
-			EventID:     data["MessageId"].(string),
-			EventTime:   eventTime,
-			EventType:   data["Type"].(string),
-			EventSource: "sns",
-		}
-		log.Debug("Received notification: ", eventInfo)
 
-		err := tmevents.PushEvent(&eventInfo, sink)
-		if err != nil {
-			log.Error("Unable to push event: ", err)
+		record := SNSEventRecord{
+			EventVersion:         "1.0",
+			EventSubscriptionArn: "",
+			EventSource:          "aws:sns",
+			SNS: SNSEntity{
+				Signature:         data["Signature"].(string),
+				MessageID:         data["MessageId"].(string),
+				Type:              data["Type"].(string),
+				TopicArn:          data["TopicArn"].(string),
+				MessageAttributes: data["MessageAttributes"].(map[string]interface{}),
+				SignatureVersion:  data["SignatureVersion"].(string),
+				Timestamp:         eventTime,
+				SigningCertURL:    data["SigningCertURL"].(string),
+				Message:           data["Message"].(string),
+				UnsubscribeURL:    data["UnsubscribeURL"].(string),
+				Subject:           data["Subject"].(string),
+			},
+		}
+
+		log.Debug("Received notification: ", record)
+
+		if err := c.CloudEvents.Send(record); err != nil {
+			log.Error(err)
 		}
 	}
 }
 
-//Handle health checks
-func health(writer http.ResponseWriter, request *http.Request) {
-	writer.Write([]byte("OK"))
-}
-
-//Initiate subscription request
-func topicSubscribe() {
-
-	webhookBase := "sns." + topicEnv + "." + channelEnv + "." + namespaceEnv + "." + domainEnv
-	webhookURL := protocolEnv + "://" + webhookBase
-
-	//Create client for SNS
-	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(awsRegionEnv),
-		Credentials: credentials.NewSharedCredentials(awsCredsFile, "default"),
-		MaxRetries:  aws.Int(5),
-	})
-	if err != nil {
-		log.Fatal("Unable to create SNS client: ", err)
-	}
-	snsClient := sns.New(sess)
-
-	//Attempt subscription flow until successful
-	for {
-		time.Sleep(10 * time.Second)
-		ip, err := net.LookupIP(webhookBase)
-		if err != nil {
-			log.Error("Waiting for DNS entry: ", err)
-			continue
-		}
-		log.Info("Found IP: ", ip)
-
-		//CreateTopic is supposed to be idempotent, so if topic name already exists, just returns ARN.
-		topic, err := snsClient.CreateTopic(&sns.CreateTopicInput{Name: aws.String(topicEnv)})
-		if err != nil {
-			log.Fatal("Unable to create/fetch SNS topic: ", err)
-			continue
-		}
-
-		//Tells SNS to send the subscription confirmation payload the the endpoint provided.
-		_, err = snsClient.Subscribe(&sns.SubscribeInput{
-			Endpoint: &webhookURL,
-			Protocol: &protocolEnv,
-			TopicArn: topic.TopicArn,
-		})
-		if err != nil {
-			log.Error("Unable to send SNS subscription request: ", err)
-			continue
-		}
-		log.Debug("Finished subscription flow")
-		break
-	}
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("OK"))
 }

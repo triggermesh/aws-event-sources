@@ -1,0 +1,15 @@
+{
+  "Type" : "Notification",
+  "MessageId" : "c2f44639-64fc-50dc-8b9e-12d8a0c39dc7",
+  "TopicArn" : "arn:aws:sns:us-west-2:730809894724:triggermeshtest",
+  "Subject" : "Hello World",
+  "Message" : "fsdklfjskljskldjf",
+  "Timestamp" : "2019-02-16T07:55:43.971Z",
+  "SignatureVersion" : "1",
+  "Signature" : "HY==",
+  "SigningCertURL" : "https://sns.us-west-2.amazonaws.com/SimpleNotificationService-a.pem",
+  "UnsubscribeURL" : "https://sns.us-west-2.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-west-2",
+  "MessageAttributes" : {
+    "bar" : {"Type":"String","Value":"Foo"}
+  }
+}
