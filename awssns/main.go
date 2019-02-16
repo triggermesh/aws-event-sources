@@ -30,8 +30,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/knative/pkg/cloudevents"
 	log "github.com/sirupsen/logrus"
-	"github.com/triggermesh/sources/tmevents"
 )
 
 const port = ":8081"
@@ -47,7 +47,31 @@ var (
 	sink         string
 )
 
-type snsMsg struct{}
+//Client struct represent all clients
+type Client struct {
+	CloudEvents *cloudevents.Client
+}
+
+type SNSEventRecord struct {
+	EventVersion         string    `json:"EventVersion"`
+	EventSubscriptionArn string    `json:"EventSubscriptionArn"`
+	EventSource          string    `json:"EventSource"`
+	SNS                  SNSEntity `json:"Sns"`
+}
+
+type SNSEntity struct {
+	Signature         string                 `json:"Signature"`
+	MessageID         string                 `json:"MessageId"`
+	Type              string                 `json:"Type"`
+	TopicArn          string                 `json:"TopicArn"`
+	MessageAttributes map[string]interface{} `json:"MessageAttributes"`
+	SignatureVersion  string                 `json:"SignatureVersion"`
+	Timestamp         time.Time              `json:"Timestamp"`
+	SigningCertURL    string                 `json:"SigningCertUrl"`
+	Message           string                 `json:"Message"`
+	UnsubscribeURL    string                 `json:"UnsubscribeUrl"`
+	Subject           string                 `json:"Subject"`
+}
 
 func init() {
 	flag.StringVar(&sink, "sink", "", "where to sink events to")
@@ -75,16 +99,24 @@ func main() {
 	//being ready to respond and us having the info we need for the subscription request
 	go topicSubscribe()
 
+	client := Client{
+		CloudEvents: cloudevents.NewClient(
+			sink,
+			cloudevents.Builder{
+				Source: "aws:sns",
+			},
+		),
+	}
+
 	//Start server
-	m := snsMsg{}
-	http.HandleFunc("/", m.ReceiveMsg)
+	http.HandleFunc("/", client.ReceiveMsg)
 	http.HandleFunc("/healthz", health)
 	log.Info("Beginning to serve on port " + port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
 //ReceiveMsg implements the receive interface for sns
-func (snsMsg) ReceiveMsg(w http.ResponseWriter, r *http.Request) {
+func (c Client) ReceiveMsg(w http.ResponseWriter, r *http.Request) {
 
 	//Fish out notification body
 	var notification interface{}
@@ -111,19 +143,29 @@ func (snsMsg) ReceiveMsg(w http.ResponseWriter, r *http.Request) {
 		//If it's a legit notification, push the event
 	} else if data["Type"].(string) == "Notification" {
 
-		eventTime, _ := time.Parse(time.RFC3339, data["Timestamp"].(string))
-		eventInfo := tmevents.EventInfo{
-			EventData:   []byte(data["Message"].(string)),
-			EventID:     data["MessageId"].(string),
-			EventTime:   eventTime,
-			EventType:   data["Type"].(string),
-			EventSource: "sns",
+		record := SNSEventRecord{
+			EventVersion:         "1.0",
+			EventSubscriptionArn: "",
+			EventSource:          "aws:sns",
+			SNS: SNSEntity{
+				Signature:         data["Signature"].(string),
+				MessageID:         data["MessageId"].(string),
+				Type:              data["Type"].(string),
+				TopicArn:          data["TopicArn"].(string),
+				MessageAttributes: data["MessageAttributes"].(map[string]interface{}),
+				SignatureVersion:  data["SignatureVersion"].(string),
+				Timestamp:         data["Timestamp"].(time.Time),
+				SigningCertURL:    data["SigningCertURL"].(string),
+				Message:           data["Message"].(string),
+				UnsubscribeURL:    data["UnsubscribeURL"].(string),
+				Subject:           data["Subject"].(string),
+			},
 		}
-		log.Debug("Received notification: ", eventInfo)
 
-		err := tmevents.PushEvent(&eventInfo, sink)
-		if err != nil {
-			log.Error("Unable to push event: ", err)
+		log.Debug("Received notification: ", record)
+
+		if err := c.CloudEvents.Send(record); err != nil {
+			log.Error(err)
 		}
 	}
 }
