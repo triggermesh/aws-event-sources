@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"flag"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -39,17 +38,19 @@ import (
 const port = ":8081"
 
 var (
-	topicEnv     string
-	awsRegionEnv string
-	awsCredsFile string
-	sink         string
-	protocol     string
+	topicEnv               string
+	accountRegion          string
+	accountAccessKeyID     string
+	accountSecretAccessKey string
+	sink                   string
+	protocol               string
+	host                   string
 )
 
 //Client struct represent all clients
 type Client struct {
 	CloudEvents *cloudevents.Client
-	SNSCLient   snsiface.SNSAPI
+	SNSClient   snsiface.SNSAPI
 }
 
 type SNSEventRecord struct {
@@ -83,8 +84,9 @@ func init() {
 	}
 
 	topicEnv = os.Getenv("TOPIC")
-	awsRegionEnv = os.Getenv("AWS_REGION")
-	awsCredsFile = os.Getenv("AWS_CREDS")
+	accountRegion = os.Getenv("AWS_REGION")
+	accountAccessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+	accountSecretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
 }
 
 func main() {
@@ -92,12 +94,12 @@ func main() {
 	flag.Parse()
 
 	protocol = strings.Split(sink, "://")[0]
+	host = strings.Split(sink, "://")[1]
 
 	//Create client for SNS
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(awsRegionEnv),
-		Credentials: credentials.NewSharedCredentials(awsCredsFile, "default"),
-		MaxRetries:  aws.Int(5),
+		Region:      aws.String(accountRegion),
+		Credentials: credentials.NewStaticCredentials(accountAccessKeyID, accountSecretAccessKey, ""),
 	})
 	if err != nil {
 		log.Fatal("Unable to create SNS client: ", err)
@@ -107,10 +109,11 @@ func main() {
 		CloudEvents: cloudevents.NewClient(
 			sink,
 			cloudevents.Builder{
-				Source: "aws:sns",
+				Source:    "aws:sns",
+				EventType: "SNS Event",
 			},
 		),
-		SNSCLient: sns.New(sess),
+		SNSClient: sns.New(sess),
 	}
 
 	//Setup subscription in the background. Will keep us from having chicken/egg between server
@@ -127,27 +130,20 @@ func main() {
 
 	//Start server
 	http.HandleFunc("/", client.HandleNotification)
-	http.HandleFunc("/healthz", health)
+	http.HandleFunc("/health", healthCheckHandler)
 	log.Info("Beginning to serve on port " + port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
 func (c Client) attempSubscription() error {
 	time.Sleep(10 * time.Second)
-	ip, err := net.LookupIP(sink)
-	if err != nil {
-		return err
-	}
-	log.Info("Found IP: ", ip)
 
-	//CreateTopic is supposed to be idempotent, so if topic name already exists, just returns ARN.
-	topic, err := c.SNSCLient.CreateTopic(&sns.CreateTopicInput{Name: aws.String(topicEnv)})
+	topic, err := c.SNSClient.CreateTopic(&sns.CreateTopicInput{Name: aws.String(topicEnv)})
 	if err != nil {
 		return err
 	}
 
-	//Tells SNS to send the subscription confirmation payload the the endpoint provided.
-	_, err = c.SNSCLient.Subscribe(&sns.SubscribeInput{
+	_, err = c.SNSClient.Subscribe(&sns.SubscribeInput{
 		Endpoint: &sink,
 		Protocol: &protocol,
 		TopicArn: topic.TopicArn,
@@ -172,6 +168,7 @@ func (c Client) HandleNotification(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Error("Failed to parse notification: ", err)
 	}
+	log.Info(string(body))
 	data := notification.(map[string]interface{})
 
 	//If the message is about our subscription, curl the confirmation endpoint.
@@ -187,6 +184,8 @@ func (c Client) HandleNotification(w http.ResponseWriter, r *http.Request) {
 		//If it's a legit notification, push the event
 	} else if data["Type"].(string) == "Notification" {
 
+		eventTime, _ := time.Parse(time.RFC3339, data["Timestamp"].(string))
+
 		record := SNSEventRecord{
 			EventVersion:         "1.0",
 			EventSubscriptionArn: "",
@@ -198,7 +197,7 @@ func (c Client) HandleNotification(w http.ResponseWriter, r *http.Request) {
 				TopicArn:          data["TopicArn"].(string),
 				MessageAttributes: data["MessageAttributes"].(map[string]interface{}),
 				SignatureVersion:  data["SignatureVersion"].(string),
-				Timestamp:         data["Timestamp"].(time.Time),
+				Timestamp:         eventTime,
 				SigningCertURL:    data["SigningCertURL"].(string),
 				Message:           data["Message"].(string),
 				UnsubscribeURL:    data["UnsubscribeURL"].(string),
@@ -214,7 +213,8 @@ func (c Client) HandleNotification(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//Handle health checks
-func health(writer http.ResponseWriter, request *http.Request) {
-	writer.Write([]byte("OK"))
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write([]byte("OK"))
 }
