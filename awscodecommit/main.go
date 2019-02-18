@@ -150,6 +150,11 @@ func main() {
 		log.Fatal("error identifying events type. Please, select either `pull_request` or `push` event or both")
 	}
 
+	processedPullRequests, err := cc.preparePullRequests()
+	if err != nil {
+		log.Error(err)
+	}
+
 	//range time.Tick(time.Duration(syncTime) * time.Second)
 	for {
 		if strings.Contains(gitEventsEnv, "push") {
@@ -160,9 +165,20 @@ func main() {
 		}
 
 		if strings.Contains(gitEventsEnv, "pull_request") {
-			err = cc.processPullRequest()
+			pullRequests, err := cc.preparePullRequests()
 			if err != nil {
 				log.Error(err)
+			}
+
+			pullRequests = removeOldPRs(processedPullRequests, pullRequests)
+
+			for _, pr := range pullRequests {
+
+				err = cc.sendPREvent(pr)
+				if err != nil {
+					log.Error("sendPREvent failed: ", err)
+				}
+				processedPullRequests = append(processedPullRequests, pr)
 			}
 		}
 
@@ -201,8 +217,8 @@ func (cc СodeCommitClient) processCommits() error {
 	return nil
 }
 
-func (cc СodeCommitClient) processPullRequest() error {
-	prIDs := []*string{}
+func (cc СodeCommitClient) preparePullRequests() ([]*codecommit.PullRequest, error) {
+	pullRequests := []*codecommit.PullRequest{}
 
 	input := codecommit.ListPullRequestsInput{
 		RepositoryName: aws.String(repoNameEnv),
@@ -211,12 +227,25 @@ func (cc СodeCommitClient) processPullRequest() error {
 	for {
 		//Get pull request IDs
 		pullRequestsOutput, err := cc.Client.ListPullRequests(&input)
-
 		if err != nil {
-			return err
+			return pullRequests, err
 		}
 
+		prIDs := []*string{}
+
 		prIDs = append(prIDs, pullRequestsOutput.PullRequestIds...)
+
+		for _, id := range prIDs {
+
+			pri := codecommit.GetPullRequestInput{PullRequestId: id}
+
+			prInfo, err := cc.Client.GetPullRequest(&pri)
+			if err != nil {
+				return pullRequests, err
+			}
+
+			pullRequests = append(pullRequests, prInfo.PullRequest)
+		}
 
 		if pullRequestsOutput.NextToken == nil {
 			break
@@ -225,28 +254,7 @@ func (cc СodeCommitClient) processPullRequest() error {
 		input.NextToken = pullRequestsOutput.NextToken
 	}
 
-	for _, id := range prIDs {
-		log.Infof("Process ID [%v]", *id)
-		if contains(pullRequestIDs, *id) {
-			continue
-		}
-		pullRequestIDs = append(pullRequestIDs, id)
-
-		pri := codecommit.GetPullRequestInput{PullRequestId: id}
-
-		log.Info(pri)
-
-		prInfo, err := cc.Client.GetPullRequest(&pri)
-		if err != nil {
-			return err
-		}
-		err = cc.sendPREvent(prInfo.PullRequest)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return pullRequests, nil
 }
 
 //sendPush sends an event containing data about a git commit that was pushed to a branch
@@ -286,12 +294,24 @@ func (cc СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest) err
 	return nil
 }
 
-// Contains tells whether a contains x.
-func contains(a []*string, x string) bool {
-	for _, n := range a {
-		if x == *n {
-			return true
+func removeOldPRs(oldPrs, newPrs []*codecommit.PullRequest) []*codecommit.PullRequest {
+	dct := make(map[string]*codecommit.PullRequest)
+	for _, oldPR := range oldPrs {
+		dct[*oldPR.PullRequestId] = oldPR
+	}
+
+	res := make([]*codecommit.PullRequest, 0)
+
+	for _, newPR := range newPrs {
+		if v, exist := dct[*newPR.PullRequestId]; !exist {
+			res = append(res, newPR)
+			continue
+		} else {
+			if *newPR.PullRequestStatus == *v.PullRequestStatus {
+				continue
+			}
+			res = append(res, newPR)
 		}
 	}
-	return false
+	return res
 }
