@@ -20,11 +20,6 @@ spec:
         secretKeyRef:
           name: awscreds
           key: aws_secret_access_key
-    - name: AWS_SECURE_TOKEN
-      valueFrom:
-        secretKeyRef:
-          name: awscreds
-          key: aws_secure_token
     - name: AWS_REGION
       value: us-east-1
     - name: STREAM

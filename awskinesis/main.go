@@ -108,6 +108,8 @@ func main() {
 	//Obtain records inputs for different shards
 	inputs, shardIDs := stream.getRecordsInputs(myStream.StreamDescription.Shards)
 
+	log.Info("Connected to Kinesis stream: ", streamARN)
+
 	for {
 		err := stream.processInputs(inputs, shardIDs)
 		if err != nil {
