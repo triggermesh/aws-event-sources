@@ -101,6 +101,8 @@ func main() {
 		CloudEvents:     cloudEvents,
 	}
 
+	log.Info("Listen for AWS Cognito stream for Identity: ", identityPoolID)
+
 	for {
 
 		identities, err := client.getIdentities()
@@ -132,6 +134,7 @@ func (client Client) getIdentities() ([]*cognitoidentity.IdentityDescription, er
 	identities := []*cognitoidentity.IdentityDescription{}
 
 	listIdentitiesInput := cognitoidentity.ListIdentitiesInput{
+		MaxResults:     aws.Int64(1),
 		IdentityPoolId: &identityPoolID,
 	}
 
