@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/codecommit/codecommitiface"
 	"github.com/jarcoal/httpmock"
 	"github.com/knative/pkg/cloudevents"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -259,7 +260,7 @@ func TestProcessPullRequest(t *testing.T) {
 			ListPRsErr:  nil,
 			GetPRErr:    nil,
 			Sink:        "https://bar.com",
-			Err:         errors.New("error sending cloudevent: Status[500] "),
+			Err:         nil,
 		},
 		{
 			ListPRsResp: codecommit.ListPullRequestsOutput{PullRequestIds: []*string{aws.String("2")}},
@@ -289,7 +290,7 @@ func TestProcessPullRequest(t *testing.T) {
 			),
 		}
 
-		err := client.processPullRequest()
+		_, err := client.preparePullRequests()
 		assert.Equal(t, tt.Err, err)
 
 		pullRequestIDs = []*string{aws.String("1")}
@@ -297,18 +298,25 @@ func TestProcessPullRequest(t *testing.T) {
 	}
 }
 
-func TestContains(t *testing.T) {
-	testCases := []struct {
-		slice   []*string
-		element string
-		result  bool
-	}{
-		{[]*string{aws.String("1"), aws.String("2"), aws.String("3")}, "1", true},
-		{[]*string{aws.String("1"), aws.String("2"), aws.String("3")}, "4", false},
+func TestRemoveOldPRs(t *testing.T) {
+	oldPRs := []*codecommit.PullRequest{
+		{PullRequestId: aws.String("1"), PullRequestStatus: aws.String("CREATED")},
+		{PullRequestId: aws.String("2"), PullRequestStatus: aws.String("CREATED")},
+	}
+	newPRs := []*codecommit.PullRequest{
+		{PullRequestId: aws.String("1"), PullRequestStatus: aws.String("CREATED")},
+		{PullRequestId: aws.String("2"), PullRequestStatus: aws.String("CLOSED")},
+		{PullRequestId: aws.String("3"), PullRequestStatus: aws.String("CREATED")},
 	}
 
-	for _, tt := range testCases {
-		r := contains(tt.slice, tt.element)
-		assert.Equal(t, tt.result, r)
+	expectedPRs := []*codecommit.PullRequest{
+		{PullRequestId: aws.String("2"), PullRequestStatus: aws.String("CLOSED")},
+		{PullRequestId: aws.String("3"), PullRequestStatus: aws.String("CREATED")},
 	}
+
+	prs := removeOldPRs(oldPRs, newPRs)
+	log.Info(prs)
+	assert.Equal(t, 2, len(prs))
+	assert.Equal(t, expectedPRs, prs)
+
 }
