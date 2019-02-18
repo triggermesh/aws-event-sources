@@ -69,6 +69,12 @@ func main() {
 
 	flag.Parse()
 
+	//Set logging output levels
+	_, varPresent := os.LookupEnv("DEBUG")
+	if varPresent {
+		log.SetLevel(log.DebugLevel)
+	}
+
 	sess, err := session.NewSession(&aws.Config{
 		Region:      aws.String(accountRegion),
 		Credentials: credentials.NewStaticCredentials(accountAccessKeyID, accountSecretAccessKey, ""),
@@ -97,19 +103,29 @@ func main() {
 
 	streams, err := client.getStreams()
 	if err != nil {
-		log.Error(err)
+		log.Error("getStreams failed ", err)
 	}
+
+	log.Debug("Streams: ", streams)
 
 	streamsDescriptions, err := client.getStreamsDescriptions(streams)
 	if err != nil {
-		log.Error(err)
+		log.Error("getStreamsDescriptions failed ", err)
+	}
+
+	log.Debug("Streams Descriptions: ", streamsDescriptions)
+
+	for _, streamDescription := range streamsDescriptions {
+		if *streamDescription.StreamStatus != "ENABLED" {
+			log.Infof("Stream for table [%v] is not enabled!", *streamDescription.TableName)
+		}
 	}
 
 	for {
 
 		shardIterators, err := client.getShardIterators(streamsDescriptions)
 		if err != nil {
-			log.Error(err)
+			log.Error("getShardIterators failed ", err)
 		}
 		var wg sync.WaitGroup
 		wg.Add(len(shardIterators))
@@ -195,6 +211,7 @@ func (c Client) processLatestRecords(shardIterator *string) error {
 
 	getRecordsOutput, err := c.StreamsClient.GetRecords(&getRecordsInput)
 	if err != nil {
+		log.Error("Get Records Failed: ", err)
 		return err
 	}
 
@@ -205,7 +222,7 @@ func (c Client) processLatestRecords(shardIterator *string) error {
 		go func(record *dynamodbstreams.Record) {
 			err := c.sendCloudEvent(record)
 			if err != nil {
-				log.Error(err)
+				log.Error("sendCloudEvent failed: ", err)
 			}
 		}(record)
 		wg.Done()
