@@ -41,8 +41,8 @@ var (
 	identityPoolID         string
 )
 
-//Client struct represent all clients
-type Client struct {
+//Clients struct represent all clients
+type Clients struct {
 	CognitoIdentity cognitoidentityiface.CognitoIdentityAPI
 	CognitoSync     cognitosynciface.CognitoSyncAPI
 	CloudEvents     *cloudevents.Client
@@ -95,7 +95,7 @@ func main() {
 		},
 	)
 
-	client := Client{
+	clients := Clients{
 		CognitoIdentity: itentityClient,
 		CognitoSync:     syncClient,
 		CloudEvents:     cloudEvents,
@@ -105,24 +105,24 @@ func main() {
 
 	for {
 
-		identities, err := client.getIdentities()
+		identities, err := clients.getIdentities()
 		if err != nil {
 			log.Error(err)
 		}
 
-		datasets, err := client.getDatasets(identities)
+		datasets, err := clients.getDatasets(identities)
 		if err != nil {
 			log.Error(err)
 		}
 
 		for _, dataset := range datasets {
-			records, err := client.getRecords(dataset)
+			records, err := clients.getRecords(dataset)
 			if err != nil {
 				log.Error(err)
 				continue
 			}
 
-			err = client.sendCognitoEvent(dataset, records)
+			err = clients.sendCognitoEvent(dataset, records)
 			if err != nil {
 				log.Errorf("SendCloudEvent failed: %v", err)
 			}
@@ -130,7 +130,7 @@ func main() {
 	}
 }
 
-func (client Client) getIdentities() ([]*cognitoidentity.IdentityDescription, error) {
+func (clients Clients) getIdentities() ([]*cognitoidentity.IdentityDescription, error) {
 	identities := []*cognitoidentity.IdentityDescription{}
 
 	listIdentitiesInput := cognitoidentity.ListIdentitiesInput{
@@ -139,7 +139,7 @@ func (client Client) getIdentities() ([]*cognitoidentity.IdentityDescription, er
 	}
 
 	for {
-		listIdentitiesOutput, err := client.CognitoIdentity.ListIdentities(&listIdentitiesInput)
+		listIdentitiesOutput, err := clients.CognitoIdentity.ListIdentities(&listIdentitiesInput)
 		if err != nil {
 			return identities, err
 		}
@@ -156,7 +156,7 @@ func (client Client) getIdentities() ([]*cognitoidentity.IdentityDescription, er
 	return identities, nil
 }
 
-func (client Client) getDatasets(identities []*cognitoidentity.IdentityDescription) ([]*cognitosync.Dataset, error) {
+func (clients Clients) getDatasets(identities []*cognitoidentity.IdentityDescription) ([]*cognitosync.Dataset, error) {
 	datasets := []*cognitosync.Dataset{}
 
 	for _, identity := range identities {
@@ -166,7 +166,7 @@ func (client Client) getDatasets(identities []*cognitoidentity.IdentityDescripti
 		}
 
 		for {
-			listDatasetsOutput, err := client.CognitoSync.ListDatasets(&listDatasetsInput)
+			listDatasetsOutput, err := clients.CognitoSync.ListDatasets(&listDatasetsInput)
 			if err != nil {
 				return datasets, err
 			}
@@ -184,7 +184,7 @@ func (client Client) getDatasets(identities []*cognitoidentity.IdentityDescripti
 	return datasets, nil
 }
 
-func (client Client) getRecords(dataset *cognitosync.Dataset) ([]*cognitosync.Record, error) {
+func (clients Clients) getRecords(dataset *cognitosync.Dataset) ([]*cognitosync.Record, error) {
 	records := []*cognitosync.Record{}
 
 	input := cognitosync.ListRecordsInput{
@@ -194,7 +194,7 @@ func (client Client) getRecords(dataset *cognitosync.Dataset) ([]*cognitosync.Re
 	}
 
 	for {
-		recordsOutput, err := client.CognitoSync.ListRecords(&input)
+		recordsOutput, err := clients.CognitoSync.ListRecords(&input)
 		if err != nil {
 			return records, err
 		}
@@ -210,7 +210,7 @@ func (client Client) getRecords(dataset *cognitosync.Dataset) ([]*cognitosync.Re
 	return records, nil
 }
 
-func (client Client) sendCognitoEvent(dataset *cognitosync.Dataset, records []*cognitosync.Record) error {
+func (clients Clients) sendCognitoEvent(dataset *cognitosync.Dataset, records []*cognitosync.Record) error {
 	log.Info("Processing Dataset: ", *dataset.DatasetName)
 
 	cognitoEvent := CognitoSyncEvent{
@@ -227,7 +227,7 @@ func (client Client) sendCognitoEvent(dataset *cognitosync.Dataset, records []*c
 		DatasetRecords:   records,
 	}
 
-	if err := client.CloudEvents.Send(cognitoEvent); err != nil {
+	if err := clients.CloudEvents.Send(cognitoEvent); err != nil {
 		return err
 	}
 

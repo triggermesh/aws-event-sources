@@ -57,16 +57,16 @@ func (m mockedCognitoSyncClient) ListRecords(in *cognitosync.ListRecordsInput) (
 }
 
 func TestGetIdentities(t *testing.T) {
-	c := Client{
+	clients := Clients{
 		CognitoIdentity: mockedCognitoIdentityClient{
 			listIdentitiesOutput:      cognitoidentity.ListIdentitiesOutput{},
 			listIdentitiesOutputError: errors.New("ListIdentities failed"),
 		},
 	}
-	_, err := c.getIdentities()
+	_, err := clients.getIdentities()
 	assert.Error(t, err)
 
-	c = Client{
+	clients = Clients{
 		CognitoIdentity: mockedCognitoIdentityClient{
 			listIdentitiesOutput: cognitoidentity.ListIdentitiesOutput{
 				Identities: []*cognitoidentity.IdentityDescription{{}, {}},
@@ -74,7 +74,7 @@ func TestGetIdentities(t *testing.T) {
 			listIdentitiesOutputError: nil,
 		},
 	}
-	identities, err := c.getIdentities()
+	identities, err := clients.getIdentities()
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(identities))
 }
@@ -82,17 +82,17 @@ func TestGetIdentities(t *testing.T) {
 func TestGetDatasets(t *testing.T) {
 	identities := []*cognitoidentity.IdentityDescription{{IdentityId: aws.String("1")}}
 
-	c := Client{
+	clients := Clients{
 		CognitoSync: mockedCognitoSyncClient{
 			listDatasetsOutput:      cognitosync.ListDatasetsOutput{},
 			listDatasetsOutputError: errors.New("ListDatasets failed"),
 		},
 	}
 
-	_, err := c.getDatasets(identities)
+	_, err := clients.getDatasets(identities)
 	assert.Error(t, err)
 
-	c = Client{
+	clients = Clients{
 		CognitoSync: mockedCognitoSyncClient{
 			listDatasetsOutput: cognitosync.ListDatasetsOutput{
 				Datasets: []*cognitosync.Dataset{{}, {}},
@@ -101,7 +101,7 @@ func TestGetDatasets(t *testing.T) {
 		},
 	}
 
-	datasets, err := c.getDatasets(identities)
+	datasets, err := clients.getDatasets(identities)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(datasets))
 
@@ -109,17 +109,17 @@ func TestGetDatasets(t *testing.T) {
 func TestGetRecords(t *testing.T) {
 	dataset := cognitosync.Dataset{}
 
-	c := Client{
+	clients := Clients{
 		CognitoSync: mockedCognitoSyncClient{
 			listRecordsOutput:      cognitosync.ListRecordsOutput{},
 			listRecordsOutputError: errors.New("ListRecords failed"),
 		},
 	}
 
-	_, err := c.getRecords(&dataset)
+	_, err := clients.getRecords(&dataset)
 	assert.Error(t, err)
 
-	c = Client{
+	clients = Clients{
 		CognitoSync: mockedCognitoSyncClient{
 			listRecordsOutput: cognitosync.ListRecordsOutput{
 				Records: []*cognitosync.Record{{}, {}},
@@ -128,7 +128,7 @@ func TestGetRecords(t *testing.T) {
 		},
 	}
 
-	records, err := c.getRecords(&dataset)
+	records, err := clients.getRecords(&dataset)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(records))
 }
@@ -144,7 +144,7 @@ func TestSendCognitoEvent(t *testing.T) {
 	}
 	records := []*cognitosync.Record{}
 
-	c := Client{
+	clients := Clients{
 		CloudEvents: cloudevents.NewClient(
 			"https://bar.com",
 			cloudevents.Builder{
@@ -154,10 +154,10 @@ func TestSendCognitoEvent(t *testing.T) {
 		),
 	}
 
-	err := c.sendCognitoEvent(&dataset, records)
+	err := clients.sendCognitoEvent(&dataset, records)
 	assert.Error(t, err)
 
-	c = Client{
+	clients = Clients{
 		CloudEvents: cloudevents.NewClient(
 			"https://foo.com",
 			cloudevents.Builder{
@@ -167,6 +167,6 @@ func TestSendCognitoEvent(t *testing.T) {
 		),
 	}
 
-	err = c.sendCognitoEvent(&dataset, records)
+	err = clients.sendCognitoEvent(&dataset, records)
 	assert.NoError(t, err)
 }
