@@ -47,10 +47,10 @@ var (
 	host                   string
 )
 
-//Client struct represent all clients
-type Client struct {
+//Clients struct represent all clients
+type Clients struct {
+	SNS         snsiface.SNSAPI
 	CloudEvents *cloudevents.Client
-	SNSClient   snsiface.SNSAPI
 }
 
 type SNSEventRecord struct {
@@ -105,7 +105,8 @@ func main() {
 		log.Fatal("Unable to create SNS client: ", err)
 	}
 
-	client := Client{
+	clients := Clients{
+		SNS: sns.New(sess),
 		CloudEvents: cloudevents.NewClient(
 			sink,
 			cloudevents.Builder{
@@ -113,14 +114,13 @@ func main() {
 				EventType: "SNS Event",
 			},
 		),
-		SNSClient: sns.New(sess),
 	}
 
 	//Setup subscription in the background. Will keep us from having chicken/egg between server
 	//being ready to respond and us having the info we need for the subscription request
 	go func() {
 		for {
-			err := client.attempSubscription()
+			err := clients.attempSubscription()
 			if err == nil {
 				break
 			}
@@ -129,21 +129,21 @@ func main() {
 	}()
 
 	//Start server
-	http.HandleFunc("/", client.HandleNotification)
+	http.HandleFunc("/", clients.HandleNotification)
 	http.HandleFunc("/health", healthCheckHandler)
 	log.Info("Beginning to serve on port " + port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
 
-func (c Client) attempSubscription() error {
+func (clients Clients) attempSubscription() error {
 	time.Sleep(10 * time.Second)
 
-	topic, err := c.SNSClient.CreateTopic(&sns.CreateTopicInput{Name: aws.String(topicEnv)})
+	topic, err := clients.SNS.CreateTopic(&sns.CreateTopicInput{Name: aws.String(topicEnv)})
 	if err != nil {
 		return err
 	}
 
-	_, err = c.SNSClient.Subscribe(&sns.SubscribeInput{
+	_, err = clients.SNS.Subscribe(&sns.SubscribeInput{
 		Endpoint: &sink,
 		Protocol: &protocol,
 		TopicArn: topic.TopicArn,
@@ -156,7 +156,7 @@ func (c Client) attempSubscription() error {
 }
 
 //HandleNotification implements the receive interface for sns
-func (c Client) HandleNotification(w http.ResponseWriter, r *http.Request) {
+func (clients Clients) HandleNotification(w http.ResponseWriter, r *http.Request) {
 
 	//Fish out notification body
 	var notification interface{}
@@ -207,7 +207,7 @@ func (c Client) HandleNotification(w http.ResponseWriter, r *http.Request) {
 
 		log.Debug("Received notification: ", record)
 
-		if err := c.CloudEvents.Send(record); err != nil {
+		if err := clients.CloudEvents.Send(record); err != nil {
 			log.Error(err)
 		}
 	}
