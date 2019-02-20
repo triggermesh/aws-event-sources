@@ -153,7 +153,7 @@ func TestPushMessage(t *testing.T) {
 		CloudEvents: c,
 	}
 
-	err := clients.pushMessage(&msg, aws.String("testQueueARN"))
+	err := clients.sendSQSEvent(&msg, aws.String("testQueueARN"))
 	assert.NoError(t, err)
 }
 
