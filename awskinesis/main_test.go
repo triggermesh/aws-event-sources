@@ -74,52 +74,51 @@ func TestProcessInputs(t *testing.T) {
 		},
 	)
 
-	s := Stream{
-		Client: mockedGetRecords{Resp: kinesis.GetRecordsOutput{
+	clients := Clients{
+		Kinesis: mockedGetRecords{Resp: kinesis.GetRecordsOutput{
 			NextShardIterator: aws.String("nextIterator"),
 			Records:           records,
 		}, err: nil},
 	}
 
-	s.cloudEventsClient = c
+	clients.CloudEvents = c
 
 	inputs := []kinesis.GetRecordsInput{
 		{},
 	}
 
-	err := s.processInputs(inputs, []*string{aws.String("shardID")})
+	err := clients.processInputs(inputs, []*string{aws.String("shardID")})
 	assert.NoError(t, err)
 
-	s = Stream{
-		Client: mockedGetRecords{Resp: kinesis.GetRecordsOutput{}, err: errors.New("error")},
+	clients = Clients{
+		Kinesis: mockedGetRecords{Resp: kinesis.GetRecordsOutput{}, err: errors.New("error")},
 	}
 
-	s.cloudEventsClient = c
+	clients.CloudEvents = c
 
-	err = s.processInputs(inputs, []*string{aws.String("shardID")})
+	err = clients.processInputs(inputs, []*string{aws.String("shardID")})
 	assert.NoError(t, err)
 
 }
 
 func TestGetRecordsInputs(t *testing.T) {
-	s := Stream{
-		Client: mockedGetShardIterator{Resp: kinesis.GetShardIteratorOutput{ShardIterator: aws.String("shardIterator")}, err: nil},
-		Stream: aws.String("bar"),
+
+	clients := Clients{
+		Kinesis: mockedGetShardIterator{Resp: kinesis.GetShardIteratorOutput{ShardIterator: aws.String("shardIterator")}, err: nil},
 	}
 
 	shards := []*kinesis.Shard{
 		{ShardId: aws.String("1")},
 	}
 
-	inputs, _ := s.getRecordsInputs(shards)
+	inputs, _ := clients.getRecordsInputs(shards)
 	assert.Equal(t, 1, len(inputs))
 
-	s = Stream{
-		Client: mockedGetShardIterator{Resp: kinesis.GetShardIteratorOutput{}, err: errors.New("err")},
-		Stream: aws.String("bar"),
+	clients = Clients{
+		Kinesis: mockedGetShardIterator{Resp: kinesis.GetShardIteratorOutput{}, err: errors.New("err")},
 	}
 
-	inputs, _ = s.getRecordsInputs(shards)
+	inputs, _ = clients.getRecordsInputs(shards)
 	assert.Equal(t, 0, len(inputs))
 
 }
@@ -143,6 +142,10 @@ func TestSendCloudevent(t *testing.T) {
 		},
 	)
 
-	err := sendCloudevent(c, &record, aws.String(""))
+	clients := Clients{
+		CloudEvents: c,
+	}
+
+	err := clients.sendCognitoEvent(&record, aws.String(""))
 	assert.NoError(t, err)
 }
