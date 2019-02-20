@@ -43,10 +43,10 @@ type DynamoDBEvent struct {
 	UserIdentity *dynamodbstreams.Identity     `locationName:"userIdentity" type:"structure"`
 }
 
-//Client struct represent all clients
-type Client struct {
-	StreamsClient dynamodbstreamsiface.DynamoDBStreamsAPI
-	CloudEvents   *cloudevents.Client
+//Clients struct represent all clients
+type Clients struct {
+	DynamoDBStream dynamodbstreamsiface.DynamoDBStreamsAPI
+	CloudEvents    *cloudevents.Client
 }
 
 var (
@@ -84,7 +84,7 @@ func main() {
 		log.Fatalf("NewSession failed: %v", err)
 	}
 
-	streamsClient := dynamodbstreams.New(sess)
+	dynamoDBStream := dynamodbstreams.New(sess)
 
 	cloudEvents := cloudevents.NewClient(
 		sink,
@@ -94,21 +94,21 @@ func main() {
 		},
 	)
 
-	client := Client{
-		StreamsClient: streamsClient,
-		CloudEvents:   cloudEvents,
+	clients := Clients{
+		DynamoDBStream: dynamoDBStream,
+		CloudEvents:    cloudEvents,
 	}
 
 	log.Info("Begin listening for aws dynamo db streams")
 
-	streams, err := client.getStreams()
+	streams, err := clients.getStreams()
 	if err != nil {
 		log.Error("getStreams failed ", err)
 	}
 
 	log.Debug("Streams: ", streams)
 
-	streamsDescriptions, err := client.getStreamsDescriptions(streams)
+	streamsDescriptions, err := clients.getStreamsDescriptions(streams)
 	if err != nil {
 		log.Error("getStreamsDescriptions failed ", err)
 	}
@@ -123,21 +123,21 @@ func main() {
 
 	for {
 
-		shardIterators, err := client.getShardIterators(streamsDescriptions)
+		shardIterators, err := clients.getShardIterators(streamsDescriptions)
 		if err != nil {
 			log.Error("getShardIterators failed ", err)
 		}
 		var wg sync.WaitGroup
 		wg.Add(len(shardIterators))
 		for _, shardIterator := range shardIterators {
-			go client.processLatestRecords(shardIterator)
+			go clients.processLatestRecords(shardIterator)
 			wg.Done()
 		}
 		wg.Wait()
 	}
 }
 
-func (c Client) getStreams() ([]*dynamodbstreams.Stream, error) {
+func (clients Clients) getStreams() ([]*dynamodbstreams.Stream, error) {
 	streams := []*dynamodbstreams.Stream{}
 
 	listStreamsInput := dynamodbstreams.ListStreamsInput{
@@ -145,7 +145,7 @@ func (c Client) getStreams() ([]*dynamodbstreams.Stream, error) {
 	}
 
 	for {
-		listStreamOutput, err := c.StreamsClient.ListStreams(&listStreamsInput)
+		listStreamOutput, err := clients.DynamoDBStream.ListStreams(&listStreamsInput)
 		if err != nil {
 			return streams, err
 		}
@@ -162,12 +162,12 @@ func (c Client) getStreams() ([]*dynamodbstreams.Stream, error) {
 	return streams, nil
 }
 
-func (c Client) getStreamsDescriptions(streams []*dynamodbstreams.Stream) ([]*dynamodbstreams.StreamDescription, error) {
+func (clients Clients) getStreamsDescriptions(streams []*dynamodbstreams.Stream) ([]*dynamodbstreams.StreamDescription, error) {
 	streamsDescriptions := []*dynamodbstreams.StreamDescription{}
 
 	for _, stream := range streams {
 
-		describeStreamOutput, err := c.StreamsClient.DescribeStream(&dynamodbstreams.DescribeStreamInput{
+		describeStreamOutput, err := clients.DynamoDBStream.DescribeStream(&dynamodbstreams.DescribeStreamInput{
 			StreamArn: stream.StreamArn,
 		})
 
@@ -180,7 +180,7 @@ func (c Client) getStreamsDescriptions(streams []*dynamodbstreams.Stream) ([]*dy
 	return streamsDescriptions, nil
 }
 
-func (c Client) getShardIterators(streamsDescriptions []*dynamodbstreams.StreamDescription) ([]*string, error) {
+func (clients Clients) getShardIterators(streamsDescriptions []*dynamodbstreams.StreamDescription) ([]*string, error) {
 	shardIterators := []*string{}
 
 	for _, streamDescription := range streamsDescriptions {
@@ -191,7 +191,7 @@ func (c Client) getShardIterators(streamsDescriptions []*dynamodbstreams.StreamD
 				StreamArn:         streamDescription.StreamArn,
 			}
 
-			result, err := c.StreamsClient.GetShardIterator(&getShardIteratorInput)
+			result, err := clients.DynamoDBStream.GetShardIterator(&getShardIteratorInput)
 			if err != nil {
 				return shardIterators, err
 			}
@@ -203,13 +203,13 @@ func (c Client) getShardIterators(streamsDescriptions []*dynamodbstreams.StreamD
 	return shardIterators, nil
 }
 
-func (c Client) processLatestRecords(shardIterator *string) error {
+func (clients Clients) processLatestRecords(shardIterator *string) error {
 
 	getRecordsInput := dynamodbstreams.GetRecordsInput{
 		ShardIterator: shardIterator,
 	}
 
-	getRecordsOutput, err := c.StreamsClient.GetRecords(&getRecordsInput)
+	getRecordsOutput, err := clients.DynamoDBStream.GetRecords(&getRecordsInput)
 	if err != nil {
 		log.Error("Get Records Failed: ", err)
 		return err
@@ -220,7 +220,7 @@ func (c Client) processLatestRecords(shardIterator *string) error {
 	for _, record := range getRecordsOutput.Records {
 
 		go func(record *dynamodbstreams.Record) {
-			err := c.sendCloudEvent(record)
+			err := clients.sendDynamoDBEvent(record)
 			if err != nil {
 				log.Error("sendCloudEvent failed: ", err)
 			}
@@ -233,7 +233,7 @@ func (c Client) processLatestRecords(shardIterator *string) error {
 	return nil
 }
 
-func (c Client) sendCloudEvent(record *dynamodbstreams.Record) error {
+func (clients Clients) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 
 	log.Info("Processing record ID: ", record.EventID)
 
@@ -247,7 +247,7 @@ func (c Client) sendCloudEvent(record *dynamodbstreams.Record) error {
 		UserIdentity: record.UserIdentity,
 	}
 
-	if err := c.CloudEvents.Send(dynamoDBEvent); err != nil {
+	if err := clients.CloudEvents.Send(dynamoDBEvent); err != nil {
 		return err
 	}
 

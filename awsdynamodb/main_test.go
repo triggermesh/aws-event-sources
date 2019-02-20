@@ -60,8 +60,8 @@ func (m mockedDynamoStreamsClient) GetRecords(in *dynamodbstreams.GetRecordsInpu
 }
 
 func TestGetStreams(t *testing.T) {
-	c := Client{
-		StreamsClient: mockedDynamoStreamsClient{
+	c := Clients{
+		DynamoDBStream: mockedDynamoStreamsClient{
 			listStreamsOutput:      dynamodbstreams.ListStreamsOutput{},
 			listStreamsOutputError: errors.New("getstreams failed"),
 		},
@@ -71,8 +71,8 @@ func TestGetStreams(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, 0, len(streams))
 
-	c = Client{
-		StreamsClient: mockedDynamoStreamsClient{
+	c = Clients{
+		DynamoDBStream: mockedDynamoStreamsClient{
 			listStreamsOutput: dynamodbstreams.ListStreamsOutput{
 				Streams: []*dynamodbstreams.Stream{{}, {}},
 			},
@@ -89,8 +89,8 @@ func TestGetStreamsDescriptions(t *testing.T) {
 
 	streams := []*dynamodbstreams.Stream{{}}
 
-	c := Client{
-		StreamsClient: mockedDynamoStreamsClient{
+	c := Clients{
+		DynamoDBStream: mockedDynamoStreamsClient{
 			describeStreamOutput:      dynamodbstreams.DescribeStreamOutput{},
 			describeStreamOutputError: errors.New("get stream description failed"),
 		},
@@ -108,8 +108,8 @@ func TestGetStreamsDescriptions(t *testing.T) {
 		},
 	}
 
-	c = Client{
-		StreamsClient: mockedDynamoStreamsClient{
+	c = Clients{
+		DynamoDBStream: mockedDynamoStreamsClient{
 			describeStreamOutput: dynamodbstreams.DescribeStreamOutput{
 				StreamDescription: &dynamodbstreams.StreamDescription{},
 			},
@@ -130,8 +130,8 @@ func TestGetShardIterators(t *testing.T) {
 		},
 	}
 
-	c := Client{
-		StreamsClient: mockedDynamoStreamsClient{
+	c := Clients{
+		DynamoDBStream: mockedDynamoStreamsClient{
 			getShardIteratorOutput:      dynamodbstreams.GetShardIteratorOutput{},
 			getShardIteratorOutputError: errors.New("failed to get stream description"),
 		},
@@ -141,8 +141,8 @@ func TestGetShardIterators(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, 0, len(streamsDescriptions))
 
-	c = Client{
-		StreamsClient: mockedDynamoStreamsClient{
+	c = Clients{
+		DynamoDBStream: mockedDynamoStreamsClient{
 			describeStreamOutput: dynamodbstreams.DescribeStreamOutput{
 				StreamDescription: &dynamodbstreams.StreamDescription{},
 			},
@@ -165,8 +165,8 @@ func TestGetLatestRecords(t *testing.T) {
 
 	shardIterator := aws.String("1")
 
-	c := Client{
-		StreamsClient: mockedDynamoStreamsClient{
+	c := Clients{
+		DynamoDBStream: mockedDynamoStreamsClient{
 			getRecordsOutput:      dynamodbstreams.GetRecordsOutput{},
 			getRecordsOutputError: errors.New("get records failed"),
 		},
@@ -175,8 +175,8 @@ func TestGetLatestRecords(t *testing.T) {
 	err := c.processLatestRecords(shardIterator)
 	assert.Error(t, err)
 
-	c = Client{
-		StreamsClient: mockedDynamoStreamsClient{
+	c = Clients{
+		DynamoDBStream: mockedDynamoStreamsClient{
 			getRecordsOutput: dynamodbstreams.GetRecordsOutput{
 				Records: []*dynamodbstreams.Record{{EventID: aws.String("1")}},
 			},
@@ -194,8 +194,8 @@ func TestGetLatestRecords(t *testing.T) {
 	err = c.processLatestRecords(shardIterator)
 	assert.NoError(t, err)
 
-	c = Client{
-		StreamsClient: mockedDynamoStreamsClient{
+	c = Clients{
+		DynamoDBStream: mockedDynamoStreamsClient{
 			getRecordsOutput: dynamodbstreams.GetRecordsOutput{
 				Records: []*dynamodbstreams.Record{{EventID: aws.String("1")}},
 			},
@@ -213,8 +213,8 @@ func TestGetLatestRecords(t *testing.T) {
 	err = c.processLatestRecords(shardIterator)
 	assert.NoError(t, err)
 
-	c = Client{
-		StreamsClient: mockedDynamoStreamsClient{
+	c = Clients{
+		DynamoDBStream: mockedDynamoStreamsClient{
 			getRecordsOutput: dynamodbstreams.GetRecordsOutput{
 				Records: []*dynamodbstreams.Record{{EventID: aws.String("1")}},
 			},
@@ -243,7 +243,7 @@ func TestSendCloudevent(t *testing.T) {
 
 	record := dynamodbstreams.Record{EventID: aws.String("1")}
 
-	c := Client{
+	c := Clients{
 		CloudEvents: cloudevents.NewClient(
 			"https://bar.com",
 			cloudevents.Builder{
@@ -253,10 +253,10 @@ func TestSendCloudevent(t *testing.T) {
 		),
 	}
 
-	err := c.sendCloudEvent(&record)
+	err := c.sendDynamoDBEvent(&record)
 	assert.Error(t, err)
 
-	c = Client{
+	c = Clients{
 		CloudEvents: cloudevents.NewClient(
 			"https://foo.com",
 			cloudevents.Builder{
@@ -266,6 +266,6 @@ func TestSendCloudevent(t *testing.T) {
 		),
 	}
 
-	err = c.sendCloudEvent(&record)
+	err = c.sendDynamoDBEvent(&record)
 	assert.NoError(t, err)
 }
