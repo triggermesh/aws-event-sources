@@ -64,10 +64,10 @@ type PRMessageEvent struct {
 	AwsRegion   *string                 `json:"awsRegion"`
 }
 
-//СodeCommitClient struct represent CC Client
-type СodeCommitClient struct {
-	Client            codecommitiface.CodeCommitAPI
-	CloudEventsClient cloudevents.Client
+//Clients struct represent CC Clients
+type Clients struct {
+	CodeCommit  codecommitiface.CodeCommitAPI
+	CloudEvents *cloudevents.Client
 }
 
 func init() {
@@ -110,15 +110,15 @@ func main() {
 		},
 	)
 
-	cc := СodeCommitClient{
-		Client:            codecommit.New(sess),
-		CloudEventsClient: *cloudEvents,
+	clients := Clients{
+		CodeCommit:  codecommit.New(sess),
+		CloudEvents: cloudEvents,
 	}
 
 	if strings.Contains(gitEventsEnv, "push") {
 		log.Info("Push Events Enabled!")
 
-		branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
+		branchInfo, err := clients.CodeCommit.GetBranch(&codecommit.GetBranchInput{
 			BranchName:     aws.String(repoBranchEnv),
 			RepositoryName: aws.String(repoNameEnv),
 		})
@@ -134,7 +134,7 @@ func main() {
 		log.Info("Pull Request Events Enabled!")
 
 		//Get pull request IDs
-		pullRequestsOutput, err := cc.Client.ListPullRequests(&codecommit.ListPullRequestsInput{
+		pullRequestsOutput, err := clients.CodeCommit.ListPullRequests(&codecommit.ListPullRequestsInput{
 			RepositoryName: aws.String(repoNameEnv),
 		})
 
@@ -150,7 +150,7 @@ func main() {
 		log.Fatal("error identifying events type. Please, select either `pull_request` or `push` event or both")
 	}
 
-	processedPullRequests, err := cc.preparePullRequests()
+	processedPullRequests, err := clients.preparePullRequests()
 	if err != nil {
 		log.Error(err)
 	}
@@ -158,14 +158,14 @@ func main() {
 	//range time.Tick(time.Duration(syncTime) * time.Second)
 	for {
 		if strings.Contains(gitEventsEnv, "push") {
-			err := cc.processCommits()
+			err := clients.processCommits()
 			if err != nil {
 				log.Error(err)
 			}
 		}
 
 		if strings.Contains(gitEventsEnv, "pull_request") {
-			pullRequests, err := cc.preparePullRequests()
+			pullRequests, err := clients.preparePullRequests()
 			if err != nil {
 				log.Error(err)
 			}
@@ -174,7 +174,7 @@ func main() {
 
 			for _, pr := range pullRequests {
 
-				err = cc.sendPREvent(pr)
+				err = clients.sendPREvent(pr)
 				if err != nil {
 					log.Error("sendPREvent failed: ", err)
 				}
@@ -186,8 +186,8 @@ func main() {
 
 }
 
-func (cc СodeCommitClient) processCommits() error {
-	branchInfo, err := cc.Client.GetBranch(&codecommit.GetBranchInput{
+func (clients Clients) processCommits() error {
+	branchInfo, err := clients.CodeCommit.GetBranch(&codecommit.GetBranchInput{
 		BranchName:     aws.String(repoBranchEnv),
 		RepositoryName: aws.String(repoNameEnv),
 	})
@@ -195,7 +195,7 @@ func (cc СodeCommitClient) processCommits() error {
 		return err
 	}
 
-	commitOutput, err := cc.Client.GetCommit(&codecommit.GetCommitInput{
+	commitOutput, err := clients.CodeCommit.GetCommit(&codecommit.GetCommitInput{
 		CommitId:       branchInfo.Branch.CommitId,
 		RepositoryName: aws.String(repoNameEnv),
 	})
@@ -209,7 +209,7 @@ func (cc СodeCommitClient) processCommits() error {
 
 	lastCommit = *commitOutput.Commit.CommitId
 
-	err = cc.sendCommitEvent(commitOutput.Commit)
+	err = clients.sendCommitEvent(commitOutput.Commit)
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func (cc СodeCommitClient) processCommits() error {
 	return nil
 }
 
-func (cc СodeCommitClient) preparePullRequests() ([]*codecommit.PullRequest, error) {
+func (clients Clients) preparePullRequests() ([]*codecommit.PullRequest, error) {
 	pullRequests := []*codecommit.PullRequest{}
 
 	input := codecommit.ListPullRequestsInput{
@@ -226,7 +226,7 @@ func (cc СodeCommitClient) preparePullRequests() ([]*codecommit.PullRequest, er
 
 	for {
 		//Get pull request IDs
-		pullRequestsOutput, err := cc.Client.ListPullRequests(&input)
+		pullRequestsOutput, err := clients.CodeCommit.ListPullRequests(&input)
 		if err != nil {
 			return pullRequests, err
 		}
@@ -239,7 +239,7 @@ func (cc СodeCommitClient) preparePullRequests() ([]*codecommit.PullRequest, er
 
 			pri := codecommit.GetPullRequestInput{PullRequestId: id}
 
-			prInfo, err := cc.Client.GetPullRequest(&pri)
+			prInfo, err := clients.CodeCommit.GetPullRequest(&pri)
 			if err != nil {
 				return pullRequests, err
 			}
@@ -258,7 +258,7 @@ func (cc СodeCommitClient) preparePullRequests() ([]*codecommit.PullRequest, er
 }
 
 //sendPush sends an event containing data about a git commit that was pushed to a branch
-func (cc СodeCommitClient) sendCommitEvent(commit *codecommit.Commit) error {
+func (clients Clients) sendCommitEvent(commit *codecommit.Commit) error {
 	log.Info("send Commit Event")
 
 	codecommitEvent := PushMessageEvent{
@@ -269,14 +269,14 @@ func (cc СodeCommitClient) sendCommitEvent(commit *codecommit.Commit) error {
 		AwsRegion:        aws.String(awsRegionEnv),
 	}
 
-	if err := cc.CloudEventsClient.Send(codecommitEvent); err != nil {
+	if err := clients.CloudEvents.Send(codecommitEvent); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (cc СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest) error {
+func (clients Clients) sendPREvent(pullRequest *codecommit.PullRequest) error {
 	log.Info("send Pull Request Event")
 
 	codecommitEvent := PRMessageEvent{
@@ -287,7 +287,7 @@ func (cc СodeCommitClient) sendPREvent(pullRequest *codecommit.PullRequest) err
 		AwsRegion:   aws.String(awsRegionEnv),
 	}
 
-	if err := cc.CloudEventsClient.Send(codecommitEvent); err != nil {
+	if err := clients.CloudEvents.Send(codecommitEvent); err != nil {
 		return err
 	}
 

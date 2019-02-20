@@ -40,13 +40,13 @@ var (
 	streamARN              *string
 )
 
-// Stream provides the ability to operate on Kinesis stream.
-type Stream struct {
-	Client            kinesisiface.KinesisAPI
-	Stream            *string
-	cloudEventsClient *cloudevents.Client
+// Clients provides the ability to operate on Kinesis stream.
+type Clients struct {
+	Kinesis     kinesisiface.KinesisAPI
+	CloudEvents *cloudevents.Client
 }
 
+//Kinesis represents Kinesis stream item structure
 type Kinesis struct {
 	ParticionKey         *string `json:"partitionKey"`
 	Data                 []byte  `json:"data"`
@@ -95,10 +95,10 @@ func main() {
 		},
 	)
 
-	stream := Stream{kinesis.New(sess), &streamName, c}
+	clients := Clients{kinesis.New(sess), c}
 
 	// Get info about a particular stream
-	myStream, err := stream.Client.DescribeStream(&kinesis.DescribeStreamInput{StreamName: stream.Stream})
+	myStream, err := clients.Kinesis.DescribeStream(&kinesis.DescribeStreamInput{StreamName: aws.String(streamName)})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -106,19 +106,19 @@ func main() {
 	streamARN = myStream.StreamDescription.StreamARN
 
 	//Obtain records inputs for different shards
-	inputs, shardIDs := stream.getRecordsInputs(myStream.StreamDescription.Shards)
+	inputs, shardIDs := clients.getRecordsInputs(myStream.StreamDescription.Shards)
 
 	log.Info("Connected to Kinesis stream: ", streamARN)
 
 	for {
-		err := stream.processInputs(inputs, shardIDs)
+		err := clients.processInputs(inputs, shardIDs)
 		if err != nil {
 			log.Error(err)
 		}
 	}
 }
 
-func (s Stream) getRecordsInputs(shards []*kinesis.Shard) ([]kinesis.GetRecordsInput, []*string) {
+func (clients Clients) getRecordsInputs(shards []*kinesis.Shard) ([]kinesis.GetRecordsInput, []*string) {
 	inputs := []kinesis.GetRecordsInput{}
 	shardIDs := []*string{}
 
@@ -126,10 +126,10 @@ func (s Stream) getRecordsInputs(shards []*kinesis.Shard) ([]kinesis.GetRecordsI
 	for _, shard := range shards {
 
 		// Obtain starting Shard Iterator. This is needed to not process already processed records
-		myShardIterator, err := s.Client.GetShardIterator(&kinesis.GetShardIteratorInput{
+		myShardIterator, err := clients.Kinesis.GetShardIterator(&kinesis.GetShardIteratorInput{
 			ShardId:           shard.ShardId,
 			ShardIteratorType: aws.String("LATEST"),
-			StreamName:        s.Stream,
+			StreamName:        aws.String(streamName),
 		})
 
 		if err != nil {
@@ -149,19 +149,19 @@ func (s Stream) getRecordsInputs(shards []*kinesis.Shard) ([]kinesis.GetRecordsI
 	return inputs, shardIDs
 }
 
-func (s Stream) processInputs(inputs []kinesis.GetRecordsInput, shardIDs []*string) error {
+func (clients Clients) processInputs(inputs []kinesis.GetRecordsInput, shardIDs []*string) error {
 
 	for i, input := range inputs {
 		shardID := shardIDs[i]
 
-		recordsOutput, err := s.Client.GetRecords(&input)
+		recordsOutput, err := clients.Kinesis.GetRecords(&input)
 		if err != nil {
 			log.Error(err)
 			continue
 		}
 
 		for _, record := range recordsOutput.Records {
-			err := sendCloudevent(s.cloudEventsClient, record, shardID)
+			err := clients.sendCognitoEvent(record, shardID)
 			if err != nil {
 				log.Errorf("SendCloudEvent failed: %v", err)
 			}
@@ -183,7 +183,7 @@ func (s Stream) processInputs(inputs []kinesis.GetRecordsInput, shardIDs []*stri
 	return nil
 }
 
-func sendCloudevent(c *cloudevents.Client, record *kinesis.Record, shardID *string) error {
+func (clients Clients) sendCognitoEvent(record *kinesis.Record, shardID *string) error {
 	log.Info("Processing record ID: ", *record.SequenceNumber)
 
 	kinesisEvent := Event{
@@ -201,7 +201,7 @@ func sendCloudevent(c *cloudevents.Client, record *kinesis.Record, shardID *stri
 		},
 	}
 
-	if err := c.Send(kinesisEvent); err != nil {
+	if err := clients.CloudEvents.Send(kinesisEvent); err != nil {
 		log.Printf("error sending: %v", err)
 	}
 

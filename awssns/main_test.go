@@ -56,7 +56,7 @@ func TestHandleNotification(t *testing.T) {
 
 	httpmock.RegisterResponder("GET", "https://foo.com", httpmock.NewStringResponder(200, ``))
 
-	client := Client{
+	clients := Clients{
 		CloudEvents: cloudevents.NewClient(
 			"https://foo.com",
 			cloudevents.Builder{
@@ -77,7 +77,7 @@ func TestHandleNotification(t *testing.T) {
 	}
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(client.HandleNotification)
+	handler := http.HandlerFunc(clients.HandleNotification)
 
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
@@ -93,7 +93,7 @@ func TestHandleNotification(t *testing.T) {
 	}
 
 	rr = httptest.NewRecorder()
-	handler = http.HandlerFunc(client.HandleNotification)
+	handler = http.HandlerFunc(clients.HandleNotification)
 
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
@@ -101,36 +101,36 @@ func TestHandleNotification(t *testing.T) {
 
 func TestAttempSubscription(t *testing.T) {
 
-	c := Client{
-		SNSClient: mockedSNSClient{
+	clients := Clients{
+		SNS: mockedSNSClient{
 			createTopicOutput:      sns.CreateTopicOutput{},
 			createTopicOutputError: errors.New("err"),
 		},
 	}
 
-	err := c.attempSubscription()
+	err := clients.attempSubscription()
 	assert.Error(t, err)
 
-	c = Client{
-		SNSClient: mockedSNSClient{
+	clients = Clients{
+		SNS: mockedSNSClient{
 			createTopicOutput:    sns.CreateTopicOutput{TopicArn: aws.String("fooArn")},
 			subscribeOutput:      sns.SubscribeOutput{},
 			subscribeOutputError: errors.New("err"),
 		},
 	}
 
-	err = c.attempSubscription()
+	err = clients.attempSubscription()
 	assert.Error(t, err)
 
-	c = Client{
-		SNSClient: mockedSNSClient{
+	clients = Clients{
+		SNS: mockedSNSClient{
 			createTopicOutput:    sns.CreateTopicOutput{TopicArn: aws.String("fooArn")},
 			subscribeOutput:      sns.SubscribeOutput{},
 			subscribeOutputError: nil,
 		},
 	}
 
-	err = c.attempSubscription()
+	err = clients.attempSubscription()
 	assert.NoError(t, err)
 }
 

@@ -34,11 +34,12 @@ import (
 
 var sink string
 var region string
+var queueURL string
 
-// Queue provides the ability to handle SQS messages.
-type Queue struct {
-	Client sqsiface.SQSAPI
-	URL    *string
+// Clients provides the ability to handle SQS messages.
+type Clients struct {
+	SQS         sqsiface.SQSAPI
+	CloudEvents *cloudevents.Client
 }
 
 // Event represent a sample of Amazon SQS Event
@@ -91,23 +92,31 @@ func main() {
 	}
 
 	sqsClient := sqs.New(sess)
+	c := cloudevents.NewClient(
+		sink,
+		cloudevents.Builder{
+			Source:    "aws:sqs",
+			EventType: "SQS message",
+		},
+	)
 
-	q := Queue{
-		Client: sqsClient,
+	clients := Clients{
+		SQS:         sqsClient,
+		CloudEvents: c,
 	}
 
-	queueURL, err := q.QueueLookup(queueName)
+	url, err := clients.QueueLookup(queueName)
 	if err != nil {
 		log.Fatal("Unable to find queue. Error: ", err)
 	}
 
-	log.Info("Beginning to listen at URL: ", queueURL)
+	log.Info("Beginning to listen at URL: ", url)
 
-	q.URL = aws.String(queueURL)
+	queueURL = url
 
 	//Look for new messages every 5 seconds
 	for range time.Tick(5 * time.Second) {
-		msgs, err := q.GetMessages(20)
+		msgs, err := clients.GetMessages(20)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -118,27 +127,19 @@ func main() {
 			continue
 		}
 
-		attributes, err := q.Client.GetQueueAttributes(&sqs.GetQueueAttributesInput{
+		attributes, err := clients.SQS.GetQueueAttributes(&sqs.GetQueueAttributesInput{
 			AttributeNames: []*string{aws.String("QueueArn")},
-			QueueUrl:       q.URL,
+			QueueUrl:       aws.String(queueURL),
 		})
 
-		c := cloudevents.NewClient(
-			sink,
-			cloudevents.Builder{
-				Source:    "aws:sqs",
-				EventType: "SQS message",
-			},
-		)
-
-		err = pushMessage(c, msgs[0], attributes.Attributes["QueueArn"])
+		err = clients.sendSQSEvent(msgs[0], attributes.Attributes["QueueArn"])
 		if err != nil {
 			log.Error(err)
 			continue
 		}
 
 		//Delete message from queue if we pushed successfully
-		err = q.DeleteMessage(msgs[0].ReceiptHandle)
+		err = clients.DeleteMessage(msgs[0].ReceiptHandle)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -150,8 +151,8 @@ func main() {
 
 //QueueLookup finds the URL for a given queue name in the user's env.
 //Needs to be an exact match to queue name and queue must be unique name in the AWS account.
-func (q *Queue) QueueLookup(queueName string) (string, error) {
-	queues, err := q.Client.ListQueues(&sqs.ListQueuesInput{QueueNamePrefix: aws.String(queueName)})
+func (clients Clients) QueueLookup(queueName string) (string, error) {
+	queues, err := clients.SQS.ListQueues(&sqs.ListQueuesInput{QueueNamePrefix: aws.String(queueName)})
 	if err != nil {
 		return "", err
 	}
@@ -160,24 +161,23 @@ func (q *Queue) QueueLookup(queueName string) (string, error) {
 
 // GetMessages returns the parsed messages from SQS if any. If an error
 // occurs that error will be returned.
-func (q *Queue) GetMessages(waitTimeout int64) ([]*sqs.Message, error) {
+func (clients Clients) GetMessages(waitTimeout int64) ([]*sqs.Message, error) {
 	params := sqs.ReceiveMessageInput{
 		AttributeNames: aws.StringSlice([]string{"All"}),
-		QueueUrl:       q.URL,
+		QueueUrl:       aws.String(queueURL),
 	}
 	if waitTimeout > 0 {
 		params.WaitTimeSeconds = aws.Int64(waitTimeout)
 	}
-	resp, err := q.Client.ReceiveMessage(&params)
+	resp, err := clients.SQS.ReceiveMessage(&params)
 	if err != nil {
 		return nil, err
 	}
 	return resp.Messages, nil
 }
 
-func pushMessage(c *cloudevents.Client, msg *sqs.Message, queueARN *string) error {
+func (clients Clients) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 	log.Info("Processing message with ID: ", aws.StringValue(msg.MessageId))
-	log.Info(msg)
 
 	sqsEvent := Event{
 		MessageID:         msg.MessageId,
@@ -191,7 +191,7 @@ func pushMessage(c *cloudevents.Client, msg *sqs.Message, queueARN *string) erro
 		AwsRegion:         aws.String(region),
 	}
 
-	if err := c.Send(sqsEvent); err != nil {
+	if err := clients.CloudEvents.Send(sqsEvent); err != nil {
 		log.Printf("error sending: %v", err)
 	}
 
@@ -199,12 +199,12 @@ func pushMessage(c *cloudevents.Client, msg *sqs.Message, queueARN *string) erro
 }
 
 //DeleteMessage deletes message from sqs queue
-func (q *Queue) DeleteMessage(msg *string) error {
+func (clients Clients) DeleteMessage(msg *string) error {
 	deleteParams := &sqs.DeleteMessageInput{
-		QueueUrl:      q.URL,
+		QueueUrl:      aws.String(queueURL),
 		ReceiptHandle: msg,
 	}
-	_, err := q.Client.DeleteMessage(deleteParams)
+	_, err := clients.SQS.DeleteMessage(deleteParams)
 	if err != nil {
 		return err
 	}

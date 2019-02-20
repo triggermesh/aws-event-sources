@@ -68,8 +68,8 @@ func TestSendPREvent(t *testing.T) {
 	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
 	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
 
-	client := СodeCommitClient{
-		CloudEventsClient: *cloudevents.NewClient(
+	client := Clients{
+		CloudEvents: cloudevents.NewClient(
 			"https://bar.com",
 			cloudevents.Builder{
 				Source:    "aws:codecommit",
@@ -91,7 +91,7 @@ func TestSendPREvent(t *testing.T) {
 		},
 	)
 
-	client.CloudEventsClient = *c
+	client.CloudEvents = c
 
 	err = client.sendPREvent(&pullRequest)
 	assert.NoError(t, err)
@@ -104,8 +104,8 @@ func TestSendCommitEvent(t *testing.T) {
 	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
 	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
 
-	client := СodeCommitClient{
-		CloudEventsClient: *cloudevents.NewClient(
+	clients := Clients{
+		CloudEvents: cloudevents.NewClient(
 			"https://bar.com",
 			cloudevents.Builder{
 				Source:    "aws:codecommit",
@@ -115,7 +115,7 @@ func TestSendCommitEvent(t *testing.T) {
 	}
 
 	commit := codecommit.Commit{}
-	err := client.sendCommitEvent(&commit)
+	err := clients.sendCommitEvent(&commit)
 	assert.Error(t, err)
 
 	c := cloudevents.NewClient(
@@ -126,9 +126,9 @@ func TestSendCommitEvent(t *testing.T) {
 		},
 	)
 
-	client.CloudEventsClient = *c
+	clients.CloudEvents = c
 
-	err = client.sendCommitEvent(&commit)
+	err = clients.sendCommitEvent(&commit)
 	assert.NoError(t, err)
 }
 
@@ -196,14 +196,14 @@ func TestProcessCommits(t *testing.T) {
 
 	for _, tt := range testCases {
 
-		client := СodeCommitClient{
-			Client: mockedClientForCommits{
+		clients := Clients{
+			CodeCommit: mockedClientForCommits{
 				GetBranchResp: tt.GetBranchResp,
 				GetCommitResp: tt.GetCommitResp,
 				GetBranchErr:  tt.GetBranchErr,
 				GetCommitErr:  tt.GetCommitErr,
 			},
-			CloudEventsClient: *cloudevents.NewClient(
+			CloudEvents: cloudevents.NewClient(
 				tt.Sink,
 				cloudevents.Builder{
 					Source:    "aws:codecommit",
@@ -212,7 +212,7 @@ func TestProcessCommits(t *testing.T) {
 			),
 		}
 
-		err := client.processCommits()
+		err := clients.processCommits()
 		assert.Equal(t, tt.Err, err)
 		lastCommit = "foo"
 
@@ -274,14 +274,14 @@ func TestProcessPullRequest(t *testing.T) {
 
 	for _, tt := range testCases {
 
-		client := СodeCommitClient{
-			Client: mockedClientForPRs{
+		client := Clients{
+			CodeCommit: mockedClientForPRs{
 				ListPRsResp: tt.ListPRsResp,
 				GetPRResp:   tt.GetPRResp,
 				ListPRsErr:  tt.ListPRsErr,
 				GetPRErr:    tt.GetPRErr,
 			},
-			CloudEventsClient: *cloudevents.NewClient(
+			CloudEvents: cloudevents.NewClient(
 				tt.Sink,
 				cloudevents.Builder{
 					Source:    "aws:codecommit",

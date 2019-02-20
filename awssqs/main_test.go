@@ -85,10 +85,10 @@ func TestQueueLookup(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		q := Queue{
-			Client: mockedListQueues{Resp: c.Resp, err: c.err},
+		clients := Clients{
+			SQS: mockedListQueues{Resp: c.Resp, err: c.err},
 		}
-		url, err := q.QueueLookup("testQueue")
+		url, err := clients.QueueLookup("testQueue")
 		assert.Equal(t, c.err, err)
 		assert.Equal(t, c.Expected, url)
 	}
@@ -119,11 +119,11 @@ func TestGetMessages(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		q := Queue{
-			Client: mockedReceiveMsgs{Resp: c.Resp, err: c.err},
-			URL:    aws.String("mockURL"),
+		clients := Clients{
+			SQS: mockedReceiveMsgs{Resp: c.Resp, err: c.err},
 		}
-		msgs, err := q.GetMessages(20)
+		queueURL = "mockURL"
+		msgs, err := clients.GetMessages(20)
 		assert.Equal(t, c.err, err)
 		assert.Equal(t, len(c.Expected), len(msgs))
 	}
@@ -149,31 +149,33 @@ func TestPushMessage(t *testing.T) {
 		},
 	)
 
-	err := pushMessage(c, &msg, aws.String("testQueueARN"))
+	clients := Clients{
+		CloudEvents: c,
+	}
+
+	err := clients.sendSQSEvent(&msg, aws.String("testQueueARN"))
 	assert.NoError(t, err)
 }
 
 func TestDeleteMessage(t *testing.T) {
 
-	q := Queue{
-		Client: mockedDeleteMsgs{Resp: sqs.DeleteMessageOutput{}, err: nil},
-		URL:    aws.String("mockURL"),
+	clients := Clients{
+		SQS: mockedDeleteMsgs{Resp: sqs.DeleteMessageOutput{}, err: nil},
 	}
 
 	msg := sqs.Message{
 		ReceiptHandle: aws.String("foo"),
 	}
-	err := q.DeleteMessage(msg.ReceiptHandle)
+	err := clients.DeleteMessage(msg.ReceiptHandle)
 	assert.NoError(t, err)
 
-	q = Queue{
-		Client: mockedDeleteMsgs{Resp: sqs.DeleteMessageOutput{}, err: errors.New("Could not delete msg")},
-		URL:    aws.String("mockURL"),
+	clients = Clients{
+		SQS: mockedDeleteMsgs{Resp: sqs.DeleteMessageOutput{}, err: errors.New("Could not delete msg")},
 	}
 
 	msg = sqs.Message{
 		ReceiptHandle: aws.String("foo"),
 	}
-	err = q.DeleteMessage(msg.ReceiptHandle)
+	err = clients.DeleteMessage(msg.ReceiptHandle)
 	assert.Error(t, err)
 }
