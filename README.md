@@ -58,7 +58,7 @@ spec:
       value: pull_request,push
 ```
 
-Given the above manifest stored as a file named `codecommit-source.yaml`. You can start the source via:
+Given the above manifest stored as a file named `codecommit-source.yaml`. You can edit it to fit your needs (e.g change the repository name), then start the source via:
 
 ```
 kubectl apply -f codecommit-source.yaml
@@ -77,7 +77,7 @@ In the example manifests provided in this repo, the AWS credentials are loaded v
 |CodeCommit|Container source|alpha|
 |Cognito|Container source|alpha|
 |DynamoDB|Container source|alpha|
-|IoT|Container source|alpha|
+|IoT|Container source|alpha/WIP|
 |Kinesis|Container source|alpha|
 |S3|Container source|alpha|
 |SNS|Container source|alpha|
