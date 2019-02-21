@@ -30,7 +30,7 @@ INFO[0025] {
 ...
 ```
 
-### Local Docker build
+### Local Docker Usage
 
 If you don't have a local Go environment, use Docker:
 

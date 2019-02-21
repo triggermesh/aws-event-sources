@@ -32,7 +32,7 @@ Then just run the local binary in your shell and send PR through Developer Tools
 $ ./awscodecommit
 ```
 
-### Local Docker build
+### Local Docker Usage
 
 If you don't have a local Go environment, use Docker:
 

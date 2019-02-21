@@ -23,7 +23,7 @@ export AWS_SECRET_ACCESS_KEY=<>
 
 Then just run the local binary in your shell and send messages via the AWS Kinesis producer from the separate folder.
 
-### Local Docker build
+### Local Docker Usage
 
 If you don't have a local Go environment, use Docker:
 
