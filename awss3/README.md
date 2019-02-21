@@ -29,5 +29,5 @@ Create secret called awscreds with the creds file:
 Edit the Container source manifest and apply it:
 
 ```
-kubectl apply -f awss3-source.yaml
+kubectl apply -f s3-source.yaml
 ```
