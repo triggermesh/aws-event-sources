@@ -16,46 +16,6 @@ In S3 Service:
 3. Scroll down to `Advanced settings` and find `Events` there you can add notification for events that happen in your Bucket. 
 4. Configure which Events you would like to track and in the section `Send to` select `SQS Queue`. Select the Queue configured to get S3 events to send events to. 
 
-### Local build
-
-```
-dep ensure -v
-go build .
-```
-
-### Local Usage
-
-- Register AWS account
-- Get your account credentials. Navigate to "My Security Credentials" (tab)[https://console.aws.amazon.com/iam/home#/security_credential] in account and select "Access keys (access key ID and secret access key)" section to view your credentials
-
-
-Define a few environment variables:
-
-```
-export QUEUE=your_queue_name
-export AWS_REGION=us-east-1
-export AWS_ACCESS_KEY_ID=<>
-export AWS_SECRET_ACCESS_KEY=<>
-```
-
-Then just run the local binary in your shell, open up 
-
-```
-$ ./awss3
-...
-```
-
-### Local Docker build
-
-If you don't have a local Go environment, use Docker:
-
-```
-docker run -ti -e QUEUE="your_queue_name" \
-               -e AWS_REGION="us-east-1" \
-               -e AWS_ACCESS_KEY_ID="fgfdgsdfg" \
-               -e AWS_SECRET_ACCESS_KEY="dsgdgsfgsfdgdsf" \
-               gcr.io/triggermesh/awss3:latest
-```
 
 ### Knative usage
 

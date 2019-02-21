@@ -4,7 +4,7 @@ kind: ContainerSource
 metadata:
   name: awss3
 spec:
-  image: gcr.io/triggermesh/awss3:latest
+  image: gcr.io/triggermesh/awssqs:latest
   sink:
     apiVersion: eventing.knative.dev/v1alpha1
     kind: Channel
@@ -21,6 +21,6 @@ spec:
           name: awscreds
           key: aws_secret_access_key
     - name: AWS_REGION
-      value: us-west-2
+      value: us-east-1
     - name: QUEUE
-      value: myQueue
+      value: queue_name
