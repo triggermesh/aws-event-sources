@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/knative/pkg/cloudevents"
+	cloudevents "github.com/cloudevents/sdk-go"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"

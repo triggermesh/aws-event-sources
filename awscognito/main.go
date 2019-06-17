@@ -29,7 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity/cognitoidentityiface"
 	"github.com/aws/aws-sdk-go/service/cognitosync"
 	"github.com/aws/aws-sdk-go/service/cognitosync/cognitosynciface"
-	"github.com/knative/pkg/cloudevents"
+	cloudevents "github.com/cloudevents/sdk-go"
 	log "github.com/sirupsen/logrus"
 )
 

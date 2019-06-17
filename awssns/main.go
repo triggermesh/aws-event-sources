@@ -31,7 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
-	"github.com/knative/pkg/cloudevents"
+	cloudevents "github.com/cloudevents/sdk-go"
 	log "github.com/sirupsen/logrus"
 )
 

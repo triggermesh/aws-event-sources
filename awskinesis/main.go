@@ -27,7 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
-	"github.com/knative/pkg/cloudevents"
+	cloudevents "github.com/cloudevents/sdk-go"
 	log "github.com/sirupsen/logrus"
 )
 
