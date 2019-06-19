@@ -18,6 +18,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"time"
@@ -39,7 +40,7 @@ var queueURL string
 // Clients provides the ability to handle SQS messages.
 type Clients struct {
 	SQS         sqsiface.SQSAPI
-	CloudEvents *cloudevents.Client
+	CloudEvents cloudevents.Client
 }
 
 // Event represent a sample of Amazon SQS Event
@@ -92,13 +93,15 @@ func main() {
 	}
 
 	sqsClient := sqs.New(sess)
-	c := cloudevents.NewClient(
-		sink,
-		cloudevents.Builder{
-			Source:    "aws:sqs",
-			EventType: "SQS message",
-		},
-	)
+	t, err := cloudevents.NewHTTPTransport()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c, err := cloudevents.NewClient(t, cloudevents.WithTimeNow())
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	clients := Clients{
 		SQS:         sqsClient,
@@ -179,7 +182,7 @@ func (clients Clients) GetMessages(waitTimeout int64) ([]*sqs.Message, error) {
 func (clients Clients) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 	log.Info("Processing message with ID: ", aws.StringValue(msg.MessageId))
 
-	sqsEvent := Event{
+	sqsEvent := &Event{
 		MessageID:         msg.MessageId,
 		ReceiptHandle:     msg.ReceiptHandle,
 		Body:              msg.Body,
@@ -191,11 +194,18 @@ func (clients Clients) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 		AwsRegion:         aws.String(region),
 	}
 
-	if err := clients.CloudEvents.Send(sqsEvent); err != nil {
-		log.Printf("error sending: %v", err)
+	event := cloudevents.Event{
+		Context: cloudevents.EventContextV03{
+			Type:            "AWS SQS Message",
+			Subject:         aws.String("AWS SQS"),
+			ID:              *msg.MessageId,
+			DataContentType: aws.String("application/json"),
+		}.AsV03(),
+		Data: sqsEvent,
 	}
 
-	return nil
+	_, err := clients.CloudEvents.Send(context.Background(), event)
+	return err
 }
 
 //DeleteMessage deletes message from sqs queue
