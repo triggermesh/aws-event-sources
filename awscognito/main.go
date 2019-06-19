@@ -18,6 +18,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"time"
@@ -45,7 +46,7 @@ var (
 type Clients struct {
 	CognitoIdentity cognitoidentityiface.CognitoIdentityAPI
 	CognitoSync     cognitosynciface.CognitoSyncAPI
-	CloudEvents     *cloudevents.Client
+	CloudEvents     cloudevents.Client
 }
 
 //CognitoSyncEvent represents AWS CognitoSyncEvent payload
@@ -87,18 +88,21 @@ func main() {
 
 	itentityClient := cognitoidentity.New(sess)
 	syncClient := cognitosync.New(sess)
-	cloudEvents := cloudevents.NewClient(
-		sink,
-		cloudevents.Builder{
-			Source:    "aws:cognito",
-			EventType: "SyncTrigger",
-		},
-	)
+
+	t, err := cloudevents.NewHTTPTransport()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c, err := cloudevents.NewClient(t, cloudevents.WithTimeNow())
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	clients := Clients{
 		CognitoIdentity: itentityClient,
 		CognitoSync:     syncClient,
-		CloudEvents:     cloudEvents,
+		CloudEvents:     c,
 	}
 
 	log.Info("Listen for AWS Cognito stream for Identity: ", identityPoolID)
@@ -213,7 +217,7 @@ func (clients Clients) getRecords(dataset *cognitosync.Dataset) ([]*cognitosync.
 func (clients Clients) sendCognitoEvent(dataset *cognitosync.Dataset, records []*cognitosync.Record) error {
 	log.Info("Processing Dataset: ", *dataset.DatasetName)
 
-	cognitoEvent := CognitoSyncEvent{
+	cognitoEvent := &CognitoSyncEvent{
 		CreationDate:     dataset.CreationDate,
 		DataStorage:      dataset.DataStorage,
 		DatasetName:      dataset.DatasetName,
@@ -227,7 +231,18 @@ func (clients Clients) sendCognitoEvent(dataset *cognitosync.Dataset, records []
 		DatasetRecords:   records,
 	}
 
-	if err := clients.CloudEvents.Send(cognitoEvent); err != nil {
+	event := cloudevents.Event{
+		Context: cloudevents.EventContextV03{
+			Type:            "SyncTrigger",
+			Subject:         aws.String("AWS Cognito"),
+			ID:              *dataset.IdentityId,
+			DataContentType: aws.String("application/json"),
+		}.AsV03(),
+		Data: cognitoEvent,
+	}
+
+	_, err := clients.CloudEvents.Send(context.Background(), event)
+	if err != nil {
 		return err
 	}
 
