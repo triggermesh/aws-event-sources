@@ -106,7 +106,9 @@ func main() {
 		log.Fatal("Unable to create SNS client: ", err)
 	}
 
-	t, err := cloudevents.NewHTTPTransport()
+	t, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget(sink),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

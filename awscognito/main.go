@@ -89,7 +89,9 @@ func main() {
 	itentityClient := cognitoidentity.New(sess)
 	syncClient := cognitosync.New(sess)
 
-	t, err := cloudevents.NewHTTPTransport()
+	t, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget(sink),
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
