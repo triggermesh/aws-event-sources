@@ -18,6 +18,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"io/ioutil"
@@ -50,7 +51,7 @@ var (
 //Clients struct represent all clients
 type Clients struct {
 	SNS         snsiface.SNSAPI
-	CloudEvents *cloudevents.Client
+	CloudEvents cloudevents.Client
 }
 
 type SNSEventRecord struct {
@@ -105,15 +106,19 @@ func main() {
 		log.Fatal("Unable to create SNS client: ", err)
 	}
 
+	t, err := cloudevents.NewHTTPTransport()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c, err := cloudevents.NewClient(t, cloudevents.WithTimeNow())
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	clients := Clients{
-		SNS: sns.New(sess),
-		CloudEvents: cloudevents.NewClient(
-			sink,
-			cloudevents.Builder{
-				Source:    "aws:sns",
-				EventType: "SNS Event",
-			},
-		),
+		SNS:         sns.New(sess),
+		CloudEvents: c,
 	}
 
 	//Setup subscription in the background. Will keep us from having chicken/egg between server
@@ -186,7 +191,7 @@ func (clients Clients) HandleNotification(w http.ResponseWriter, r *http.Request
 
 		eventTime, _ := time.Parse(time.RFC3339, data["Timestamp"].(string))
 
-		record := SNSEventRecord{
+		record := &SNSEventRecord{
 			EventVersion:         "1.0",
 			EventSubscriptionArn: "",
 			EventSource:          "aws:sns",
@@ -205,10 +210,20 @@ func (clients Clients) HandleNotification(w http.ResponseWriter, r *http.Request
 			},
 		}
 
-		log.Debug("Received notification: ", record)
+		event := cloudevents.Event{
+			Context: cloudevents.EventContextV03{
+				Type:            "AWS SNS Record",
+				Subject:         aws.String("AWS SNS"),
+				ID:              data["MessageId"].(string),
+				SpecVersion:     "1.0",
+				DataContentType: aws.String("application/json"),
+			}.AsV03(),
+			Data: record,
+		}
 
-		if err := clients.CloudEvents.Send(record); err != nil {
-			log.Error(err)
+		_, err := clients.CloudEvents.Send(context.Background(), event)
+		if err != nil {
+			log.Error("Failed to send cloud events: ", err)
 		}
 	}
 }
