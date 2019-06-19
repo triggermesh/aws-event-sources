@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
 	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -257,7 +258,7 @@ func (clients Clients) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 			Type:            "Dynamo DB record",
 			Subject:         aws.String("AWS Dynamo DB"),
 			ID:              *record.EventID,
-			SpecVersion:     *record.EventVersion,
+			Source:          *types.ParseURLRef(*record.EventSource),
 			DataContentType: aws.String("application/json"),
 		}.AsV03(),
 		Data: dynamoDBEvent,

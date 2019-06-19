@@ -33,6 +33,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -214,10 +215,10 @@ func (clients Clients) HandleNotification(w http.ResponseWriter, r *http.Request
 
 		event := cloudevents.Event{
 			Context: cloudevents.EventContextV03{
-				Type:            "AWS SNS Record",
+				Type:            data["Type"].(string),
 				Subject:         aws.String("AWS SNS"),
 				ID:              data["MessageId"].(string),
-				SpecVersion:     "1.0",
+				Source:          *types.ParseURLRef(data["TopicArn"].(string)),
 				DataContentType: aws.String("application/json"),
 			}.AsV03(),
 			Data: record,

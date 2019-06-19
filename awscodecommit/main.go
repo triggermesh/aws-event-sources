@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codecommit/codecommitiface"
 	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -271,6 +272,7 @@ func (clients Clients) sendCommitEvent(commit *codecommit.Commit) error {
 		Context: cloudevents.EventContextV03{
 			Type:            "AWS CodeCommit commit event",
 			Subject:         aws.String("AWS CodeCommit Event"),
+			Source:          *types.ParseURLRef(""),
 			ID:              *commit.CommitId,
 			DataContentType: aws.String("application/json"),
 		}.AsV03(),
@@ -298,6 +300,7 @@ func (clients Clients) sendPREvent(pullRequest *codecommit.PullRequest) error {
 		Context: cloudevents.EventContextV03{
 			Type:            "AWS CodeCommit commit event",
 			Subject:         aws.String("AWS CodeCommit Event"),
+			Source:          *types.ParseURLRef(*pullRequest.AuthorArn),
 			ID:              *pullRequest.PullRequestId,
 			DataContentType: aws.String("application/json"),
 		}.AsV03(),

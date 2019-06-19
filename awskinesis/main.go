@@ -29,6 +29,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
 	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -208,8 +209,8 @@ func (clients Clients) sendCognitoEvent(record *kinesis.Record, shardID *string)
 		Context: cloudevents.EventContextV03{
 			Type:            "AWS Kinesis Record",
 			Subject:         aws.String("AWS Kinesis"),
+			Source:          *types.ParseURLRef(*streamARN),
 			ID:              fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber),
-			SpecVersion:     "1.0",
 			DataContentType: aws.String("application/json"),
 		}.AsV03(),
 		Data: kinesisEvent,

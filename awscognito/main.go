@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitosync"
 	"github.com/aws/aws-sdk-go/service/cognitosync/cognitosynciface"
 	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -237,6 +238,7 @@ func (clients Clients) sendCognitoEvent(dataset *cognitosync.Dataset, records []
 		Context: cloudevents.EventContextV03{
 			Type:            "SyncTrigger",
 			Subject:         aws.String("AWS Cognito"),
+			Source:          *types.ParseURLRef(""), // need to figure out how to indlude it
 			ID:              *dataset.IdentityId,
 			DataContentType: aws.String("application/json"),
 		}.AsV03(),
