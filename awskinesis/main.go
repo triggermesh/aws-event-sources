@@ -18,6 +18,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -43,7 +44,7 @@ var (
 // Clients provides the ability to operate on Kinesis stream.
 type Clients struct {
 	Kinesis     kinesisiface.KinesisAPI
-	CloudEvents *cloudevents.Client
+	CloudEvents cloudevents.Client
 }
 
 //Kinesis represents Kinesis stream item structure
@@ -87,13 +88,15 @@ func main() {
 		log.Fatal(err)
 	}
 
-	c := cloudevents.NewClient(
-		sink,
-		cloudevents.Builder{
-			Source:    "aws:kinesis",
-			EventType: "Kinesis Record",
-		},
-	)
+	t, err := cloudevents.NewHTTPTransport()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c, err := cloudevents.NewClient(t, cloudevents.WithTimeNow())
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	clients := Clients{kinesis.New(sess), c}
 
@@ -186,9 +189,7 @@ func (clients Clients) processInputs(inputs []kinesis.GetRecordsInput, shardIDs 
 func (clients Clients) sendCognitoEvent(record *kinesis.Record, shardID *string) error {
 	log.Info("Processing record ID: ", *record.SequenceNumber)
 
-	kinesisEvent := Event{
-		EventID:        aws.String(fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber)),
-		EventVersion:   aws.String("1.0"),
+	kinesisEvent := &Event{
 		EventName:      aws.String("aws:kinesis:record"),
 		EventSourceARN: streamARN,
 		EventSource:    aws.String("aws:kinesis"),
@@ -201,8 +202,20 @@ func (clients Clients) sendCognitoEvent(record *kinesis.Record, shardID *string)
 		},
 	}
 
-	if err := clients.CloudEvents.Send(kinesisEvent); err != nil {
-		log.Printf("error sending: %v", err)
+	event := cloudevents.Event{
+		Context: cloudevents.EventContextV03{
+			Type:            "AWS Kinesis Record",
+			Subject:         aws.String("AWS Kinesis"),
+			ID:              fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber),
+			SpecVersion:     "1.0",
+			DataContentType: aws.String("application/json"),
+		}.AsV03(),
+		Data: kinesisEvent,
+	}
+
+	_, err := clients.CloudEvents.Send(context.Background(), event)
+	if err != nil {
+		return err
 	}
 
 	return nil
