@@ -18,6 +18,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"sync"
@@ -46,7 +47,7 @@ type DynamoDBEvent struct {
 //Clients struct represent all clients
 type Clients struct {
 	DynamoDBStream dynamodbstreamsiface.DynamoDBStreamsAPI
-	CloudEvents    *cloudevents.Client
+	CloudEvents    cloudevents.Client
 }
 
 var (
@@ -86,17 +87,19 @@ func main() {
 
 	dynamoDBStream := dynamodbstreams.New(sess)
 
-	cloudEvents := cloudevents.NewClient(
-		sink,
-		cloudevents.Builder{
-			Source:    "aws:dynamodb",
-			EventType: "dynamodb event",
-		},
-	)
+	t, err := cloudevents.NewHTTPTransport()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c, err := cloudevents.NewClient(t, cloudevents.WithTimeNow())
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	clients := Clients{
 		DynamoDBStream: dynamoDBStream,
-		CloudEvents:    cloudEvents,
+		CloudEvents:    c,
 	}
 
 	log.Info("Begin listening for aws dynamo db streams")
@@ -237,7 +240,7 @@ func (clients Clients) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 
 	log.Info("Processing record ID: ", record.EventID)
 
-	dynamoDBEvent := DynamoDBEvent{
+	dynamoDBEvent := &DynamoDBEvent{
 		AwsRegion:    record.AwsRegion,
 		Dynamodb:     record.Dynamodb,
 		EventID:      record.EventID,
@@ -247,7 +250,19 @@ func (clients Clients) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 		UserIdentity: record.UserIdentity,
 	}
 
-	if err := clients.CloudEvents.Send(dynamoDBEvent); err != nil {
+	event := cloudevents.Event{
+		Context: cloudevents.EventContextV03{
+			Type:            "Dynamo DB record",
+			Subject:         aws.String("AWS Dynamo DB"),
+			ID:              *record.EventID,
+			SpecVersion:     *record.EventVersion,
+			DataContentType: aws.String("application/json"),
+		}.AsV03(),
+		Data: dynamoDBEvent,
+	}
+
+	_, err := clients.CloudEvents.Send(context.Background(), event)
+	if err != nil {
 		return err
 	}
 
