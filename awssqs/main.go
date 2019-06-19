@@ -25,6 +25,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
 
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -198,7 +199,9 @@ func (clients Clients) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 
 	event := cloudevents.Event{
 		Context: cloudevents.EventContextV03{
+			SpecVersion:     "0.3",
 			Type:            "AWS SQS Message",
+			Source:          *types.ParseURLRef(queueURL),
 			Subject:         aws.String("AWS SQS"),
 			ID:              *msg.MessageId,
 			DataContentType: aws.String("application/json"),
