@@ -201,7 +201,7 @@ func (clients Clients) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 		Context: cloudevents.EventContextV03{
 			Type:            "com.amazon.sqs.message",
 			Source:          *types.ParseURLRef(queueURL),
-			Subject:         aws.String("AWS SQS"),
+			Subject:         queueARN,
 			ID:              *msg.MessageId,
 			DataContentType: aws.String("application/json"),
 		}.AsV03(),

@@ -271,7 +271,7 @@ func (clients Clients) sendCommitEvent(commit *codecommit.Commit) error {
 	event := cloudevents.Event{
 		Context: cloudevents.EventContextV03{
 			Type:            "com.amazon.codecommit.commit",
-			Subject:         aws.String("AWS CodeCommit Event"),
+			Subject:         aws.String(repoNameEnv + "/" + repoBranchEnv),
 			Source:          *types.ParseURLRef(""),
 			ID:              *commit.CommitId,
 			DataContentType: aws.String("application/json"),
@@ -299,7 +299,7 @@ func (clients Clients) sendPREvent(pullRequest *codecommit.PullRequest) error {
 	event := cloudevents.Event{
 		Context: cloudevents.EventContextV03{
 			Type:            "com.amazon.codecommit.pull_request",
-			Subject:         aws.String("AWS CodeCommit Event"),
+			Subject:         aws.String(repoNameEnv + "/" + repoBranchEnv),
 			Source:          *types.ParseURLRef(*pullRequest.AuthorArn),
 			ID:              *pullRequest.PullRequestId,
 			DataContentType: aws.String("application/json"),
