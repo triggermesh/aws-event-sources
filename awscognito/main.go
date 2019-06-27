@@ -236,7 +236,7 @@ func (clients Clients) sendCognitoEvent(dataset *cognitosync.Dataset, records []
 
 	event := cloudevents.Event{
 		Context: cloudevents.EventContextV03{
-			Type:            "SyncTrigger",
+			Type:            "com.amazon.cognito",
 			Subject:         aws.String("AWS Cognito"),
 			Source:          *types.ParseURLRef(""), // need to figure out how to indlude it
 			ID:              *dataset.IdentityId,

@@ -255,7 +255,7 @@ func (clients Clients) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 
 	event := cloudevents.Event{
 		Context: cloudevents.EventContextV03{
-			Type:            "Dynamo DB record",
+			Type:            "com.amazon.dynamodb",
 			Subject:         aws.String("AWS Dynamo DB"),
 			ID:              *record.EventID,
 			Source:          *types.ParseURLRef(*record.EventSource),

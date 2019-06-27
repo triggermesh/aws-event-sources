@@ -215,7 +215,7 @@ func (clients Clients) HandleNotification(w http.ResponseWriter, r *http.Request
 
 		event := cloudevents.Event{
 			Context: cloudevents.EventContextV03{
-				Type:            data["Type"].(string),
+				Type:            "com.amazon.sns",
 				Subject:         aws.String("AWS SNS"),
 				ID:              data["MessageId"].(string),
 				Source:          *types.ParseURLRef(data["TopicArn"].(string)),

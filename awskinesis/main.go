@@ -207,7 +207,7 @@ func (clients Clients) sendCognitoEvent(record *kinesis.Record, shardID *string)
 
 	event := cloudevents.Event{
 		Context: cloudevents.EventContextV03{
-			Type:            "AWS Kinesis Record",
+			Type:            "com.amazon.kinesis",
 			Subject:         aws.String("AWS Kinesis"),
 			Source:          *types.ParseURLRef(*streamARN),
 			ID:              fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber),

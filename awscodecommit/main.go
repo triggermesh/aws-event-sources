@@ -298,7 +298,7 @@ func (clients Clients) sendPREvent(pullRequest *codecommit.PullRequest) error {
 
 	event := cloudevents.Event{
 		Context: cloudevents.EventContextV03{
-			Type:            "AWS CodeCommit commit event",
+			Type:            "com.amazon.codecommit",
 			Subject:         aws.String("AWS CodeCommit Event"),
 			Source:          *types.ParseURLRef(*pullRequest.AuthorArn),
 			ID:              *pullRequest.PullRequestId,
