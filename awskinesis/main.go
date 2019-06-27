@@ -167,7 +167,7 @@ func (clients Clients) processInputs(inputs []kinesis.GetRecordsInput, shardIDs 
 		}
 
 		for _, record := range recordsOutput.Records {
-			err := clients.sendCognitoEvent(record, shardID)
+			err := clients.sendKinesisRecord(record, shardID)
 			if err != nil {
 				log.Errorf("SendCloudEvent failed: %v", err)
 			}
@@ -189,7 +189,7 @@ func (clients Clients) processInputs(inputs []kinesis.GetRecordsInput, shardIDs 
 	return nil
 }
 
-func (clients Clients) sendCognitoEvent(record *kinesis.Record, shardID *string) error {
+func (clients Clients) sendKinesisRecord(record *kinesis.Record, shardID *string) error {
 	log.Info("Processing record ID: ", *record.SequenceNumber)
 
 	kinesisEvent := &Event{
@@ -207,7 +207,7 @@ func (clients Clients) sendCognitoEvent(record *kinesis.Record, shardID *string)
 
 	event := cloudevents.Event{
 		Context: cloudevents.EventContextV03{
-			Type:            "com.amazon.kinesis",
+			Type:            "com.amazon.kinesis.stream_record",
 			Subject:         aws.String("AWS Kinesis"),
 			Source:          *types.ParseURLRef(*streamARN),
 			ID:              fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber),

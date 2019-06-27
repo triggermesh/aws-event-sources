@@ -199,7 +199,7 @@ func (clients Clients) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 
 	event := cloudevents.Event{
 		Context: cloudevents.EventContextV03{
-			Type:            "com.amazon.sqs",
+			Type:            "com.amazon.sqs.message",
 			Source:          *types.ParseURLRef(queueURL),
 			Subject:         aws.String("AWS SQS"),
 			ID:              *msg.MessageId,

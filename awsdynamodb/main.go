@@ -21,6 +21,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -255,7 +256,7 @@ func (clients Clients) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 
 	event := cloudevents.Event{
 		Context: cloudevents.EventContextV03{
-			Type:            "com.amazon.dynamodb",
+			Type:            "com.amazon.dynamodb." + strings.ToLower(*record.EventName),
 			Subject:         aws.String("AWS Dynamo DB"),
 			ID:              *record.EventID,
 			Source:          *types.ParseURLRef(*record.EventSource),
