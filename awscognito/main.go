@@ -238,7 +238,7 @@ func (clients Clients) sendCognitoEvent(dataset *cognitosync.Dataset, records []
 		Context: cloudevents.EventContextV03{
 			Type:            "com.amazon.cognito.sync_trigger",
 			Subject:         aws.String(identityPoolID),
-			Source:          *types.ParseURLRef(""), // need to figure out how to indlude it
+			Source:          *types.ParseURLRef(*dataset.IdentityId),
 			ID:              *dataset.IdentityId,
 			DataContentType: aws.String("application/json"),
 		}.AsV03(),

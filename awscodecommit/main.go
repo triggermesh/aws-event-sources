@@ -272,7 +272,7 @@ func (clients Clients) sendCommitEvent(commit *codecommit.Commit) error {
 		Context: cloudevents.EventContextV03{
 			Type:            "com.amazon.codecommit.commit",
 			Subject:         aws.String(repoNameEnv + "/" + repoBranchEnv),
-			Source:          *types.ParseURLRef(""),
+			Source:          *types.ParseURLRef("https://git-codecommit." + awsRegionEnv + ".amazonaws.com/v1/repos/" + repoNameEnv),
 			ID:              *commit.CommitId,
 			DataContentType: aws.String("application/json"),
 		}.AsV03(),
@@ -300,7 +300,7 @@ func (clients Clients) sendPREvent(pullRequest *codecommit.PullRequest) error {
 		Context: cloudevents.EventContextV03{
 			Type:            "com.amazon.codecommit.pull_request",
 			Subject:         aws.String(repoNameEnv + "/" + repoBranchEnv),
-			Source:          *types.ParseURLRef(*pullRequest.AuthorArn),
+			Source:          *types.ParseURLRef("https://git-codecommit." + awsRegionEnv + ".amazonaws.com/v1/repos/" + repoNameEnv),
 			ID:              *pullRequest.PullRequestId,
 			DataContentType: aws.String("application/json"),
 		}.AsV03(),

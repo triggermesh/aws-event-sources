@@ -218,7 +218,7 @@ func (clients Clients) HandleNotification(w http.ResponseWriter, r *http.Request
 				Type:            "com.amazon.sns." + data["Type"].(string),
 				Subject:         aws.String(data["Subject"].(string)),
 				ID:              data["MessageId"].(string),
-				Source:          *types.ParseURLRef(data["TopicArn"].(string)),
+				Source:          *types.ParseURLRef(data["TopicArn"].(string) + ":" + data["MessageId"].(string)),
 				DataContentType: aws.String("application/json"),
 			}.AsV03(),
 			Data: record,
