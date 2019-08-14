@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codecommit/codecommitiface"
 	"github.com/jarcoal/httpmock"
-	"github.com/knative/pkg/cloudevents"
+	"github.com/cloudevents/sdk-go"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )

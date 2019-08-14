@@ -18,8 +18,10 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -27,7 +29,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
-	"github.com/knative/pkg/cloudevents"
+	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -46,7 +49,7 @@ type DynamoDBEvent struct {
 //Clients struct represent all clients
 type Clients struct {
 	DynamoDBStream dynamodbstreamsiface.DynamoDBStreamsAPI
-	CloudEvents    *cloudevents.Client
+	CloudEvents    cloudevents.Client
 }
 
 var (
@@ -86,17 +89,21 @@ func main() {
 
 	dynamoDBStream := dynamodbstreams.New(sess)
 
-	cloudEvents := cloudevents.NewClient(
-		sink,
-		cloudevents.Builder{
-			Source:    "aws:dynamodb",
-			EventType: "dynamodb event",
-		},
+	t, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget(sink),
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c, err := cloudevents.NewClient(t, cloudevents.WithTimeNow())
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	clients := Clients{
 		DynamoDBStream: dynamoDBStream,
-		CloudEvents:    cloudEvents,
+		CloudEvents:    c,
 	}
 
 	log.Info("Begin listening for aws dynamo db streams")
@@ -237,7 +244,7 @@ func (clients Clients) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 
 	log.Info("Processing record ID: ", record.EventID)
 
-	dynamoDBEvent := DynamoDBEvent{
+	dynamoDBEvent := &DynamoDBEvent{
 		AwsRegion:    record.AwsRegion,
 		Dynamodb:     record.Dynamodb,
 		EventID:      record.EventID,
@@ -247,7 +254,19 @@ func (clients Clients) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 		UserIdentity: record.UserIdentity,
 	}
 
-	if err := clients.CloudEvents.Send(dynamoDBEvent); err != nil {
+	event := cloudevents.Event{
+		Context: cloudevents.EventContextV03{
+			Type:            "com.amazon.dynamodb." + strings.ToLower(*record.EventName),
+			Subject:         aws.String(tableName),
+			ID:              *record.EventID,
+			Source:          *types.ParseURLRef(*record.EventSource),
+			DataContentType: aws.String("application/json"),
+		}.AsV03(),
+		Data: dynamoDBEvent,
+	}
+
+	_, err := clients.CloudEvents.Send(context.Background(), event)
+	if err != nil {
 		return err
 	}
 

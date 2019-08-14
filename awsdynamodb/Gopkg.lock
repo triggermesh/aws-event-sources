@@ -120,7 +120,7 @@
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/dynamodbstreams",
     "github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface",
-    "github.com/knative/pkg/cloudevents",
+    "github.com/cloudevents/sdk-go",
     "github.com/sirupsen/logrus",
   ]
   solver-name = "gps-cdcl"

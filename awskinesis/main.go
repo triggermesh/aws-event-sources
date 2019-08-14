@@ -18,6 +18,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -27,7 +28,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
-	"github.com/knative/pkg/cloudevents"
+	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,7 +45,7 @@ var (
 // Clients provides the ability to operate on Kinesis stream.
 type Clients struct {
 	Kinesis     kinesisiface.KinesisAPI
-	CloudEvents *cloudevents.Client
+	CloudEvents cloudevents.Client
 }
 
 //Kinesis represents Kinesis stream item structure
@@ -87,13 +89,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	c := cloudevents.NewClient(
-		sink,
-		cloudevents.Builder{
-			Source:    "aws:kinesis",
-			EventType: "Kinesis Record",
-		},
+	t, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget(sink),
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c, err := cloudevents.NewClient(t, cloudevents.WithTimeNow())
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	clients := Clients{kinesis.New(sess), c}
 
@@ -161,7 +167,7 @@ func (clients Clients) processInputs(inputs []kinesis.GetRecordsInput, shardIDs 
 		}
 
 		for _, record := range recordsOutput.Records {
-			err := clients.sendCognitoEvent(record, shardID)
+			err := clients.sendKinesisRecord(record, shardID)
 			if err != nil {
 				log.Errorf("SendCloudEvent failed: %v", err)
 			}
@@ -183,12 +189,10 @@ func (clients Clients) processInputs(inputs []kinesis.GetRecordsInput, shardIDs 
 	return nil
 }
 
-func (clients Clients) sendCognitoEvent(record *kinesis.Record, shardID *string) error {
+func (clients Clients) sendKinesisRecord(record *kinesis.Record, shardID *string) error {
 	log.Info("Processing record ID: ", *record.SequenceNumber)
 
-	kinesisEvent := Event{
-		EventID:        aws.String(fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber)),
-		EventVersion:   aws.String("1.0"),
+	kinesisEvent := &Event{
 		EventName:      aws.String("aws:kinesis:record"),
 		EventSourceARN: streamARN,
 		EventSource:    aws.String("aws:kinesis"),
@@ -201,8 +205,20 @@ func (clients Clients) sendCognitoEvent(record *kinesis.Record, shardID *string)
 		},
 	}
 
-	if err := clients.CloudEvents.Send(kinesisEvent); err != nil {
-		log.Printf("error sending: %v", err)
+	event := cloudevents.Event{
+		Context: cloudevents.EventContextV03{
+			Type:            "com.amazon.kinesis.stream_record",
+			Subject:         aws.String(streamName),
+			Source:          *types.ParseURLRef(*record.PartitionKey + ":" + *record.SequenceNumber),
+			ID:              fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber),
+			DataContentType: aws.String("application/json"),
+		}.AsV03(),
+		Data: kinesisEvent,
+	}
+
+	_, err := clients.CloudEvents.Send(context.Background(), event)
+	if err != nil {
+		return err
 	}
 
 	return nil

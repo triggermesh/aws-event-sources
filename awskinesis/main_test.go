@@ -25,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
 	"github.com/jarcoal/httpmock"
-	"github.com/knative/pkg/cloudevents"
+	"github.com/cloudevents/sdk-go"
 	"github.com/stretchr/testify/assert"
 )
 

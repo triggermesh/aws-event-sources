@@ -18,6 +18,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"strings"
@@ -27,7 +28,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codecommit/codecommitiface"
-	"github.com/knative/pkg/cloudevents"
+	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -67,7 +69,7 @@ type PRMessageEvent struct {
 //Clients struct represent CC Clients
 type Clients struct {
 	CodeCommit  codecommitiface.CodeCommitAPI
-	CloudEvents *cloudevents.Client
+	CloudEvents cloudevents.Client
 }
 
 func init() {
@@ -102,17 +104,21 @@ func main() {
 		log.Fatal(err)
 	}
 
-	cloudEvents := cloudevents.NewClient(
-		sink,
-		cloudevents.Builder{
-			Source:    "aws:codecommit",
-			EventType: "codecommit event",
-		},
+	t, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget(sink),
 	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	c, err := cloudevents.NewClient(t, cloudevents.WithTimeNow())
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	clients := Clients{
 		CodeCommit:  codecommit.New(sess),
-		CloudEvents: cloudEvents,
+		CloudEvents: c,
 	}
 
 	if strings.Contains(gitEventsEnv, "push") {
@@ -259,17 +265,28 @@ func (clients Clients) preparePullRequests() ([]*codecommit.PullRequest, error) 
 
 //sendPush sends an event containing data about a git commit that was pushed to a branch
 func (clients Clients) sendCommitEvent(commit *codecommit.Commit) error {
+
 	log.Info("send Commit Event")
 
-	codecommitEvent := PushMessageEvent{
-		Commit:           commit,
-		CommitRepository: aws.String(repoNameEnv),
-		CommitBranch:     aws.String(repoBranchEnv),
-		EventSource:      aws.String("aws:codecommit"),
-		AwsRegion:        aws.String(awsRegionEnv),
+	event := cloudevents.Event{
+		Context: cloudevents.EventContextV03{
+			Type:            "com.amazon.codecommit.commit",
+			Subject:         aws.String(repoNameEnv + "/" + repoBranchEnv),
+			Source:          *types.ParseURLRef("https://git-codecommit." + awsRegionEnv + ".amazonaws.com/v1/repos/" + repoNameEnv),
+			ID:              *commit.CommitId,
+			DataContentType: aws.String("application/json"),
+		}.AsV03(),
+		Data: &PushMessageEvent{
+			Commit:           commit,
+			CommitRepository: aws.String(repoNameEnv),
+			CommitBranch:     aws.String(repoBranchEnv),
+			EventSource:      aws.String("aws:codecommit"),
+			AwsRegion:        aws.String(awsRegionEnv),
+		},
 	}
 
-	if err := clients.CloudEvents.Send(codecommitEvent); err != nil {
+	_, err := clients.CloudEvents.Send(context.Background(), event)
+	if err != nil {
 		return err
 	}
 
@@ -279,15 +296,25 @@ func (clients Clients) sendCommitEvent(commit *codecommit.Commit) error {
 func (clients Clients) sendPREvent(pullRequest *codecommit.PullRequest) error {
 	log.Info("send Pull Request Event")
 
-	codecommitEvent := PRMessageEvent{
-		PullRequest: pullRequest,
-		Repository:  aws.String(repoNameEnv),
-		Branch:      aws.String(repoBranchEnv),
-		EventSource: aws.String("aws:codecommit"),
-		AwsRegion:   aws.String(awsRegionEnv),
+	event := cloudevents.Event{
+		Context: cloudevents.EventContextV03{
+			Type:            "com.amazon.codecommit.pull_request",
+			Subject:         aws.String(repoNameEnv + "/" + repoBranchEnv),
+			Source:          *types.ParseURLRef("https://git-codecommit." + awsRegionEnv + ".amazonaws.com/v1/repos/" + repoNameEnv),
+			ID:              *pullRequest.PullRequestId,
+			DataContentType: aws.String("application/json"),
+		}.AsV03(),
+		Data: &PRMessageEvent{
+			PullRequest: pullRequest,
+			Repository:  aws.String(repoNameEnv),
+			Branch:      aws.String(repoBranchEnv),
+			EventSource: aws.String("aws:codecommit"),
+			AwsRegion:   aws.String(awsRegionEnv),
+		},
 	}
 
-	if err := clients.CloudEvents.Send(codecommitEvent); err != nil {
+	_, err := clients.CloudEvents.Send(context.Background(), event)
+	if err != nil {
 		return err
 	}
 
