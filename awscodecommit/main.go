@@ -285,7 +285,7 @@ func (clients Clients) sendCommitEvent(commit *codecommit.Commit) error {
 		},
 	}
 
-	_, err := clients.CloudEvents.Send(context.Background(), event)
+	_, _, err := clients.CloudEvents.Send(context.Background(), event)
 	if err != nil {
 		return err
 	}
@@ -313,7 +313,7 @@ func (clients Clients) sendPREvent(pullRequest *codecommit.PullRequest) error {
 		},
 	}
 
-	_, err := clients.CloudEvents.Send(context.Background(), event)
+	_, _, err := clients.CloudEvents.Send(context.Background(), event)
 	if err != nil {
 		return err
 	}
