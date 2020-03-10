@@ -23,8 +23,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	cloudevents "github.com/cloudevents/sdk-go"
 	"github.com/jarcoal/httpmock"
-	"github.com/cloudevents/sdk-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -90,7 +90,7 @@ func TestQueueLookup(t *testing.T) {
 		}
 		url, err := clients.QueueLookup("testQueue")
 		assert.Equal(t, c.err, err)
-		assert.Equal(t, c.Expected, url)
+		assert.Equal(t, c.Expected, url.String())
 	}
 }
 

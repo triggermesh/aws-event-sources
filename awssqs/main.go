@@ -115,10 +115,13 @@ func main() {
 	if err != nil {
 		log.Fatal("Unable to find queue. Error: ", err)
 	}
+	if url == nil {
+		log.Fatal("Can't parse queue URL: value is nil")
+	}
 
 	log.Info("Beginning to listen at URL: ", url)
 
-	queueURL = url
+	queueURL = url.String()
 
 	//Look for new messages every 5 seconds
 	for range time.Tick(5 * time.Second) {
@@ -157,12 +160,8 @@ func main() {
 
 //QueueLookup finds the URL for a given queue name in the user's env.
 //Needs to be an exact match to queue name and queue must be unique name in the AWS account.
-func (clients Clients) QueueLookup(queueName string) (string, error) {
-	queues, err := clients.SQS.ListQueues(&sqs.ListQueuesInput{QueueNamePrefix: aws.String(queueName)})
-	if err != nil {
-		return "", err
-	}
-	return aws.StringValue(queues.QueueUrls[0]), nil
+func (clients Clients) QueueLookup(queueName string) (*sqs.GetQueueUrlOutput, error) {
+	return clients.SQS.GetQueueUrl(&sqs.GetQueueUrlInput{QueueName: aws.String(queueName)})
 }
 
 // GetMessages returns the parsed messages from SQS if any. If an error
