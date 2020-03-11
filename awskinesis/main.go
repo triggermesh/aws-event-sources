@@ -206,13 +206,13 @@ func (clients Clients) sendKinesisRecord(record *kinesis.Record, shardID *string
 	}
 
 	event := cloudevents.Event{
-		Context: cloudevents.EventContextV03{
+		Context: cloudevents.EventContextV1{
 			Type:            "com.amazon.kinesis.stream_record",
 			Subject:         aws.String(streamName),
-			Source:          *types.ParseURLRef(*record.PartitionKey + ":" + *record.SequenceNumber),
+			Source:          *types.ParseURIRef(*record.PartitionKey + ":" + *record.SequenceNumber),
 			ID:              fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber),
 			DataContentType: aws.String("application/json"),
-		}.AsV03(),
+		}.AsV1(),
 		Data: kinesisEvent,
 	}
 
