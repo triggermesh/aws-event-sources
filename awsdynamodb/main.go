@@ -265,7 +265,7 @@ func (clients Clients) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 		Data: dynamoDBEvent,
 	}
 
-	_, err := clients.CloudEvents.Send(context.Background(), event)
+	_, _, err := clients.CloudEvents.Send(context.Background(), event)
 	if err != nil {
 		return err
 	}

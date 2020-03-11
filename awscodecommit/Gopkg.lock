@@ -2,10 +2,9 @@
 
 
 [[projects]]
-  digest = "1:354d36b7971141353fa858bc5c9f354a43896363d008db20190e21480bef7749"
+  digest = "1:1095ab29a6847a03be3e76de079149fb87f3b5e35157aee37258970a014ecbe4"
   name = "github.com/aws/aws-sdk-go"
   packages = [
-    ".",
     "aws",
     "aws/awserr",
     "aws/awsutil",
@@ -46,8 +45,8 @@
     "service/sts/stsiface",
   ]
   pruneopts = "UT"
-  revision = "88e01ec3d4d121bd33554f8a187f3b7d8d6f3db7"
-  version = "v1.29.20"
+  revision = "ecf76c57b69f7395de7777edf1f8c5928d850581"
+  version = "v1.29.21"
 
 [[projects]]
   digest = "1:99839482c66fa9d39b25579066400db18eaf73a106de30db8fcefea930a3d4d1"
@@ -248,7 +247,7 @@
     "go/types/typeutil",
   ]
   pruneopts = "UT"
-  revision = "20ab64c0d93f083c2eb6362b7f17c7e094783a84"
+  revision = "43e3193a9bc5f2c33d34b8b7d4535e72b9795972"
 
 [[projects]]
   digest = "1:55b110c99c5fdc4f14930747326acce56b52cfce60b24b1c03ef686ac0e46bb1"
@@ -262,7 +261,6 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/aws/aws-sdk-go",
     "github.com/aws/aws-sdk-go/aws",
     "github.com/aws/aws-sdk-go/aws/credentials",
     "github.com/aws/aws-sdk-go/aws/session",
