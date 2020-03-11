@@ -24,8 +24,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
-	"github.com/jarcoal/httpmock"
 	"github.com/cloudevents/sdk-go"
+	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,49 +56,46 @@ func TestProcessInputs(t *testing.T) {
 	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
 
 	now := time.Now()
-	sink = "https://foo.com"
 
 	records := []*kinesis.Record{
 		{
 			SequenceNumber:              aws.String("1"),
+			PartitionKey:                aws.String("key"),
 			ApproximateArrivalTimestamp: &now,
-			Data: []byte("foo"),
+			Data:                        []byte("foo"),
 		},
 	}
 
-	c := cloudevents.NewClient(
-		"https://foo.com",
-		cloudevents.Builder{
-			Source:    "aws:kinesis",
-			EventType: "Kinesis Record",
-		},
+	transport, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget("https://foo.com"),
 	)
+	assert.NoError(t, err)
+
+	cloudClient, err := cloudevents.NewClient(transport)
+	assert.NoError(t, err)
 
 	clients := Clients{
 		Kinesis: mockedGetRecords{Resp: kinesis.GetRecordsOutput{
 			NextShardIterator: aws.String("nextIterator"),
 			Records:           records,
 		}, err: nil},
+		CloudEvents: cloudClient,
 	}
-
-	clients.CloudEvents = c
 
 	inputs := []kinesis.GetRecordsInput{
 		{},
 	}
 
-	err := clients.processInputs(inputs, []*string{aws.String("shardID")})
-	assert.NoError(t, err)
-
-	clients = Clients{
-		Kinesis: mockedGetRecords{Resp: kinesis.GetRecordsOutput{}, err: errors.New("error")},
-	}
-
-	clients.CloudEvents = c
-
 	err = clients.processInputs(inputs, []*string{aws.String("shardID")})
 	assert.NoError(t, err)
 
+	clients = Clients{
+		Kinesis:     mockedGetRecords{Resp: kinesis.GetRecordsOutput{}, err: errors.New("error")},
+		CloudEvents: cloudClient,
+	}
+
+	err = clients.processInputs(inputs, []*string{aws.String("shardID")})
+	assert.NoError(t, err)
 }
 
 func TestGetRecordsInputs(t *testing.T) {
@@ -132,20 +129,21 @@ func TestSendCloudevent(t *testing.T) {
 	record := kinesis.Record{
 		Data:           []byte("foo"),
 		SequenceNumber: aws.String("1"),
+		PartitionKey:   aws.String("key"),
 	}
 
-	c := cloudevents.NewClient(
-		"https://foo.com",
-		cloudevents.Builder{
-			Source:    "aws:kinesis",
-			EventType: "Kinesis Record",
-		},
+	transport, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget("https://foo.com"),
 	)
+	assert.NoError(t, err)
+
+	cloudClient, err := cloudevents.NewClient(transport)
+	assert.NoError(t, err)
 
 	clients := Clients{
-		CloudEvents: c,
+		CloudEvents: cloudClient,
 	}
 
-	err := clients.sendCognitoEvent(&record, aws.String(""))
+	err = clients.sendKinesisRecord(&record, aws.String(""))
 	assert.NoError(t, err)
 }
