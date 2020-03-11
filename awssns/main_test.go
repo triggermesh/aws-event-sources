@@ -28,8 +28,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
-	"github.com/jarcoal/httpmock"
 	"github.com/cloudevents/sdk-go"
+	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,14 +56,16 @@ func TestHandleNotification(t *testing.T) {
 
 	httpmock.RegisterResponder("GET", "https://foo.com", httpmock.NewStringResponder(200, ``))
 
+	transport, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget("https://foo.com"),
+	)
+	assert.NoError(t, err)
+
+	cloudClient, err := cloudevents.NewClient(transport)
+	assert.NoError(t, err)
+
 	clients := Clients{
-		CloudEvents: cloudevents.NewClient(
-			"https://foo.com",
-			cloudevents.Builder{
-				Source:    "aws:sns",
-				EventType: "SNS Event",
-			},
-		),
+		CloudEvents: cloudClient,
 	}
 
 	file, err := os.Open("testSNSConfirmSubscriptionEvent.json")
