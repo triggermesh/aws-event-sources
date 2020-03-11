@@ -216,7 +216,7 @@ func (clients Clients) sendKinesisRecord(record *kinesis.Record, shardID *string
 		Data: kinesisEvent,
 	}
 
-	_, err := clients.CloudEvents.Send(context.Background(), event)
+	_, _, err := clients.CloudEvents.Send(context.Background(), event)
 	if err != nil {
 		return err
 	}

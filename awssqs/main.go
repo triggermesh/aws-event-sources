@@ -208,7 +208,7 @@ func (clients Clients) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 		Data: sqsEvent,
 	}
 
-	_, err := clients.CloudEvents.Send(context.Background(), event)
+	_, _, err := clients.CloudEvents.Send(context.Background(), event)
 	return err
 }
 

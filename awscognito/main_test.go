@@ -25,8 +25,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/cognitoidentity/cognitoidentityiface"
 	"github.com/aws/aws-sdk-go/service/cognitosync"
 	"github.com/aws/aws-sdk-go/service/cognitosync/cognitosynciface"
-	"github.com/jarcoal/httpmock"
 	"github.com/cloudevents/sdk-go"
+	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -141,31 +141,34 @@ func TestSendCognitoEvent(t *testing.T) {
 
 	dataset := cognitosync.Dataset{
 		DatasetName: aws.String("foo"),
+		IdentityId:  aws.String("3234234"),
 	}
 	records := []*cognitosync.Record{}
 
+	transport, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget("https://bar.com"),
+	)
+	assert.NoError(t, err)
+
+	cloudClient, err := cloudevents.NewClient(transport)
+	assert.NoError(t, err)
+
 	clients := Clients{
-		CloudEvents: cloudevents.NewClient(
-			"https://bar.com",
-			cloudevents.Builder{
-				Source:    "aws:cognito",
-				EventType: "SyncTrigger",
-			},
-		),
+		CloudEvents: cloudClient,
 	}
 
-	err := clients.sendCognitoEvent(&dataset, records)
+	err = clients.sendCognitoEvent(&dataset, records)
 	assert.Error(t, err)
 
-	clients = Clients{
-		CloudEvents: cloudevents.NewClient(
-			"https://foo.com",
-			cloudevents.Builder{
-				Source:    "aws:cognito",
-				EventType: "SyncTrigger",
-			},
-		),
-	}
+	transport, err = cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget("https://foo.com"),
+	)
+	assert.NoError(t, err)
+
+	cloudClient, err = cloudevents.NewClient(transport)
+	assert.NoError(t, err)
+
+	clients.CloudEvents = cloudClient
 
 	err = clients.sendCognitoEvent(&dataset, records)
 	assert.NoError(t, err)

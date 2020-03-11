@@ -224,7 +224,7 @@ func (clients Clients) HandleNotification(w http.ResponseWriter, r *http.Request
 			Data: record,
 		}
 
-		_, err := clients.CloudEvents.Send(context.Background(), event)
+		_, _, err := clients.CloudEvents.Send(context.Background(), event)
 		if err != nil {
 			log.Error("Failed to send cloud events: ", err)
 		}
