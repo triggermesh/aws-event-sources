@@ -103,6 +103,10 @@ These container sources can be used as is from this repo. You can also use them 
 
 We would love your feedback and help on these sources, so don't hesitate to let us know what is wrong and how we could improve them, just file an [issue](https://github.com/triggermesh/knative-lambda-sources/issues/new) or join those of use who are maintaining them and submit a [PR](https://github.com/triggermesh/knative-lambda-sources/compare)
 
+## Commercial Support
+
+TriggerMesh Inc supports those sources commercially, email info@triggermesh.com to get more details.
+
 ## Code of Conduct
 
 This plugin is by no means part of [CNCF](https://www.cncf.io/) but we abide by its [code of conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md)
