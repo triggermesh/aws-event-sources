@@ -115,13 +115,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Unable to find queue. Error: ", err)
 	}
-	if url == nil {
+	if url.QueueUrl == nil {
 		log.Fatal("Can't parse queue URL: value is nil")
 	}
 
-	log.Info("Beginning to listen at URL: ", url)
-
-	queueURL = url.String()
+	log.Info("Beginning to listen at URL: ", url.QueueUrl)
 
 	//Look for new messages every 5 seconds
 	for range time.Tick(5 * time.Second) {
@@ -138,8 +136,12 @@ func main() {
 
 		attributes, err := clients.SQS.GetQueueAttributes(&sqs.GetQueueAttributesInput{
 			AttributeNames: []*string{aws.String("QueueArn")},
-			QueueUrl:       aws.String(queueURL),
+			QueueUrl:       url.QueueUrl,
 		})
+		if err != nil {
+			log.Error(err)
+			continue
+		}
 
 		err = clients.sendSQSEvent(msgs[0], attributes.Attributes["QueueArn"])
 		if err != nil {
