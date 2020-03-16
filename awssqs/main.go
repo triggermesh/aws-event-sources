@@ -197,17 +197,17 @@ func (clients Clients) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 	}
 
 	event := cloudevents.Event{
-		Context: cloudevents.EventContextV03{
+		Context: cloudevents.EventContextV1{
 			Type:            "com.amazon.sqs.message",
-			Source:          *types.ParseURLRef(queueURL),
+			Source:          *types.ParseURIRef(queueURL),
 			Subject:         queueARN,
 			ID:              *msg.MessageId,
 			DataContentType: aws.String("application/json"),
-		}.AsV03(),
+		}.AsV1(),
 		Data: sqsEvent,
 	}
 
-	_, err := clients.CloudEvents.Send(context.Background(), event)
+	_, _, err := clients.CloudEvents.Send(context.Background(), event)
 	return err
 }
 

@@ -23,8 +23,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
-	"github.com/jarcoal/httpmock"
 	"github.com/cloudevents/sdk-go"
+	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -175,20 +175,26 @@ func TestGetLatestRecords(t *testing.T) {
 	err := c.processLatestRecords(shardIterator)
 	assert.Error(t, err)
 
+	transport, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget("https://foo.com"),
+	)
+	assert.NoError(t, err)
+
+	cloudClient, err := cloudevents.NewClient(transport)
+	assert.NoError(t, err)
+
 	c = Clients{
 		DynamoDBStream: mockedDynamoStreamsClient{
 			getRecordsOutput: dynamodbstreams.GetRecordsOutput{
-				Records: []*dynamodbstreams.Record{{EventID: aws.String("1")}},
+				Records: []*dynamodbstreams.Record{{
+					EventID:     aws.String("1"),
+					EventName:   aws.String("some event"),
+					EventSource: aws.String("some source"),
+				}},
 			},
 			getRecordsOutputError: nil,
 		},
-		CloudEvents: cloudevents.NewClient(
-			"https://foo.com",
-			cloudevents.Builder{
-				Source:    "aws:dynamodb",
-				EventType: "DynamoDB update",
-			},
-		),
+		CloudEvents: cloudClient,
 	}
 
 	err = c.processLatestRecords(shardIterator)
@@ -197,36 +203,40 @@ func TestGetLatestRecords(t *testing.T) {
 	c = Clients{
 		DynamoDBStream: mockedDynamoStreamsClient{
 			getRecordsOutput: dynamodbstreams.GetRecordsOutput{
-				Records: []*dynamodbstreams.Record{{EventID: aws.String("1")}},
+				Records: []*dynamodbstreams.Record{{
+					EventID:     aws.String("1"),
+					EventName:   aws.String("some event"),
+					EventSource: aws.String("some source"),
+				}},
 			},
 			getRecordsOutputError: nil,
 		},
-		CloudEvents: cloudevents.NewClient(
-			"https://foo.com",
-			cloudevents.Builder{
-				Source:    "aws:dynamodb",
-				EventType: "DynamoDB update",
-			},
-		),
+		CloudEvents: cloudClient,
 	}
 
 	err = c.processLatestRecords(shardIterator)
 	assert.NoError(t, err)
 
+	transport, err = cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget("https://bar.com"),
+	)
+	assert.NoError(t, err)
+
+	cloudClient, err = cloudevents.NewClient(transport)
+	assert.NoError(t, err)
+
 	c = Clients{
 		DynamoDBStream: mockedDynamoStreamsClient{
 			getRecordsOutput: dynamodbstreams.GetRecordsOutput{
-				Records: []*dynamodbstreams.Record{{EventID: aws.String("1")}},
+				Records: []*dynamodbstreams.Record{{
+					EventID:     aws.String("1"),
+					EventName:   aws.String("some event"),
+					EventSource: aws.String("some source"),
+				}},
 			},
 			getRecordsOutputError: nil,
 		},
-		CloudEvents: cloudevents.NewClient(
-			"https://bar.com",
-			cloudevents.Builder{
-				Source:    "aws:dynamodb",
-				EventType: "DynamoDB update",
-			},
-		),
+		CloudEvents: cloudClient,
 	}
 
 	err = c.processLatestRecords(shardIterator)
@@ -241,29 +251,37 @@ func TestSendCloudevent(t *testing.T) {
 	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
 	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
 
-	record := dynamodbstreams.Record{EventID: aws.String("1")}
-
-	c := Clients{
-		CloudEvents: cloudevents.NewClient(
-			"https://bar.com",
-			cloudevents.Builder{
-				Source:    "aws:dynamodb",
-				EventType: "DynamoDB update",
-			},
-		),
+	record := dynamodbstreams.Record{
+		EventID:     aws.String("1"),
+		EventName:   aws.String("some event"),
+		EventSource: aws.String("some source"),
 	}
 
-	err := c.sendDynamoDBEvent(&record)
+	transport, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget("https://bar.com"),
+	)
+	assert.NoError(t, err)
+
+	cloudClient, err := cloudevents.NewClient(transport)
+	assert.NoError(t, err)
+
+	c := Clients{
+		CloudEvents: cloudClient,
+	}
+
+	err = c.sendDynamoDBEvent(&record)
 	assert.Error(t, err)
 
+	transport, err = cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget("https://foo.com"),
+	)
+	assert.NoError(t, err)
+
+	cloudClient, err = cloudevents.NewClient(transport)
+	assert.NoError(t, err)
+
 	c = Clients{
-		CloudEvents: cloudevents.NewClient(
-			"https://foo.com",
-			cloudevents.Builder{
-				Source:    "aws:dynamodb",
-				EventType: "DynamoDB update",
-			},
-		),
+		CloudEvents: cloudClient,
 	}
 
 	err = c.sendDynamoDBEvent(&record)

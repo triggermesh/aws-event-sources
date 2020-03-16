@@ -235,17 +235,17 @@ func (clients Clients) sendCognitoEvent(dataset *cognitosync.Dataset, records []
 	}
 
 	event := cloudevents.Event{
-		Context: cloudevents.EventContextV03{
+		Context: cloudevents.EventContextV1{
 			Type:            "com.amazon.cognito.sync_trigger",
 			Subject:         aws.String(identityPoolID),
-			Source:          *types.ParseURLRef(*dataset.IdentityId),
+			Source:          *types.ParseURIRef(*dataset.IdentityId),
 			ID:              *dataset.IdentityId,
 			DataContentType: aws.String("application/json"),
-		}.AsV03(),
+		}.AsV1(),
 		Data: cognitoEvent,
 	}
 
-	_, err := clients.CloudEvents.Send(context.Background(), event)
+	_, _, err := clients.CloudEvents.Send(context.Background(), event)
 	if err != nil {
 		return err
 	}

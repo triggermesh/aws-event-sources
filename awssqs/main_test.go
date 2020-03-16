@@ -23,7 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	cloudevents "github.com/cloudevents/sdk-go"
+	"github.com/cloudevents/sdk-go"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
 )
@@ -141,19 +141,19 @@ func TestPushMessage(t *testing.T) {
 
 	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
 
-	c := cloudevents.NewClient(
-		"https://foo.com",
-		cloudevents.Builder{
-			Source:    "aws:sqs",
-			EventType: "SQS message",
-		},
+	transport, err := cloudevents.NewHTTPTransport(
+		cloudevents.WithTarget("https://foo.com"),
 	)
+	assert.NoError(t, err)
+
+	cloudClient, err := cloudevents.NewClient(transport)
+	assert.NoError(t, err)
 
 	clients := Clients{
-		CloudEvents: c,
+		CloudEvents: cloudClient,
 	}
 
-	err := clients.sendSQSEvent(&msg, aws.String("testQueueARN"))
+	err = clients.sendSQSEvent(&msg, aws.String("testQueueARN"))
 	assert.NoError(t, err)
 }
 

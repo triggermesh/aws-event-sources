@@ -269,13 +269,13 @@ func (clients Clients) sendCommitEvent(commit *codecommit.Commit) error {
 	log.Info("send Commit Event")
 
 	event := cloudevents.Event{
-		Context: cloudevents.EventContextV03{
+		Context: cloudevents.EventContextV1{
 			Type:            "com.amazon.codecommit.commit",
 			Subject:         aws.String(repoNameEnv + "/" + repoBranchEnv),
-			Source:          *types.ParseURLRef("https://git-codecommit." + awsRegionEnv + ".amazonaws.com/v1/repos/" + repoNameEnv),
+			Source:          *types.ParseURIRef("https://git-codecommit." + awsRegionEnv + ".amazonaws.com/v1/repos/" + repoNameEnv),
 			ID:              *commit.CommitId,
 			DataContentType: aws.String("application/json"),
-		}.AsV03(),
+		}.AsV1(),
 		Data: &PushMessageEvent{
 			Commit:           commit,
 			CommitRepository: aws.String(repoNameEnv),
@@ -285,7 +285,7 @@ func (clients Clients) sendCommitEvent(commit *codecommit.Commit) error {
 		},
 	}
 
-	_, err := clients.CloudEvents.Send(context.Background(), event)
+	_, _, err := clients.CloudEvents.Send(context.Background(), event)
 	if err != nil {
 		return err
 	}
@@ -297,13 +297,13 @@ func (clients Clients) sendPREvent(pullRequest *codecommit.PullRequest) error {
 	log.Info("send Pull Request Event")
 
 	event := cloudevents.Event{
-		Context: cloudevents.EventContextV03{
+		Context: cloudevents.EventContextV1{
 			Type:            "com.amazon.codecommit.pull_request",
 			Subject:         aws.String(repoNameEnv + "/" + repoBranchEnv),
-			Source:          *types.ParseURLRef("https://git-codecommit." + awsRegionEnv + ".amazonaws.com/v1/repos/" + repoNameEnv),
+			Source:          *types.ParseURIRef("https://git-codecommit." + awsRegionEnv + ".amazonaws.com/v1/repos/" + repoNameEnv),
 			ID:              *pullRequest.PullRequestId,
 			DataContentType: aws.String("application/json"),
-		}.AsV03(),
+		}.AsV1(),
 		Data: &PRMessageEvent{
 			PullRequest: pullRequest,
 			Repository:  aws.String(repoNameEnv),
@@ -313,7 +313,7 @@ func (clients Clients) sendPREvent(pullRequest *codecommit.PullRequest) error {
 		},
 	}
 
-	_, err := clients.CloudEvents.Send(context.Background(), event)
+	_, _, err := clients.CloudEvents.Send(context.Background(), event)
 	if err != nil {
 		return err
 	}
