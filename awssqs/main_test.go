@@ -40,9 +40,9 @@ type mockedDeleteMsgs struct {
 	err  error
 }
 
-type mockedListQueues struct {
+type mockedGetQueueUrl struct {
 	sqsiface.SQSAPI
-	Resp sqs.ListQueuesOutput
+	Resp sqs.GetQueueUrlOutput
 	err  error
 }
 
@@ -54,43 +54,35 @@ func (m mockedDeleteMsgs) DeleteMessage(in *sqs.DeleteMessageInput) (*sqs.Delete
 	return &m.Resp, m.err
 }
 
-func (m mockedListQueues) ListQueues(in *sqs.ListQueuesInput) (*sqs.ListQueuesOutput, error) {
+func (m mockedGetQueueUrl) GetQueueUrl(*sqs.GetQueueUrlInput) (*sqs.GetQueueUrlOutput, error) {
 	return &m.Resp, m.err
 }
 
 func TestQueueLookup(t *testing.T) {
 	cases := []struct {
-		Resp     sqs.ListQueuesOutput
+		Resp     sqs.GetQueueUrlOutput
 		err      error
-		Expected string
+		Expected *string
 	}{
 		{ // Case 1, expect parsed responses
-			Resp: sqs.ListQueuesOutput{
-				QueueUrls: []*string{aws.String("testQueueURL")}},
+			Resp:     sqs.GetQueueUrlOutput{QueueUrl: aws.String("testQueueURL")},
 			err:      nil,
-			Expected: "testQueueURL",
+			Expected: aws.String("testQueueURL"),
 		},
-		{ // Case 2, expect parsed responses
-			Resp: sqs.ListQueuesOutput{
-				QueueUrls: []*string{aws.String("testQueueURL"), aws.String("testQueueURLFoo")}},
-			err:      nil,
-			Expected: "testQueueURL",
-		},
-		{ // Case 3, expect error
-			Resp: sqs.ListQueuesOutput{
-				QueueUrls: []*string{}},
+		{ // Case 2, expect error
+			Resp:     sqs.GetQueueUrlOutput{QueueUrl: aws.String("")},
 			err:      errors.New("No such queue"),
-			Expected: "",
+			Expected: aws.String(""),
 		},
 	}
 
 	for _, c := range cases {
 		clients := Clients{
-			SQS: mockedListQueues{Resp: c.Resp, err: c.err},
+			SQS: mockedGetQueueUrl{Resp: c.Resp, err: c.err},
 		}
 		url, err := clients.QueueLookup("testQueue")
 		assert.Equal(t, c.err, err)
-		assert.Equal(t, c.Expected, url)
+		assert.Equal(t, c.Expected, url.QueueUrl)
 	}
 }
 
