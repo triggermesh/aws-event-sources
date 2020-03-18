@@ -23,4 +23,4 @@ COPY ./licenses/* /licenses/
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /go/bin/awscognito /go/bin/awscognito
 
-ENTRYPOINT ["/go/bin/sawscognito"]
+ENTRYPOINT ["/go/bin/awscognito"]
