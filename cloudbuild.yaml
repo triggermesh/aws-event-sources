@@ -2,33 +2,98 @@
 ## AWS Sources ##
 #################
 steps:
+## Pull images to speed up build
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    docker pull gcr.io/$PROJECT_ID/awsdynamodb:latest || exit 0
+  waitFor: ['-']
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    docker pull gcr.io/$PROJECT_ID/awssqs:latest || exit 0
+  waitFor: ['-']
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    docker pull gcr.io/$PROJECT_ID/awscodecommit:latest || exit 0
+  waitFor: ['-']
+- name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    docker pull gcr.io/$PROJECT_ID/awscognito:latest || exit 0
+  waitFor: ['-']
+- id: "last pull"
+  name: 'gcr.io/cloud-builders/docker'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    docker pull gcr.io/$PROJECT_ID/awskinesis:latest || exit 0
+  waitFor: ['-']
 ## Build DynamoDB source
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awsdynamodb:latest', '-f' ,'./awsdynamodb/Dockerfile', '.' ]
-
+  args: [ 'build',
+          '-t', 'gcr.io/$PROJECT_ID/awsdynamodb:latest',
+          '--cache-from', 'gcr.io/$PROJECT_ID/awsdynamodb:latest',
+          '-f' ,'./awsdynamodb/Dockerfile',
+          '.'
+        ]
+  waitFor: ['last pull']
 ## Build SQS source
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awssqs:latest', '-f' ,'./awssqs/Dockerfile', '.' ]
-
+  args: [ 'build',
+          '-t', 'gcr.io/$PROJECT_ID/awssqs:latest',
+          '--cache-from', 'gcr.io/$PROJECT_ID/awssqs:latest',
+          '-f' ,'./awssqs/Dockerfile',
+          '.'
+        ]
+  waitFor: ['last pull']
 ## Build CodeCommit source
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awscodecommit:latest', '-f' ,'./awscodecommit/Dockerfile', '.' ]
-
+  args: [ 'build',
+          '-t', 'gcr.io/$PROJECT_ID/awscodecommit:latest',
+          '--cache-from', 'gcr.io/$PROJECT_ID/awscodecommit:latest',
+          '-f' ,'./awscodecommit/Dockerfile',
+          '.'
+        ]
+  waitFor: ['last pull']
 ## Build Cognito source
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awscognito:latest', '-f' ,'./awscognito/Dockerfile', '.' ]
-
+  args: [ 'build',
+          '-t', 'gcr.io/$PROJECT_ID/awscognito:latest',
+          '--cache-from', 'gcr.io/$PROJECT_ID/awscognito:latest',
+          '-f' ,'./awscognito/Dockerfile',
+          '.'
+        ]
+  waitFor: ['last pull']
 ## Build Kinesis source
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awskinesis:latest', '-f' ,'./awskinesis/Dockerfile', '.' ]
-
+  args: [ 'build',
+          '-t', 'gcr.io/$PROJECT_ID/awskinesis:latest',
+          '--cache-from', 'gcr.io/$PROJECT_ID/awskinesis:latest',
+          '-f' ,'./awskinesis/Dockerfile',
+          '.'
+        ]
+  waitFor: ['last pull']
+# To speed up builds
+options:
+  machineType: 'N1_HIGHCPU_8'
 ## Build Kinesis source
 #- name: 'gcr.io/cloud-builders/docker'
 #  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awss3:latest', '-f' ,'./awss3/Dockerfile', '.' ]
 
 ## Build SNS source
-- name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awssns:latest', '-f' ,'./awssns/Dockerfile', '.' ]
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awssns:latest', '-f' ,'./awssns/Dockerfile', '.' ]
 
 
 images: 
@@ -38,4 +103,4 @@ images:
   - 'gcr.io/$PROJECT_ID/awskinesis'
   - 'gcr.io/$PROJECT_ID/awscodecommit'
 #  - 'gcr.io/$PROJECT_ID/awss3'
-  - 'gcr.io/$PROJECT_ID/awssns'
+#  - 'gcr.io/$PROJECT_ID/awssns'
