@@ -4,36 +4,36 @@
 steps:
 ## Pull images to speed up build
 - name: 'gcr.io/cloud-builders/docker'
-   entrypoint: 'bash'
-   args:
-   - '-c'
-   - |
-     docker pull gcr.io/$PROJECT_ID/awsdynamodb:latest || exit 0
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    docker pull gcr.io/$PROJECT_ID/awsdynamodb:latest || exit 0
 - name: 'gcr.io/cloud-builders/docker'
-   entrypoint: 'bash'
-   args:
-   - '-c'
-   - |
-     docker pull gcr.io/$PROJECT_ID/awssqs:latest || exit 0
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    docker pull gcr.io/$PROJECT_ID/awssqs:latest || exit 0
 - name: 'gcr.io/cloud-builders/docker'
-   entrypoint: 'bash'
-   args:
-   - '-c'
-   - |
-     docker pull gcr.io/$PROJECT_ID/awscodecommit:latest || exit 0
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    docker pull gcr.io/$PROJECT_ID/awscodecommit:latest || exit 0
 - name: 'gcr.io/cloud-builders/docker'
-   entrypoint: 'bash'
-   args:
-   - '-c'
-   - |
-     docker pull gcr.io/$PROJECT_ID/awscognito:latest || exit 0
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    docker pull gcr.io/$PROJECT_ID/awscognito:latest || exit 0
 - name: 'gcr.io/cloud-builders/docker'
-   entrypoint: 'bash'
-   args:
-   - '-c'
-   - |
-     docker pull gcr.io/$PROJECT_ID/awskinesis:latest || exit 0
-     
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    docker pull gcr.io/$PROJECT_ID/awskinesis:latest || exit 0
+
 ## Build DynamoDB source
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build',
