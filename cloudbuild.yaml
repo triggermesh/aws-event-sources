@@ -27,7 +27,8 @@ steps:
   - '-c'
   - |
     docker pull gcr.io/$PROJECT_ID/awscognito:latest || exit 0
-- name: 'gcr.io/cloud-builders/docker'
+- id: "last pull"
+  name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args:
   - '-c'
@@ -42,7 +43,7 @@ steps:
           '-f' ,'./awsdynamodb/Dockerfile',
           '.'
         ]
-
+  waitFor: ['last pull']
 ## Build SQS source
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build',
@@ -51,7 +52,7 @@ steps:
           '-f' ,'./awssqs/Dockerfile',
           '.'
         ]
-
+  waitFor: ['last pull']
 ## Build CodeCommit source
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build',
@@ -60,7 +61,7 @@ steps:
           '-f' ,'./awscodecommit/Dockerfile',
           '.'
         ]
-
+  waitFor: ['last pull']
 ## Build Cognito source
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build',
@@ -69,7 +70,7 @@ steps:
           '-f' ,'./awscognito/Dockerfile',
           '.'
         ]
-
+  waitFor: ['last pull']
 ## Build Kinesis source
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build',
@@ -78,6 +79,7 @@ steps:
           '-f' ,'./awskinesis/Dockerfile',
           '.'
         ]
+  waitFor: ['last pull']
 # To speed up builds
 options:
   machineType: 'N1_HIGHCPU_8'
