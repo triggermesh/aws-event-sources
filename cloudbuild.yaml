@@ -9,24 +9,28 @@ steps:
   - '-c'
   - |
     docker pull gcr.io/$PROJECT_ID/awsdynamodb:latest || exit 0
+  waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args:
   - '-c'
   - |
     docker pull gcr.io/$PROJECT_ID/awssqs:latest || exit 0
+  waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args:
   - '-c'
   - |
     docker pull gcr.io/$PROJECT_ID/awscodecommit:latest || exit 0
+  waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
   args:
   - '-c'
   - |
     docker pull gcr.io/$PROJECT_ID/awscognito:latest || exit 0
+  waitFor: ['-']
 - id: "last pull"
   name: 'gcr.io/cloud-builders/docker'
   entrypoint: 'bash'
@@ -34,7 +38,7 @@ steps:
   - '-c'
   - |
     docker pull gcr.io/$PROJECT_ID/awskinesis:latest || exit 0
-
+  waitFor: ['-']
 ## Build DynamoDB source
 - name: 'gcr.io/cloud-builders/docker'
   args: [ 'build',
