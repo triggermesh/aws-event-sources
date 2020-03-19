@@ -27,8 +27,8 @@ steps:
 #  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awss3:latest', '-f' ,'./awss3/Dockerfile', '.' ]
 
 ## Build SNS source
-- name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awssns:latest', '-f' ,'./awssns/Dockerfile', '.' ]
+#- name: 'gcr.io/cloud-builders/docker'
+#  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awssns:latest', '-f' ,'./awssns/Dockerfile', '.' ]
 
 
 images: 
@@ -38,4 +38,4 @@ images:
   - 'gcr.io/$PROJECT_ID/awskinesis'
   - 'gcr.io/$PROJECT_ID/awscodecommit'
 #  - 'gcr.io/$PROJECT_ID/awss3'
-  - 'gcr.io/$PROJECT_ID/awssns'
+#  - 'gcr.io/$PROJECT_ID/awssns'
