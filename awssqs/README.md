@@ -5,7 +5,7 @@ This event source is meant to be used as a Container Source with a Knative clust
 ### Local build
 
 ```
-dep ensure -v
+GO111MODULE=on go mod download
 go build .
 ```
 
