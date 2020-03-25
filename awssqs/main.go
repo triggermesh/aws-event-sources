@@ -24,13 +24,11 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	cloudevents "github.com/cloudevents/sdk-go"
-	"github.com/cloudevents/sdk-go/pkg/cloudevents/types"
-
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
+	cloudevents "github.com/cloudevents/sdk-go"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -118,8 +116,8 @@ func main() {
 	if url.QueueUrl == nil {
 		log.Fatal("Can't parse queue URL: value is nil")
 	}
-
-	log.Info("Beginning to listen at URL: ", url.QueueUrl)
+	queueURL = *url.QueueUrl
+	log.Info("Beginning to listen at URL: ", *url.QueueUrl)
 
 	//Look for new messages every 5 seconds
 	for range time.Tick(5 * time.Second) {
@@ -198,18 +196,17 @@ func (clients Clients) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 		AwsRegion:         aws.String(region),
 	}
 
-	event := cloudevents.Event{
-		Context: cloudevents.EventContextV1{
-			Type:            "com.amazon.sqs.message",
-			Source:          *types.ParseURIRef(queueURL),
-			Subject:         queueARN,
-			ID:              *msg.MessageId,
-			DataContentType: aws.String("application/json"),
-		}.AsV1(),
-		Data: sqsEvent,
+	event := cloudevents.NewEvent("1.0")
+	event.SetType("com.amazon.sqs.message")
+	event.SetSource(queueURL)
+	event.SetID(*msg.MessageId)
+	event.SetDataContentType(cloudevents.ApplicationJSON)
+	err := event.SetData(sqsEvent)
+	if err != nil {
+		return err
 	}
 
-	_, _, err := clients.CloudEvents.Send(context.Background(), event)
+	_, _, err = clients.CloudEvents.Send(context.Background(), event)
 	return err
 }
 

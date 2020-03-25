@@ -23,7 +23,7 @@ export AWS_SECRET_ACCESS_KEY=<>
 Then just run the local binary in your shell and send messages via the AWS SQS console.
 
 ```
-$ ./awssqs 
+$ ./awssqs --sink <sink url to send cloudevents>
 INFO[0000] Beginning to listen at URL: https://sqs.us-east-1.amazonaws.com/587264368683/triggermesh 
 INFO[0025] Processing message with ID: 7168a015-09fa-4802-bca9-63e3df66753a 
 INFO[0025] {
