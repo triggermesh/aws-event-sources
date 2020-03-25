@@ -3,9 +3,8 @@ FROM golang:alpine AS builder
 COPY awskinesis /go/src/awskinesis
 WORKDIR /go/src/awskinesis
 
-RUN apk update && apk add --no-cache git openssh-client ca-certificates
-RUN go get github.com/golang/dep/cmd/dep && \
-    dep ensure -v && \
+RUN apk update && apk add --no-cache openssh-client ca-certificates
+RUN GO111MODULE=on go mod download && \
     CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /go/bin/awskinesis
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal
