@@ -1,50 +1,33 @@
-#################
-## AWS Sources ##
-#################
 steps:
-## Build DynamoDB source
-- name: 'gcr.io/kaniko-project/executor:latest'
-  args:
-  - --dockerfile=awsdynamodb/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awsdynamodb
-  - --cache=true
-  waitFor: ['-']
-## Build SQS source
-- name: 'gcr.io/kaniko-project/executor:latest'
-  args:
-  - --dockerfile=awssqs/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awssqs
-  - --cache=true
-  waitFor: ['-']
-## Build CodeCommit source
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awscodecommit/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awscodecommit
+  - --destination=gcr.io/$PROJECT_ID/awscodecommit:latest
   - --cache=true
   waitFor: ['-']
-## Build Cognito source
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awscognito/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awscognito
+  - --destination=gcr.io/$PROJECT_ID/awscognito:latest
   - --cache=true
   waitFor: ['-']
-## Build Kinesis source
+- name: 'gcr.io/kaniko-project/executor:latest'
+  args:
+  - --dockerfile=awsdynamodb/Dockerfile
+  - --destination=gcr.io/$PROJECT_ID/awsdynamodb:latest
+  - --cache=true
+  waitFor: ['-']
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awskinesis/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awskinesis
+  - --destination=gcr.io/$PROJECT_ID/awskinesis:latest
   - --cache=true
   waitFor: ['-']
-# To speed up builds
+- name: 'gcr.io/kaniko-project/executor:latest'
+  args:
+  - --dockerfile=awssqs/Dockerfile
+  - --destination=gcr.io/$PROJECT_ID/awssqs:latest
+  - --cache=true
+  waitFor: ['-']
 options:
   machineType: 'N1_HIGHCPU_8'
-
-## Build Kinesis source
-#- name: 'gcr.io/cloud-builders/docker'
-#  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awss3:latest', '-f' ,'./awss3/Dockerfile', '.' ]
-
-## Build SNS source
-#- name: 'gcr.io/cloud-builders/docker'
-#  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/awssns:latest', '-f' ,'./awssns/Dockerfile', '.' ]
