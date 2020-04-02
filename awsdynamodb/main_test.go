@@ -248,6 +248,8 @@ func TestSendCloudevent(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
+	tableName = "fooTable"
+
 	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
 	httpmock.RegisterResponder("POST", "https://bar.com", httpmock.NewStringResponder(500, ``))
 

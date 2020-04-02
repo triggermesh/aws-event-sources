@@ -124,6 +124,8 @@ func TestSendCloudevent(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
+	streamName = "fooStream"
+
 	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
 
 	record := kinesis.Record{
