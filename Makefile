@@ -6,4 +6,4 @@ TARGETS := $(shell awk '{FS = ":";} /^[a-zA-Z0-9._-]+:.*?/ { printf "%s ", $$1 }
 $(TARGETS): $(SUBDIRS)
 
 $(SUBDIRS):
-	@$(MAKE) --no-print-directory -C $@ $(MAKECMDGOALS)
+	@$(MAKE) -C $@ $(MAKECMDGOALS)

@@ -1,16 +1,18 @@
 RM         ?= rm
 CP         ?= cp
 MV         ?= mv
+MKDIR      ?= mkdir
 
 GO         ?= go
 GOFMT      ?= gofmt
 GOLINT     ?= golint
-GOTEST     ?= go test
 GOTOOL     ?= go tool
+GOTEST     ?= gotestsum --junitfile $(OUTPUT_DIR)$(PACKAGE)-unit-tests.xml --
+LDFLAGS    ?=
 
 DOCKER     ?= docker
 
-LDFLAGS     =
+.PHONY: help mod-download build install test coverage lint vet fmt fmt-test image clean
 
 all: build
 
@@ -27,11 +29,10 @@ install: ## Install the binary using the 'go install'
 	$(GO) install -ldflags "$(LDFLAGS)" -installsuffix cgo
 
 test: ## Run unit tests
-	$(GOTEST) ./...
+	$(GOTEST) -coverprofile=c.out ./...
 
 coverage: ## Generate code coverage
-	@$(GOTEST) -coverprofile=c.out ./...
-	@$(GOTOOL) cover -html=c.out -o coverage.html
+	@$(GOTOOL) cover -html=c.out -o $(OUTPUT_DIR)$(PACKAGE)-coverage.html
 
 lint: ## Link source files using 'golint'
 	$(GOLINT) ./...
@@ -50,4 +51,5 @@ image: ## Build docker image using 'docker build'
 
 clean: ## Clean build artifacts
 	@$(RM) -rf $(PACKAGE)
-	@$(RM) -rf c.out coverage.html
+	@$(RM) -rf $(PACKAGE)-unit-tests.xml
+	@$(RM) -rf c.out $(PACKAGE)-coverage.html

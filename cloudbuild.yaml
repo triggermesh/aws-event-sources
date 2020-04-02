@@ -1,33 +1,39 @@
 steps:
+
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awscodecommit/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awscodecommit:latest
   - --cache=true
   waitFor: ['-']
+
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awscognito/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awscognito:latest
   - --cache=true
   waitFor: ['-']
+
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awsdynamodb/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awsdynamodb:latest
   - --cache=true
   waitFor: ['-']
+
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awskinesis/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awskinesis:latest
   - --cache=true
   waitFor: ['-']
+
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awssqs/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awssqs:latest
   - --cache=true
   waitFor: ['-']
-options:
-  machineType: 'N1_HIGHCPU_8'
+
+tags:
+  - knative-lambda-sources
