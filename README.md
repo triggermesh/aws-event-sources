@@ -1,6 +1,4 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/triggermesh/knative-lambda-sources)](https://goreportcard.com/report/github.com/triggermesh/knative-lambda-sources)
-
-[![CircleCI](https://circleci.com/gh/triggermesh/knative-lambda-sources/tree/master.svg?style=shield)](https://circleci.com/gh/triggermesh/knative-lambda-sources/tree/master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/triggermesh/knative-lambda-sources)](https://goreportcard.com/report/github.com/triggermesh/knative-lambda-sources) [![CircleCI](https://circleci.com/gh/triggermesh/knative-lambda-sources/tree/master.svg?style=shield)](https://circleci.com/gh/triggermesh/knative-lambda-sources/tree/master)
 
 https://goreportcard.com/badge/github.com/triggermesh/knative-lambda-sources
 
