@@ -1,0 +1,92 @@
+version: 2
+
+jobs:
+  checkout-code:
+    docker:
+      - image: cimg/go:1.14
+    working_directory: /home/circleci/go/src/github.com/triggermesh/knative-lambda-sources
+    steps:
+      - checkout
+      - run:
+          name: Downloading Go modules
+          command: make mod-download
+      - save_cache:
+          key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+          paths:
+            - /home/circleci/go/
+
+  build:
+    docker:
+      - image: cimg/go:1.14
+    working_directory: /home/circleci/go/src/github.com/triggermesh/knative-lambda-sources
+    steps:
+      - restore_cache:
+          key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Building package
+          command: make build
+
+  test:
+    docker:
+      - image: cimg/go:1.14
+    working_directory: /home/circleci/go/src/github.com/triggermesh/knative-lambda-sources
+    steps:
+      - restore_cache:
+          key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Validating code formatting
+          command: make fmt-test
+      - run:
+          name: Vetting source code
+          command: make vet
+      - run:
+          name: Running unit tests
+          command: |
+            mkdir -p /tmp/tests
+            OUTPUT_DIR=/tmp/tests/ make test
+      - store_test_results:
+          path: /tmp/tests
+      - run:
+          name: Generating coverage report
+          command: |
+            mkdir -p /tmp/artifacts
+            OUTPUT_DIR=/tmp/artifacts/ make coverage
+      - store_artifacts:
+          path: /tmp/artifacts
+
+  publish-image:
+    docker:
+      - image: google/cloud-sdk:latest
+    working_directory: /home/circleci/go/src/github.com/triggermesh/knative-lambda-sources
+    steps:
+      - restore_cache:
+          key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+      - run:
+          name: Configuring Google Cloud SDK
+          command: |
+            echo ${GCLOUD_SERVICE_KEY} | gcloud auth activate-service-account --key-file=-
+            gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
+            gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE}
+      - run:
+          name: Building Docker image
+          command: |
+            gcloud builds submit --config cloudbuild.yaml
+
+workflows:
+  version: 2
+  build-test-and-publish:
+    jobs:
+      - checkout-code
+      - build:
+          requires:
+            - checkout-code
+      - test:
+          requires:
+            - checkout-code
+      - publish-image:
+          requires:
+            - build
+            - test
+          filters:
+            branches:
+              only: master

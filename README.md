@@ -1,3 +1,9 @@
+[![Go Report Card](https://goreportcard.com/badge/github.com/triggermesh/knative-lambda-sources)](https://goreportcard.com/report/github.com/triggermesh/knative-lambda-sources)
+
+[![CircleCI](https://circleci.com/gh/triggermesh/knative-lambda-sources/tree/master.svg?style=shield)](https://circleci.com/gh/triggermesh/knative-lambda-sources/tree/master)
+
+https://goreportcard.com/badge/github.com/triggermesh/knative-lambda-sources
+
 ![TriggerMesh Knative Lambda Sources](./images/klass.png "TriggerMesh Knative Lambda Sources")
 
 **What:** Knative Lambda Sources (KLASS) are Knative event sources for AWS services.

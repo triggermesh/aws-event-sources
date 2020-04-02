@@ -1,5 +1,6 @@
 **/c.out
-**/coverage.html
+**/*-coverage.html
+**/*-unit-tests.xml
 **/.env
 **/.aws
 

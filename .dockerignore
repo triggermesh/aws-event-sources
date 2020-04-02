@@ -2,8 +2,8 @@
 .dockerignore
 **/.gitignore
 **/c.out
-**/coverage.html
-**/Dockerfile
+**/*-coverage.html
+**/*-unit-tests.xml
 **/README.md
 **/*_test.go
 **/Makefile
