@@ -1,15 +1,4 @@
-TARGET=awssqs
+PACKAGE = awssqs
+PACKAGE_DESC = Triggermesh AWS SQS Event Source
 
-all: clean fmt vet
-
-clean:
-	rm -rf $(TARGET)
-
-fmt:
-	go fmt ./...
-
-lint:
-	golint ./...
-
-vet:
-	go vet ./...
+include ../scripts/inc.Makefile

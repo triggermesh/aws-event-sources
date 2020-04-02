@@ -1,0 +1,17 @@
+.git/
+.dockerignore
+**/.gitignore
+**/c.out
+**/coverage.html
+**/Dockerfile
+**/README.md
+**/*_test.go
+**/Makefile
+awscodecommit/awscodecommit
+awscognito/awscognito
+awsdynamodb/awsdynamodb
+awsiot/awsiot
+awskinesis/awskinesis
+awss3/awss3
+awssns/awssns
+awssqs/awssqs

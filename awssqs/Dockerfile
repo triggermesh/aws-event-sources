@@ -1,25 +1,31 @@
-FROM golang:alpine AS builder
+FROM golang:1.14-alpine AS builder
 
-COPY awssqs /go/src/sqs
-WORKDIR /go/src/sqs
+ENV GO111MODULE on
+ENV CGO_ENABLED 0
+ENV GOOS linux
+ENV GOARCH amd64
+
+WORKDIR /go/src/awssqs
 
 RUN apk update && apk add --no-cache openssh-client ca-certificates
-RUN GO111MODULE=on go mod download && \
-    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /go/bin/sqs
+
+COPY awssqs/go.mod awssqs/go.sum /go/src/awssqs/
+RUN go mod download
+
+COPY awssqs/ /go/src/awssqs/
+RUN go install -installsuffix cgo ./...
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
-LABEL name="Triggermesh AWS SQS Event Source" \
-      vendor="Triggermesh" \
-      version="v0.1.0" \
-      release="1" \
-      summary="The Triggermesh SQS Source" \
-      description="This is the Triggermesh Knative Event Source for AWS SQS"
+LABEL name "Triggermesh AWS SQS Event Source"
+LABEL vendor "Triggermesh"
+LABEL version "v0.1.0"
+LABEL release "1"
+LABEL summary "The Triggermesh SQS Source"
+LABEL description "This is the Triggermesh Knative Event Source for AWS SQS"
 
-RUN microdnf update
-COPY ./licenses/* /licenses/
-
+COPY licenses/ /licenses/
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /go/bin/sqs /go/bin/sqs
+COPY --from=builder /go/bin/awssqs /go/bin/awssqs
 
-ENTRYPOINT ["/go/bin/sqs"]
+ENTRYPOINT ["/go/bin/awssqs"]
