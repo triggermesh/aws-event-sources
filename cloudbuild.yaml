@@ -4,40 +4,50 @@ steps:
   args:
   - --dockerfile=awscodecommit/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awscodecommit:latest
-  - --cache=true
+  - --cache=$_USE_BUILD_CACHE
+  - $_KANIKO_EXTRA_ARGS
   waitFor: ['-']
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awscognito/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awscognito:latest
-  - --cache=true
+  - --cache=$_USE_BUILD_CACHE
+  - $_KANIKO_EXTRA_ARGS
   waitFor: ['-']
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awsdynamodb/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awsdynamodb:latest
-  - --cache=true
+  - --cache=$_USE_BUILD_CACHE
+  - $_KANIKO_EXTRA_ARGS
   waitFor: ['-']
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awskinesis/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awskinesis:latest
-  - --cache=true
+  - --cache=$_USE_BUILD_CACHE
+  - $_KANIKO_EXTRA_ARGS
   waitFor: ['-']
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awssqs/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awssqs:latest
-  - --cache=true
+  - --cache=$_USE_BUILD_CACHE
+  - $_KANIKO_EXTRA_ARGS
   waitFor: ['-']
 
 timeout: 600s
 
+substitutions:
+  _USE_BUILD_CACHE: "false"
+  _KANIKO_EXTRA_ARGS: ""
+
 options:
+  substitution_option: 'ALLOW_LOOSE'
   machineType: 'N1_HIGHCPU_8'
 
 tags:
