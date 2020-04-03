@@ -7,3 +7,6 @@ $(TARGETS): $(SUBDIRS)
 
 $(SUBDIRS):
 	@$(MAKE) -C $@ $(MAKECMDGOALS)
+
+# Code generation
+include scripts/inc.Codegen
