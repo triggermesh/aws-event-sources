@@ -43,7 +43,7 @@ steps:
 timeout: 600s
 
 substitutions:
-  _USE_BUILD_CACHE: "false"
+  _USE_BUILD_CACHE: "true"
   _KANIKO_EXTRA_ARGS: ""
 
 options:
