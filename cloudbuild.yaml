@@ -35,5 +35,7 @@ steps:
   - --cache=true
   waitFor: ['-']
 
+timeout: 600s
+
 tags:
   - knative-lambda-sources
