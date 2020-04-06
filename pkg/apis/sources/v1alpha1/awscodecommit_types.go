@@ -47,12 +47,25 @@ var (
 	_ apis.HasSpec       = (*AWSCodeCommitSource)(nil)
 )
 
-// AWSCodeCommitSourceSpec defines the desired state of AWSCodeCommitSource
+// AWSCodeCommitSourceSpec defines the desired state of AWSCodeCommitSource.
 type AWSCodeCommitSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
+
+	// Repository is the name of the repository.
+	Repository string `json:"repository"`
+	// Branch is the name of the Git branch this source observes.
+	Branch string `json:"branch"`
+	// Region is the name of the AWS region where the repository is located.
+	Region string `json:"region"`
+
+	// Events is a list of events that should be processed by the source.
+	Events []string `json:"events"`
+
+	// Credentials to interact with the AWS CodeCommit API.
+	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
-// AWSCodeCommitSourceStatus defines the observed state of AWSCodeCommitSource
+// AWSCodeCommitSourceStatus defines the observed state of AWSCodeCommitSource.
 type AWSCodeCommitSourceStatus struct {
 	duckv1.SourceStatus `json:",inline"`
 }

@@ -17,13 +17,25 @@ limitations under the License.
 package awscodecommitsource
 
 import (
-	context "context"
+	"context"
 
-	awscodecommitsource "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awscodecommitsource"
-	v1alpha1awscodecommitsource "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscodecommitsource"
-	configmap "knative.dev/pkg/configmap"
-	controller "knative.dev/pkg/controller"
-	logging "knative.dev/pkg/logging"
+	"github.com/kelseyhightower/envconfig"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/tools/cache"
+
+	k8sclient "knative.dev/pkg/client/injection/kube/client"
+	deploymentinformerv1alpha1 "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment"
+	"knative.dev/pkg/configmap"
+	"knative.dev/pkg/controller"
+	"knative.dev/pkg/logging"
+	"knative.dev/pkg/metrics"
+	"knative.dev/pkg/resolver"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+	"github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client"
+	informerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awscodecommitsource"
+	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscodecommitsource"
 )
 
 // NewController creates a Reconciler for AWSCodeCommitSource and returns the result of NewImpl.
@@ -31,20 +43,44 @@ func NewController(
 	ctx context.Context,
 	cmw configmap.Watcher,
 ) *controller.Impl {
+
+	// Calling envconfig.Process() with a prefix appends that prefix
+	// (uppercased) to the Go field name, e.g. MYSOURCE_IMAGE.
+	adapterCfg := &adapterConfig{}
+	envconfig.MustProcess(adapterComponent, adapterCfg)
+
 	logger := logging.FromContext(ctx)
 
-	awscodecommitsourceInformer := awscodecommitsource.Get(ctx)
+	sourceInformer := informerv1alpha1.Get(ctx)
+	deploymentInformer := deploymentinformerv1alpha1.Get(ctx)
 
-	// TODO: setup additional informers here.
-
-	r := &Reconciler{}
-	impl := v1alpha1awscodecommitsource.NewImpl(ctx, r)
+	r := &Reconciler{
+		logger:           logger,
+		adapterCfg:       adapterCfg,
+		sourceClient:     client.Get(ctx).SourcesV1alpha1().AWSCodeCommitSources,
+		deploymentClient: k8sclient.Get(ctx).AppsV1().Deployments,
+		deploymentLister: deploymentInformer.Lister().Deployments,
+	}
+	impl := reconcilerv1alpha1.NewImpl(ctx, r)
 
 	logger.Info("Setting up event handlers.")
 
-	awscodecommitsourceInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
+	sourceInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
 
-	// TODO: add additional informer event handlers here.
+	deploymentInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+		FilterFunc: controller.FilterGroupVersionKind(sourceGVK()),
+		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
+	})
+
+	r.sinkResolver = resolver.NewURIResolver(ctx, impl.EnqueueKey)
+
+	cmw.Watch(logging.ConfigMapName(), r.updateAdapterLoggingConfig)
+	cmw.Watch(metrics.ConfigMapName(), r.updateAdapterMetricsConfig)
 
 	return impl
+}
+
+func sourceGVK() schema.GroupVersionKind {
+	src := &v1alpha1.AWSCodeCommitSource{}
+	return src.GetGroupVersionKind()
 }

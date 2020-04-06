@@ -17,13 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
+	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"knative.dev/pkg/apis"
-)
 
-const (
-	// AWSCodeCommitConditionReady has status True when the AWSCodeCommitSource is ready to send events.
-	AWSCodeCommitConditionReady = apis.ConditionReady
+	"knative.dev/eventing/pkg/apis/duck"
+	"knative.dev/pkg/apis"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
@@ -36,5 +34,49 @@ func (s *AWSCodeCommitSource) GetUntypedSpec() interface{} {
 	return s.Spec
 }
 
+var awsCodeCommitConditionSet = apis.NewLivingConditionSet(
+	ConditionSinkProvided,
+	ConditionDeployed,
+)
+
 // InitializeConditions sets relevant unset conditions to Unknown state.
-func (s *AWSCodeCommitSourceStatus) InitializeConditions() {}
+func (s *AWSCodeCommitSourceStatus) InitializeConditions() {
+	awsCodeCommitConditionSet.Manage(s).InitializeConditions()
+}
+
+// MarkSink sets the SinkProvided condition to True using the given URI.
+func (s *AWSCodeCommitSourceStatus) MarkSink(uri *apis.URL) {
+	s.SinkURI = uri
+	if uri == nil {
+		awsCodeCommitConditionSet.Manage(s).MarkFalse(ConditionSinkProvided,
+			ReasonSinkEmpty, "The sink has no URI")
+		return
+	}
+	awsCodeCommitConditionSet.Manage(s).MarkTrue(ConditionSinkProvided)
+}
+
+// MarkNoSink sets the SinkProvided condition to False.
+func (s *AWSCodeCommitSourceStatus) MarkNoSink() {
+	s.SinkURI = nil
+	awsCodeCommitConditionSet.Manage(s).MarkFalse(ConditionSinkProvided,
+		ReasonSinkNotFound, "The sink does not exist or its URI is not set")
+}
+
+// PropagateAvailability uses the readiness of the provided Deployment to
+// determine whether the Deployed condition should be marked as true or false.
+func (s *AWSCodeCommitSourceStatus) PropagateAvailability(d *appsv1.Deployment) {
+	if duck.DeploymentIsAvailable(&d.Status, false) {
+		awsCodeCommitConditionSet.Manage(s).MarkTrue(ConditionDeployed)
+		return
+	}
+
+	msg := "The adapter Deployment is unavailable"
+
+	for _, cond := range d.Status.Conditions {
+		if cond.Type == appsv1.DeploymentAvailable && cond.Message != "" {
+			msg += ": " + cond.Message
+		}
+	}
+
+	awsCodeCommitConditionSet.Manage(s).MarkFalse(ConditionDeployed, ReasonUnavailable, msg)
+}
