@@ -17,44 +17,59 @@ limitations under the License.
 package awscodecommitsource
 
 import (
-	context "context"
+	"context"
+	"fmt"
 
-	v1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-	awscodecommitsource "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscodecommitsource"
-	v1 "k8s.io/api/core/v1"
-	reconciler "knative.dev/pkg/reconciler"
+	"go.uber.org/zap"
+
+	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
+	appslistersv1 "k8s.io/client-go/listers/apps/v1"
+
+	pkgreconciler "knative.dev/pkg/reconciler"
+	"knative.dev/pkg/resolver"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+	clientv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/clientset/internalclientset/typed/sources/v1alpha1"
+	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscodecommitsource"
 )
-
-// newReconciledNormal makes a new reconciler event with event type Normal, and
-// reason AWSCodeCommitSourceReconciled.
-func newReconciledNormal(namespace, name string) reconciler.Event {
-	return reconciler.NewEvent(v1.EventTypeNormal, "AWSCodeCommitSourceReconciled", "AWSCodeCommitSource reconciled: \"%s/%s\"", namespace, name)
-}
 
 // Reconciler implements controller.Reconciler for AWSCodeCommitSource resources.
 type Reconciler struct {
-	// TODO: add additional requirements here.
+	logger *zap.SugaredLogger
+
+	// URI resolver for sinks
+	sinkResolver *resolver.URIResolver
+
+	// adapter properties
+	adapterCfg *adapterConfig
+
+	// API clients
+	sourceClient     func(namespace string) clientv1alpha1.AWSCodeCommitSourceInterface
+	deploymentClient func(namespace string) appsclientv1.DeploymentInterface
+
+	// objects listers
+	deploymentLister func(namespace string) appslistersv1.DeploymentNamespaceLister
 }
 
 // Check that our Reconciler implements Interface
-var _ awscodecommitsource.Interface = (*Reconciler)(nil)
+var _ reconcilerv1alpha1.Interface = (*Reconciler)(nil)
 
 // Optionally check that our Reconciler implements Finalizer
 //var _ awscodecommitsource.Finalizer = (*Reconciler)(nil)
 
 // ReconcileKind implements Interface.ReconcileKind.
-func (r *Reconciler) ReconcileKind(ctx context.Context, o *v1alpha1.AWSCodeCommitSource) reconciler.Event {
-	o.Status.InitializeConditions()
+func (r *Reconciler) ReconcileKind(ctx context.Context, o *v1alpha1.AWSCodeCommitSource) pkgreconciler.Event {
+	adapter, err := r.reconcileAdapter(ctx, o)
+	if err != nil {
+		return fmt.Errorf("failed to reconcile adapter: %w", err)
+	}
 
-	// TODO: add custom reconciliation logic here.
-
-	o.Status.ObservedGeneration = o.Generation
-	return newReconciledNormal(o.Namespace, o.Name)
+	return r.syncStatus(o, adapter)
 }
 
 // Optionally, use FinalizeKind to add finalizers. FinalizeKind will be called
 // when the resource is deleted.
-//func (r *Reconciler) FinalizeKind(ctx context.Context, o *v1alpha1.AWSCodeCommitSource) reconciler.Event {
+//func (r *Reconciler) FinalizeKind(ctx context.Context, o *v1alpha1.AWSCodeCommitSource) pkgreconciler.Event {
 //	// TODO: add custom finalization logic here.
 //	return nil
 //}
