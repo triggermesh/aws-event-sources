@@ -1,6 +1,6 @@
-[![Go Report Card](https://goreportcard.com/badge/github.com/triggermesh/knative-lambda-sources)](https://goreportcard.com/report/github.com/triggermesh/knative-lambda-sources) [![CircleCI](https://circleci.com/gh/triggermesh/knative-lambda-sources/tree/master.svg?style=shield)](https://circleci.com/gh/triggermesh/knative-lambda-sources/tree/master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/triggermesh/aws-event-sources)](https://goreportcard.com/report/github.com/triggermesh/aws-event-sources) [![CircleCI](https://circleci.com/gh/triggermesh/aws-event-sources/tree/master.svg?style=shield)](https://circleci.com/gh/triggermesh/aws-event-sources/tree/master)
 
-https://goreportcard.com/badge/github.com/triggermesh/knative-lambda-sources
+https://goreportcard.com/badge/github.com/triggermesh/aws-event-sources
 
 ![TriggerMesh Knative Lambda Sources](./images/klass.png "TriggerMesh Knative Lambda Sources")
 
@@ -105,7 +105,7 @@ These container sources can be used as is from this repo. You can also use them 
 
 ## Support
 
-We would love your feedback and help on these sources, so don't hesitate to let us know what is wrong and how we could improve them, just file an [issue](https://github.com/triggermesh/knative-lambda-sources/issues/new) or join those of use who are maintaining them and submit a [PR](https://github.com/triggermesh/knative-lambda-sources/compare)
+We would love your feedback and help on these sources, so don't hesitate to let us know what is wrong and how we could improve them, just file an [issue](https://github.com/triggermesh/aws-event-sources/issues/new) or join those of use who are maintaining them and submit a [PR](https://github.com/triggermesh/aws-event-sources/compare)
 
 ## Commercial Support
 

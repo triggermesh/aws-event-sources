@@ -4,7 +4,7 @@ jobs:
   checkout-code:
     docker:
       - image: cimg/go:1.14
-    working_directory: /home/circleci/go/src/github.com/triggermesh/knative-lambda-sources
+    working_directory: /home/circleci/go/src/github.com/triggermesh/aws-event-sources
     steps:
       - checkout
       - run:
@@ -18,7 +18,7 @@ jobs:
   build:
     docker:
       - image: cimg/go:1.14
-    working_directory: /home/circleci/go/src/github.com/triggermesh/knative-lambda-sources
+    working_directory: /home/circleci/go/src/github.com/triggermesh/aws-event-sources
     steps:
       - restore_cache:
           key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
@@ -29,7 +29,7 @@ jobs:
   test:
     docker:
       - image: cimg/go:1.14
-    working_directory: /home/circleci/go/src/github.com/triggermesh/knative-lambda-sources
+    working_directory: /home/circleci/go/src/github.com/triggermesh/aws-event-sources
     steps:
       - restore_cache:
           key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
@@ -57,7 +57,7 @@ jobs:
   publish-image:
     docker:
       - image: google/cloud-sdk:latest
-    working_directory: /home/circleci/go/src/github.com/triggermesh/knative-lambda-sources
+    working_directory: /home/circleci/go/src/github.com/triggermesh/aws-event-sources
     steps:
       - restore_cache:
           key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}

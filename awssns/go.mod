@@ -1,4 +1,4 @@
-module github.com/triggermesh/knative-lambda-sources/awssns
+module github.com/triggermesh/aws-event-sources/awssns
 
 go 1.13
 

@@ -1,4 +1,4 @@
-module github.com/triggermesh/knative-lambda-sources/awscognito
+module github.com/triggermesh/aws-event-sources/awscognito
 
 go 1.13
 

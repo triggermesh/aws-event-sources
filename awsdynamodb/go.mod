@@ -1,4 +1,4 @@
-module github.com/triggermesh/knative-lambda-sources/awsdynamodb
+module github.com/triggermesh/aws-event-sources/awsdynamodb
 
 go 1.13
 

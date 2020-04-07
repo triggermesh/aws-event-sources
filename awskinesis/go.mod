@@ -1,4 +1,4 @@
-module github.com/triggermesh/knative-lambda-sources/awskinesis
+module github.com/triggermesh/aws-event-sources/awskinesis
 
 go 1.13
 

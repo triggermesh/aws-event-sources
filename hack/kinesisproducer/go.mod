@@ -1,4 +1,4 @@
-module github.com/triggermesh/knative-lambda-sources/hack/kinesisproducer
+module github.com/triggermesh/aws-event-sources/hack/kinesisproducer
 
 go 1.13
 

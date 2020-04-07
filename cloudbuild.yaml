@@ -51,4 +51,4 @@ options:
   machineType: 'N1_HIGHCPU_8'
 
 tags:
-  - knative-lambda-sources
+  - aws-event-sources

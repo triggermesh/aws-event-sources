@@ -1,4 +1,4 @@
-module github.com/triggermesh/knative-lambda-sources/awscodecommit
+module github.com/triggermesh/aws-event-sources/awscodecommit
 
 go 1.13
 
