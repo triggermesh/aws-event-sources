@@ -1,16 +1,29 @@
+# Top level files and directories
+/.circleci/
+/.git/
+/config/
+/hack/
+/images/
+/scripts/
+/.dockerignore
+
+# Patterns
+**/*.yaml
+**/*.md
+**/Makefile
+**/.gitignore
+**/kodata/
+**/*_test.go
+**/c.out
 **/*-coverage.html
 **/*-unit-tests.xml
-**/*_test.go
-**/.gitignore
-**/c.out
-**/README.md
-.dockerignore
-.git/
-awscodecommit/awscodecommit
-awscognito/awscognito
-awsdynamodb/awsdynamodb
-awsiot/awsiot
-awskinesis/awskinesis
-awss3/awss3
-awssns/awssns
-awssqs/awssqs
+
+# Binaries
+/cmd/awscodecommitsource/awscodecommitsource
+/awscognito/awscognito
+/awsdynamodb/awsdynamodb
+/awsiot/awsiot
+/awskinesis/awskinesis
+/awss3/awss3
+/awssns/awssns
+/awssqs/awssqs

@@ -1,19 +1,15 @@
 FROM golang:1.14-alpine AS builder
 
-ENV GO111MODULE on
 ENV CGO_ENABLED 0
 ENV GOOS linux
 ENV GOARCH amd64
 
-WORKDIR /go/src/awscodecommit
+WORKDIR /go/src/awscodecommitsource
 
-RUN apk update && apk add --no-cache openssh-client ca-certificates
+RUN apk add --no-cache openssh-client ca-certificates
 
-COPY awscodecommit/go.mod awscodecommit/go.sum /go/src/awscodecommit/
-RUN go mod download
-
-COPY awscodecommit/ /go/src/awscodecommit/
-RUN go install -installsuffix cgo ./...
+COPY ./ .
+RUN go install -installsuffix cgo ./cmd/awscodecommitsource
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
@@ -26,6 +22,6 @@ LABEL description "This is the Triggermesh Knative Event Source for AWS CodeComm
 
 COPY licenses/ /licenses/
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /go/bin/awscodecommit /go/bin/awscodecommit
+COPY --from=builder /go/bin/awscodecommitsource /go/bin/awscodecommitsource
 
-ENTRYPOINT ["/go/bin/awscodecommit"]
+ENTRYPOINT ["/go/bin/awscodecommitsource"]
