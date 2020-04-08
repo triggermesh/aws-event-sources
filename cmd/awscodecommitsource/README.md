@@ -5,7 +5,6 @@ This event source is meant to be used as a Container Source with a Knative clust
 ### Local build
 
 ```
-GO111MODULE=on go mod download
 go build .
 ```
 
@@ -29,7 +28,7 @@ export AWS_SECRET_ACCESS_KEY=<>
 Then just run the local binary in your shell and send PR through Developer Tools.
 
 ```
-$ ./awscodecommit
+$ ./awscodecommitsource
 ```
 
 ### Local Docker Usage
