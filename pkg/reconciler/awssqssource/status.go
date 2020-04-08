@@ -71,7 +71,7 @@ func (r *Reconciler) computeStatus(src *v1alpha1.AWSSQSSource,
 func (r *Reconciler) createCloudEventAttributes(srcSpec *v1alpha1.AWSSQSSourceSpec) []duckv1.CloudEventAttributes {
 	return []duckv1.CloudEventAttributes{
 		{
-			Type:   v1alpha1.AWSSQSEventType("message"),
+			Type:   v1alpha1.AWSSQSEventType(v1alpha1.AWSSQSGenericEventType),
 			Source: v1alpha1.AWSSQSEventSource(srcSpec.Region, srcSpec.Queue),
 		},
 	}

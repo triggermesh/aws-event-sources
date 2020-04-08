@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/metrics"
 	pkgreconciler "knative.dev/pkg/reconciler"
@@ -34,17 +35,13 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/resource"
 )
 
-const adapterComponent = "awscodecommitsource"
+const adapterName = "awscodecommitsource"
 
 const (
-	sinkEnvVar          = "K_SINK"
-	loggingConfigEnvVar = "K_LOGGING_CONFIG"
-	metricsConfigEnvVar = "K_METRICS_CONFIG"
-
 	repoEnvVar               = "REPO"
 	branchEnvVar             = "BRANCH"
 	awsRegionEnvVar          = "AWS_REGION"
-	eventsEnvVar             = "EVENTS"
+	eventTypesEnvVar         = "EVENT_TYPES"
 	awsAccessKeyIdEnvVar     = "AWS_ACCESS_KEY_ID"
 	awsSecretAccessKeyEnvVar = "AWS_SECRET_ACCESS_KEY"
 )
@@ -95,7 +92,7 @@ func (r *Reconciler) reconcileAdapter(ctx context.Context,
 func (r *Reconciler) getOrCreateAdapter(ctx context.Context, src *v1alpha1.AWSCodeCommitSource,
 	desiredAdapter *appsv1.Deployment) (*appsv1.Deployment, error) {
 
-	adapter, err := r.deploymentLister(src.Namespace).Get(src.Name)
+	adapter, err := r.deploymentLister(src.Namespace).Get(desiredAdapter.Name)
 	switch {
 	case apierrors.IsNotFound(err):
 		adapter, err = r.deploymentClient(src.Namespace).Create(desiredAdapter)
@@ -139,23 +136,34 @@ func (r *Reconciler) syncAdapterDeployment(ctx context.Context, src *v1alpha1.AW
 func makeAdapterDeployment(src *v1alpha1.AWSCodeCommitSource, sinkURI string,
 	adapterCfg *adapterConfig) *appsv1.Deployment {
 
-	return resource.NewDeployment(src.Namespace, src.Name,
+	name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), src.Name)
+
+	return resource.NewDeployment(src.Namespace, name,
 		resource.Controller(src),
 
-		// TODO(antoineco): create selector based on k8s' recommended labels
-		// https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
-		resource.Selector("app", "awscodecommitsource"),
-		resource.Selector("instance", src.Name),
+		resource.Label(reconciler.AppNameLabel, adapterName),
+		resource.Label(reconciler.AppInstanceLabel, src.Name),
+		resource.Label(reconciler.AppComponentLabel, reconciler.AdapterComponent),
+		resource.Label(reconciler.AppPartOfLabel, reconciler.SourcesGroup),
+		resource.Label(reconciler.AppManagedByLabel, reconciler.ManagedBy),
+
+		resource.Selector(reconciler.AppNameLabel, adapterName),
+		resource.Selector(reconciler.AppInstanceLabel, src.Name),
+		resource.PodLabel(reconciler.AppComponentLabel, reconciler.AdapterComponent),
+		resource.PodLabel(reconciler.AppPartOfLabel, reconciler.SourcesGroup),
+		resource.PodLabel(reconciler.AppManagedByLabel, reconciler.ManagedBy),
 
 		resource.Image(adapterCfg.Image),
 
-		resource.EnvVar(loggingConfigEnvVar, adapterCfg.LoggingCfg),
-		resource.EnvVar(metricsConfigEnvVar, adapterCfg.MetricsCfg),
-		resource.EnvVar(sinkEnvVar, sinkURI),
+		resource.EnvVar(reconciler.NameEnvVar, src.Name),
+		resource.EnvVar(reconciler.NamespaceEnvVar, src.Namespace),
+		resource.EnvVar(reconciler.SinkEnvVar, sinkURI),
+		resource.EnvVar(reconciler.LoggingConfigEnvVar, adapterCfg.LoggingCfg),
+		resource.EnvVar(reconciler.MetricsConfigEnvVar, adapterCfg.MetricsCfg),
 		resource.EnvVar(repoEnvVar, src.Spec.Repository),
 		resource.EnvVar(branchEnvVar, src.Spec.Branch),
 		resource.EnvVar(awsRegionEnvVar, src.Spec.Region),
-		resource.EnvVar(eventsEnvVar, strings.Join(src.Spec.EventTypes, ",")),
+		resource.EnvVar(eventTypesEnvVar, strings.Join(src.Spec.EventTypes, ",")),
 		resource.EnvVarFromSecret(awsAccessKeyIdEnvVar,
 			src.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
 			src.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
@@ -196,7 +204,7 @@ func (r *Reconciler) updateAdapterMetricsConfig(cfg *corev1.ConfigMap) {
 
 	metricsCfg := &metrics.ExporterOptions{
 		Domain:    metrics.Domain(),
-		Component: adapterComponent,
+		Component: adapterName,
 		ConfigMap: cfg.Data,
 	}
 

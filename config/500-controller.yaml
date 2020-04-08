@@ -57,6 +57,19 @@ spec:
           value: config-observability
         - name: METRICS_DOMAIN
           value: triggermesh.io/sources
+        # Source adapters
+        - name: AWSCODECOMMITSOURCE_IMAGE
+          value: ko://github.com/triggermesh/aws-event-sources/cmd/awscodecommitsource
+        - name: AWSCOGNITOSOURCE_IMAGE
+          value: ko://github.com/triggermesh/aws-event-sources/cmd/awscognitosource
+        - name: AWSDYNAMODBSOURCE_IMAGE
+          value: ko://github.com/triggermesh/aws-event-sources/cmd/awsdynamodbsource
+        - name: AWSKINESISSOURCE_IMAGE
+          value: ko://github.com/triggermesh/aws-event-sources/cmd/awskinesissource
+        - name: AWSSNSSOURCE_IMAGE
+          value: ko://github.com/triggermesh/aws-event-sources/cmd/awssnssource
+        - name: AWSSQSSOURCE_IMAGE
+          value: ko://github.com/triggermesh/aws-event-sources/cmd/awssqssource
 
         securityContext:
           allowPrivilegeEscalation: false
