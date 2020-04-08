@@ -14,6 +14,8 @@ GOFMT      ?= gofmt
 GOLINT     ?= golint
 GOTOOL     ?= go tool
 GOTEST     ?= gotestsum --junitfile $(OUTPUT_DIR)$(PACKAGE)-unit-tests.xml --
+
+GOPKGS     +=
 LDFLAGS    +=
 
 .PHONY: help mod-download build install release test coverage lint vet fmt fmt-test image clean
@@ -44,7 +46,7 @@ release: ## Build release binaries
 	done
 
 test: ## Run unit tests
-	$(GOTEST) -cover -coverprofile=c.out ./...
+	$(GOTEST) -cover -coverprofile=c.out $(GOPKGS) ./...
 
 coverage: ## Generate code coverage
 	$(GOTOOL) cover -html=c.out -o $(OUTPUT_DIR)$(PACKAGE)-coverage.html
@@ -62,7 +64,11 @@ fmt-test: ## Check source formatting
 	@test -z $(shell $(GOFMT) -l $(shell $(GO) list -f '{{$$d := .Dir}}{{range .GoFiles}}{{$$d}}/{{.}} {{end}} {{$$d := .Dir}}{{range .TestGoFiles}}{{$$d}}/{{.}} {{end}}' ./...))
 
 image: ## Builds the container image
+ifeq ($(notdir $(shell dirname $(CURDIR)..)),cmd)
+	$(DOCKER) build -t $(IMAGE) -f Dockerfile ../../
+else
 	$(DOCKER) build -t $(IMAGE) -f Dockerfile ../
+endif
 
 clean: ## Clean build artifacts
 	$(RM) -rf $(PACKAGE)

@@ -2,9 +2,9 @@ steps:
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
-  - --dockerfile=awscodecommit/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awscodecommit:${_KANIKO_IMAGE_TAG}
-  - --cache-repo=gcr.io/$PROJECT_ID/awscodecommit/cache
+  - --dockerfile=cmd/awscodecommitsource/Dockerfile
+  - --destination=gcr.io/$PROJECT_ID/awscodecommitsource:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/awscodecommitsource/cache
   - --cache=${_KANIKO_USE_BUILD_CACHE}
   - --no-push=${_KANIKO_NO_PUSH}
   - ${_KANIKO_EXTRA_ARGS}
