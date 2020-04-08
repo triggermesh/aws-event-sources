@@ -28,16 +28,16 @@ ${NOTABLE_CHANGES}
 
 Download Knative event sources for AWS ${RELEASE}
 
-- [awscodecommit (linux/amd64)](https://github.com/triggermesh/triggerflow/releases/download/${RELEASE}/awscodecommit-linux-amd64)
-- [awscodecommit (macos/amd64)](https://github.com/triggermesh/triggerflow/releases/download/${RELEASE}/awscodecommit-darwin-amd64)
-- [awscognito (linux/amd64)](https://github.com/triggermesh/triggerflow/releases/download/${RELEASE}/awscognito-linux-amd64)
-- [awscognito (macos/amd64)](https://github.com/triggermesh/triggerflow/releases/download/${RELEASE}/awscognito-darwin-amd64)
-- [awsdynamodb (linux/amd64)](https://github.com/triggermesh/triggerflow/releases/download/${RELEASE}/awsdynamodb-linux-amd64)
-- [awsdynamodb (macos/amd64)](https://github.com/triggermesh/triggerflow/releases/download/${RELEASE}/awsdynamodb-darwin-amd64)
-- [awskinesis (linux/amd64)](https://github.com/triggermesh/triggerflow/releases/download/${RELEASE}/awskinesis-linux-amd64)
-- [awskinesis (macos/amd64)](https://github.com/triggermesh/triggerflow/releases/download/${RELEASE}/awskinesis-darwin-amd64)
-- [awssqs (linux/amd64)](https://github.com/triggermesh/triggerflow/releases/download/${RELEASE}/awssqs-linux-amd64)
-- [awssqs (macos/amd64)](https://github.com/triggermesh/triggerflow/releases/download/${RELEASE}/awssqs-darwin-amd64)
+- [awscodecommit (linux/amd64)](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awscodecommit-linux-amd64)
+- [awscodecommit (macos/amd64)](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awscodecommit-darwin-amd64)
+- [awscognito (linux/amd64)](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awscognito-linux-amd64)
+- [awscognito (macos/amd64)](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awscognito-darwin-amd64)
+- [awsdynamodb (linux/amd64)](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awsdynamodb-linux-amd64)
+- [awsdynamodb (macos/amd64)](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awsdynamodb-darwin-amd64)
+- [awskinesis (linux/amd64)](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awskinesis-linux-amd64)
+- [awskinesis (macos/amd64)](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awskinesis-darwin-amd64)
+- [awssqs (linux/amd64)](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awssqs-linux-amd64)
+- [awssqs (macos/amd64)](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awssqs-darwin-amd64)
 
 ## Changelog
 
