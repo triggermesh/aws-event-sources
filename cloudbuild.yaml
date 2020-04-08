@@ -3,47 +3,59 @@ steps:
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awscodecommit/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awscodecommit:latest
-  - --cache=$_USE_BUILD_CACHE
-  - $_KANIKO_EXTRA_ARGS
+  - --destination=gcr.io/$PROJECT_ID/awscodecommit:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/awscodecommit/cache
+  - --cache=${_KANIKO_USE_BUILD_CACHE}
+  - --no-push=${_KANIKO_NO_PUSH}
+  - ${_KANIKO_EXTRA_ARGS}
   waitFor: ['-']
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awscognito/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awscognito:latest
-  - --cache=$_USE_BUILD_CACHE
-  - $_KANIKO_EXTRA_ARGS
+  - --destination=gcr.io/$PROJECT_ID/awscognito:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/awscognito/cache
+  - --cache=${_KANIKO_USE_BUILD_CACHE}
+  - --no-push=${_KANIKO_NO_PUSH}
+  - ${_KANIKO_EXTRA_ARGS}
   waitFor: ['-']
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awsdynamodb/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awsdynamodb:latest
-  - --cache=$_USE_BUILD_CACHE
-  - $_KANIKO_EXTRA_ARGS
+  - --destination=gcr.io/$PROJECT_ID/awsdynamodb:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/awsdynamodb/cache
+  - --cache=${_KANIKO_USE_BUILD_CACHE}
+  - --no-push=${_KANIKO_NO_PUSH}
+  - ${_KANIKO_EXTRA_ARGS}
   waitFor: ['-']
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awskinesis/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awskinesis:latest
-  - --cache=$_USE_BUILD_CACHE
-  - $_KANIKO_EXTRA_ARGS
+  - --destination=gcr.io/$PROJECT_ID/awskinesis:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/awskinesis/cache
+  - --cache=${_KANIKO_USE_BUILD_CACHE}
+  - --no-push=${_KANIKO_NO_PUSH}
+  - ${_KANIKO_EXTRA_ARGS}
   waitFor: ['-']
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
   - --dockerfile=awssqs/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awssqs:latest
-  - --cache=$_USE_BUILD_CACHE
-  - $_KANIKO_EXTRA_ARGS
+  - --destination=gcr.io/$PROJECT_ID/awssqs:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/awssqs/cache
+  - --cache=${_KANIKO_USE_BUILD_CACHE}
+  - --no-push=${_KANIKO_NO_PUSH}
+  - ${_KANIKO_EXTRA_ARGS}
   waitFor: ['-']
 
 timeout: 600s
 
 substitutions:
-  _USE_BUILD_CACHE: "true"
+  _KANIKO_IMAGE_TAG: "latest"
+  _KANIKO_NO_PUSH: "false"
+  _KANIKO_USE_BUILD_CACHE: "true"
   _KANIKO_EXTRA_ARGS: ""
 
 options:

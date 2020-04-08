@@ -1,92 +1,137 @@
-version: 2
+version: 2.1
+
+orbs:
+  go: circleci/go@1.1.1
+  gcp-cli: circleci/gcp-cli@1.8.4
 
 jobs:
-  checkout-code:
-    docker:
-      - image: cimg/go:1.14
-    working_directory: /home/circleci/go/src/github.com/triggermesh/aws-event-sources
+  build:
+    executor:
+      name: go/default
+      tag: '1.14'
     steps:
       - checkout
+      - restore_cache:
+          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
       - run:
           name: Downloading Go modules
           command: make mod-download
       - save_cache:
-          key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
           paths:
-            - /home/circleci/go/
-
-  build:
-    docker:
-      - image: cimg/go:1.14
-    working_directory: /home/circleci/go/src/github.com/triggermesh/aws-event-sources
-    steps:
-      - restore_cache:
-          key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+            - $GOPATH/pkg/mod
       - run:
           name: Building package
           command: make build
+      - gcp-cli/install
+      - gcp-cli/initialize
+      - run:
+          name: Building docker image
+          command: |
+            gcloud builds submit --config cloudbuild.yaml --substitutions _KANIKO_NO_PUSH=true
 
   test:
-    docker:
-      - image: cimg/go:1.14
-    working_directory: /home/circleci/go/src/github.com/triggermesh/aws-event-sources
+    executor:
+      name: go/default
+      tag: '1.14'
     steps:
+      - checkout
       - restore_cache:
-          key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
+      - run:
+          name: Downloading Go modules
+          command: make mod-download
+      - save_cache:
+          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
+          paths:
+            - $GOPATH/pkg/mod
       - run:
           name: Validating code formatting
           command: make fmt-test
       - run:
-          name: Vetting source code
+          name: Vetting code
           command: make vet
       - run:
-          name: Running unit tests
-          command: |
-            mkdir -p /tmp/tests
-            OUTPUT_DIR=/tmp/tests/ make test
+          name: Running go unit tests
+          command: mkdir -p ${OUTPUT_DIR} && make test
+          environment:
+            OUTPUT_DIR: /tmp/test-results/
       - store_test_results:
-          path: /tmp/tests
+          path: /tmp/test-results/
       - run:
           name: Generating coverage report
-          command: |
-            mkdir -p /tmp/artifacts
-            OUTPUT_DIR=/tmp/artifacts/ make coverage
+          command: mkdir -p ${OUTPUT_DIR} && make coverage
+          environment:
+            OUTPUT_DIR: /tmp/artifacts/
       - store_artifacts:
-          path: /tmp/artifacts
+          path: /tmp/artifacts/
 
-  publish-image:
-    docker:
-      - image: google/cloud-sdk:latest
-    working_directory: /home/circleci/go/src/github.com/triggermesh/aws-event-sources
+  publish:
+    executor:
+      name: gcp-cli/google
     steps:
+      - checkout
+      - gcp-cli/initialize
+      - run:
+          name: Publishing docker image
+          command: gcloud builds submit --config cloudbuild.yaml --substitutions _KANIKO_IMAGE_TAG=${CIRCLE_TAG:-latest}
+
+  release:
+    executor:
+      name: go/default
+      tag: '1.14'
+    steps:
+      - checkout
       - restore_cache:
-          key: v1-repo-{{ .Environment.CIRCLE_SHA1 }}
+          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
       - run:
-          name: Configuring Google Cloud SDK
-          command: |
-            echo ${GCLOUD_SERVICE_KEY} | gcloud auth activate-service-account --key-file=-
-            gcloud --quiet config set project ${GOOGLE_PROJECT_ID}
-            gcloud --quiet config set compute/zone ${GOOGLE_COMPUTE_ZONE}
+          name: Downloading Go modules
+          command: make mod-download
+      - save_cache:
+          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
+          paths:
+            - $GOPATH/pkg/mod
       - run:
-          name: Building Docker image
+          name: Building release packages
+          command: make release
+          environment:
+            DIST_DIR: /tmp/dist/
+      - run:
+          name: Installing github-release tool
+          command: go get github.com/aktau/github-release
+      - run:
+          name: Creating github release
           command: |
-            gcloud builds submit --config cloudbuild.yaml
+            PRE_RELEASE=${CIRCLE_TAG/${CIRCLE_TAG%-rc[0-9]*}/}
+            github-release delete -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -t ${CIRCLE_TAG} 2>/dev/null ||:
+            ./scripts/release-notes.sh ${CIRCLE_TAG} | github-release release ${PRE_RELEASE:+-p} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -t ${CIRCLE_TAG} -d -
+            for f in $(find /tmp/dist -type f); do github-release upload -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -t ${CIRCLE_TAG} -n $(basename ${f}) -f ${f} ; done
 
 workflows:
-  version: 2
   build-test-and-publish:
     jobs:
-      - checkout-code
       - build:
-          requires:
-            - checkout-code
+          filters:
+            tags:
+              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
       - test:
-          requires:
-            - checkout-code
-      - publish-image:
+          filters:
+            tags:
+              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+      - publish:
           requires:
             - build
             - test
           filters:
+            tags:
+              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
             branches:
               only: master
+      - release:
+          requires:
+            - publish
+          filters:
+            tags:
+              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+            branches:
+              ignore: /.*/
