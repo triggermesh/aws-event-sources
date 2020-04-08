@@ -1,12 +1,11 @@
-.git/
-.dockerignore
-**/.gitignore
-**/c.out
 **/*-coverage.html
 **/*-unit-tests.xml
-**/README.md
 **/*_test.go
-**/Makefile
+**/.gitignore
+**/c.out
+**/README.md
+.dockerignore
+.git/
 awscodecommit/awscodecommit
 awscognito/awscognito
 awsdynamodb/awsdynamodb
