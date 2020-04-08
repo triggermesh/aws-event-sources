@@ -98,7 +98,7 @@ jobs:
             DIST_DIR: /tmp/dist/
       - run:
           name: Installing github-release tool
-          command: go get github.com/aktau/github-release
+          command: go get github.com/meterup/github-release
       - run:
           name: Creating github release
           command: |
