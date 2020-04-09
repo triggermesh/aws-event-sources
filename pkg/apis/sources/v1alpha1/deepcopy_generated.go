@@ -90,8 +90,8 @@ func (in *AWSCodeCommitSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSCodeCommitSourceSpec) DeepCopyInto(out *AWSCodeCommitSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
-	if in.Events != nil {
-		in, out := &in.Events, &out.Events
+	if in.EventTypes != nil {
+		in, out := &in.EventTypes, &out.EventTypes
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

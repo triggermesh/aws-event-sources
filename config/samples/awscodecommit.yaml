@@ -23,9 +23,9 @@ spec:
   branch: master
   region: us-west-2
 
-  events:
-    - pull_request
+  eventTypes:
     - push
+    - pull_request
 
   credentials:
     accessKeyID:

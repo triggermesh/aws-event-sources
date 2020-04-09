@@ -20,7 +20,7 @@ import (
 	"knative.dev/pkg/apis"
 )
 
-// status conditions
+// Status conditions
 const (
 	// ConditionReady has status True when the source is ready to send events.
 	ConditionReady = apis.ConditionReady
@@ -30,7 +30,7 @@ const (
 	ConditionDeployed apis.ConditionType = "Deployed"
 )
 
-// reasons for conditions
+// Reasons for status conditions
 const (
 	// ReasonSinkNotFound is set on a SinkProvided condition when a sink does not exist.
 	ReasonSinkNotFound = "SinkNotFound"
