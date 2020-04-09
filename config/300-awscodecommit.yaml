@@ -21,6 +21,12 @@ metadata:
     eventing.knative.dev/source: 'true'
     duck.knative.dev/source: 'true'
     knative.dev/crd-install: 'true'
+  annotations:
+    registry.knative.dev/eventTypes: |
+      [
+        { "type": "com.amazon.codecommit.push" },
+        { "type": "com.amazon.codecommit.pull_request" },
+      ]
 spec:
   group: sources.triggermesh.com
   scope: Namespaced

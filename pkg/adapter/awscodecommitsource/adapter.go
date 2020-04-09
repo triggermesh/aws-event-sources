@@ -33,12 +33,19 @@ import (
 
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
 var (
 	//syncTime       = 10
 	lastCommit     string
 	pullRequestIDs []*string
+)
+
+const (
+	pushEventType = "push"
+	prEventType   = "pull_request"
 )
 
 // envConfig is a set parameters sourced from the environment for the source's
@@ -107,8 +114,8 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 
 // Start implements adapter.Adapter.
 func (a *adapter) Start(stopCh <-chan struct{}) error {
-	if strings.Contains(a.gitEvents, "push") {
-		a.logger.Info("Push Events Enabled!")
+	if strings.Contains(a.gitEvents, pushEventType) {
+		a.logger.Info("Push events enabled")
 
 		branchInfo, err := a.ccClient.GetBranch(&codecommit.GetBranchInput{
 			RepositoryName: aws.String(a.repo),
@@ -122,8 +129,8 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 	}
 
-	if strings.Contains(a.gitEvents, "pull_request") {
-		a.logger.Info("Pull Request Events Enabled!")
+	if strings.Contains(a.gitEvents, prEventType) {
+		a.logger.Info("Pull Request events enabled")
 
 		// get pull request IDs
 		pullRequestsOutput, err := a.ccClient.ListPullRequests(&codecommit.ListPullRequestsInput{
@@ -137,8 +144,8 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 	}
 
-	if !strings.Contains(a.gitEvents, "pull_request") && !strings.Contains(a.gitEvents, "push") {
-		a.logger.Fatalf("Failed to identify event types in %q. Valid values: (pull_request, push)", a.gitEvents)
+	if !strings.Contains(a.gitEvents, pushEventType) && !strings.Contains(a.gitEvents, prEventType) {
+		a.logger.Fatalf("Failed to identify event types in %q. Valid values: (push,pull_request)", a.gitEvents)
 	}
 
 	processedPullRequests, err := a.preparePullRequests()
@@ -148,14 +155,14 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 	//range time.Tick(time.Duration(syncTime) * time.Second)
 	for {
-		if strings.Contains(a.gitEvents, "push") {
+		if strings.Contains(a.gitEvents, pushEventType) {
 			err := a.processCommits()
 			if err != nil {
 				a.logger.Errorw("Failed to process commits", "error", err)
 			}
 		}
 
-		if strings.Contains(a.gitEvents, "pull_request") {
+		if strings.Contains(a.gitEvents, prEventType) {
 			pullRequests, err := a.preparePullRequests()
 			if err != nil {
 				a.logger.Errorw("Failed to process pull requests", "error", err)
@@ -200,9 +207,9 @@ func (a *adapter) processCommits() error {
 
 	lastCommit = *commitOutput.Commit.CommitId
 
-	err = a.sendCommitEvent(commitOutput.Commit)
+	err = a.sendPushEvent(commitOutput.Commit)
 	if err != nil {
-		return fmt.Errorf("failed to send commit event: %w", err)
+		return fmt.Errorf("failed to send push event: %w", err)
 	}
 
 	return nil
@@ -248,11 +255,12 @@ func (a *adapter) preparePullRequests() ([]*codecommit.PullRequest, error) {
 	return pullRequests, nil
 }
 
-// sendCommitEvent sends an event containing data about a git commit that was pushed to a branch
-func (a *adapter) sendCommitEvent(commit *codecommit.Commit) error {
-	a.logger.Info("send Commit Event")
+// sendPushEvent sends an event containing data about a git commit that was
+// pushed to a branch
+func (a *adapter) sendPushEvent(commit *codecommit.Commit) error {
+	a.logger.Info("Sending Push event")
 
-	data := &PushMessageEvent{
+	data := &PushEvent{
 		Commit:           commit,
 		CommitRepository: aws.String(a.repo),
 		CommitBranch:     aws.String(a.repoBranch),
@@ -261,9 +269,9 @@ func (a *adapter) sendCommitEvent(commit *codecommit.Commit) error {
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType("com.amazon.codecommit.commit")
+	event.SetType(v1alpha1.AWSCodeCommitEventType(pushEventType))
 	event.SetSubject(fmt.Sprintf("%s/%s", a.repo, a.repoBranch))
-	event.SetSource(fmt.Sprintf("https://git-codecommit.%s.amazonaws.com/v1/repos/%s", a.awsRegion, a.repo))
+	event.SetSource(v1alpha1.AWSCodeCommitEventSource(a.awsRegion, a.repo))
 	event.SetID(*commit.CommitId)
 	event.SetData(cloudevents.ApplicationJSON, data)
 
@@ -274,9 +282,9 @@ func (a *adapter) sendCommitEvent(commit *codecommit.Commit) error {
 }
 
 func (a *adapter) sendPREvent(pullRequest *codecommit.PullRequest) error {
-	a.logger.Info("send Pull Request Event")
+	a.logger.Info("Sending Pull Request event")
 
-	data := &PRMessageEvent{
+	data := &PullRequestEvent{
 		PullRequest: pullRequest,
 		Repository:  aws.String(a.repo),
 		Branch:      aws.String(a.repoBranch),
@@ -285,9 +293,9 @@ func (a *adapter) sendPREvent(pullRequest *codecommit.PullRequest) error {
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType("com.amazon.codecommit.pull_request")
+	event.SetType(v1alpha1.AWSCodeCommitEventType(prEventType))
 	event.SetSubject(fmt.Sprintf("%s/%s", a.repo, a.repoBranch))
-	event.SetSource(fmt.Sprintf("https://git-codecommit.%s.amazonaws.com/v1/repos/%s", a.awsRegion, a.repo))
+	event.SetSource(v1alpha1.AWSCodeCommitEventSource(a.awsRegion, a.repo))
 	event.SetID(*pullRequest.PullRequestId)
 	event.SetData(cloudevents.ApplicationJSON, data)
 

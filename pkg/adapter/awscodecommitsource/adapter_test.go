@@ -31,7 +31,7 @@ import (
 	loggingtesting "knative.dev/pkg/logging/testing"
 )
 
-type mockedClientForCommits struct {
+type mockedClientForPush struct {
 	codecommitiface.CodeCommitAPI
 	GetBranchResp codecommit.GetBranchOutput
 	GetCommitResp codecommit.GetCommitOutput
@@ -39,7 +39,7 @@ type mockedClientForCommits struct {
 	GetCommitErr  error
 }
 
-type mockedClientForPRs struct {
+type mockedClientForPR struct {
 	codecommitiface.CodeCommitAPI
 	ListPRsResp codecommit.ListPullRequestsOutput
 	GetPRResp   codecommit.GetPullRequestOutput
@@ -47,19 +47,19 @@ type mockedClientForPRs struct {
 	GetPRErr    error
 }
 
-func (m mockedClientForCommits) GetBranch(in *codecommit.GetBranchInput) (*codecommit.GetBranchOutput, error) {
+func (m mockedClientForPush) GetBranch(in *codecommit.GetBranchInput) (*codecommit.GetBranchOutput, error) {
 	return &m.GetBranchResp, m.GetBranchErr
 }
 
-func (m mockedClientForCommits) GetCommit(in *codecommit.GetCommitInput) (*codecommit.GetCommitOutput, error) {
+func (m mockedClientForPush) GetCommit(in *codecommit.GetCommitInput) (*codecommit.GetCommitOutput, error) {
 	return &m.GetCommitResp, m.GetCommitErr
 }
 
-func (m mockedClientForPRs) ListPullRequests(in *codecommit.ListPullRequestsInput) (*codecommit.ListPullRequestsOutput, error) {
+func (m mockedClientForPR) ListPullRequests(in *codecommit.ListPullRequestsInput) (*codecommit.ListPullRequestsOutput, error) {
 	return &m.ListPRsResp, m.ListPRsErr
 }
 
-func (m mockedClientForPRs) GetPullRequest(in *codecommit.GetPullRequestInput) (*codecommit.GetPullRequestOutput, error) {
+func (m mockedClientForPR) GetPullRequest(in *codecommit.GetPullRequestInput) (*codecommit.GetPullRequestOutput, error) {
 	return &m.GetPRResp, m.GetPRErr
 }
 
@@ -85,7 +85,7 @@ func TestSendPREvent(t *testing.T) {
 	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
 }
 
-func TestSendCommitEvent(t *testing.T) {
+func TestSendPushEvent(t *testing.T) {
 	ceClient := adaptertest.NewTestClient()
 
 	a := &adapter{
@@ -96,7 +96,7 @@ func TestSendCommitEvent(t *testing.T) {
 	commit := &codecommit.Commit{}
 	commit.SetCommitId("12345")
 
-	err := a.sendCommitEvent(commit)
+	err := a.sendPushEvent(commit)
 	assert.NoError(t, err)
 
 	gotEvents := ceClient.Sent()
@@ -156,7 +156,7 @@ func TestProcessCommits(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		ccClient := mockedClientForCommits{
+		ccClient := mockedClientForPush{
 			GetBranchResp: tt.GetBranchResp,
 			GetCommitResp: tt.GetCommitResp,
 			GetBranchErr:  tt.GetBranchErr,
@@ -241,7 +241,7 @@ func TestProcessPullRequest(t *testing.T) {
 	}
 
 	for _, tt := range testCases {
-		ccClient := mockedClientForPRs{
+		ccClient := mockedClientForPR{
 			ListPRsResp: tt.ListPRsResp,
 			GetPRResp:   tt.GetPRResp,
 			ListPRsErr:  tt.ListPRsErr,

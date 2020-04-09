@@ -19,8 +19,8 @@ package awscodecommitsource
 
 import "github.com/aws/aws-sdk-go/service/codecommit"
 
-// PushMessageEvent represent a push message event from CodeCommit source.
-type PushMessageEvent struct {
+// PushEvent represent a push event from CodeCommit source.
+type PushEvent struct {
 	Commit           *codecommit.Commit `json:"commit"`
 	CommitRepository *string            `json:"commitRepository"`
 	CommitBranch     *string            `json:"commitBranch"`
@@ -29,8 +29,8 @@ type PushMessageEvent struct {
 	AwsRegion        *string            `json:"awsRegion"`
 }
 
-// PRMessageEvent represent a PR message event from CodeCommit source.
-type PRMessageEvent struct {
+// PullRequestEvent represent a PR event from CodeCommit source.
+type PullRequestEvent struct {
 	PullRequest *codecommit.PullRequest `json:"pullRequest"`
 	EventType   *string                 `json:"eventType"`
 	Repository  *string                 `json:"repository"`

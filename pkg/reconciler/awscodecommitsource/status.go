@@ -20,6 +20,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 
+	duckv1 "knative.dev/pkg/apis/duck/v1"
+
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
@@ -47,6 +49,7 @@ func (r *Reconciler) computeStatus(src *v1alpha1.AWSCodeCommitSource,
 
 	status := src.Status.DeepCopy()
 	status.InitializeConditions()
+	status.CloudEventAttributes = r.createCloudEventAttributes(&src.Spec)
 	status.ObservedGeneration = src.Generation
 
 	sinkURI, err := r.sinkResolver.URIFromDestinationV1(src.Spec.Sink, src)
@@ -61,4 +64,17 @@ func (r *Reconciler) computeStatus(src *v1alpha1.AWSCodeCommitSource,
 	}
 
 	return status
+}
+
+// createCloudEventAttributes returns the CloudEvent types supported by the
+// source.
+func (r *Reconciler) createCloudEventAttributes(srcSpec *v1alpha1.AWSCodeCommitSourceSpec) []duckv1.CloudEventAttributes {
+	ceAttributes := make([]duckv1.CloudEventAttributes, len(srcSpec.EventTypes))
+	for i, typ := range srcSpec.EventTypes {
+		ceAttributes[i] = duckv1.CloudEventAttributes{
+			Type:   v1alpha1.AWSCodeCommitEventType(typ),
+			Source: v1alpha1.AWSCodeCommitEventSource(srcSpec.Region, srcSpec.Repository),
+		}
+	}
+	return ceAttributes
 }

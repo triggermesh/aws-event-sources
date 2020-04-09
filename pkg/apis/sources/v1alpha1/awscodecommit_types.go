@@ -58,8 +58,9 @@ type AWSCodeCommitSourceSpec struct {
 	// Region is the name of the AWS region where the repository is located.
 	Region string `json:"region"`
 
-	// Events is a list of events that should be processed by the source.
-	Events []string `json:"events"`
+	// EventTypes is a list of event types that should be processed by the
+	// source.
+	EventTypes []string `json:"eventTypes"`
 
 	// Credentials to interact with the AWS CodeCommit API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
