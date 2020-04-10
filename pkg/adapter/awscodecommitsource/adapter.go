@@ -55,7 +55,7 @@ type envConfig struct {
 
 	Repo                   string `envconfig:"REPO" required:"true"`
 	RepoBranch             string `envconfig:"BRANCH" required:"true"`
-	GitEvents              string `envconfig:"EVENTS" required:"true"`
+	GitEventTypes          string `envconfig:"EVENT_TYPES" required:"true"`
 	AWSRegion              string `envconfig:"AWS_REGION" required:"true"`
 	AccountAccessKeyID     string `envconfig:"AWS_ACCESS_KEY_ID" required:"true"`
 	AccountSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY" required:"true"`
@@ -105,7 +105,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 
 		repo:                   env.Repo,
 		repoBranch:             env.RepoBranch,
-		gitEvents:              env.GitEvents,
+		gitEvents:              env.GitEventTypes,
 		awsRegion:              env.AWSRegion,
 		accountAccessKeyID:     env.AccountAccessKeyID,
 		accountSecretAccessKey: env.AccountSecretAccessKey,

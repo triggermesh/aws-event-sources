@@ -1,61 +1,108 @@
-## AWS CodeCommit Events source for knative eventing
+# AWS CodeCommit event source for Knative Eventing
 
-This event source is meant to be used as a Container Source with a Knative cluster to consume messages from a AWS CodeCommit events and send them to a Knative service/function.
+This event source consumes messages from a AWS CodeCommit and sends them as CloudEvents to an arbitrary event sink.
 
-### Local build
+## Contents
 
-```
-go build .
-```
+1. [Prerequisites](#prerequisites)
+1. [Deployment to Kubernetes](#deployment-to-kubernetes)
+   * [As a AWSCodeCommitSource object](#as-a-awscodecommitsource-object)
+   * [As a ContainerSource object](#as-a-containersource-object)
+1. [Running locally](#running-locally)
+   * [In the shell](#in-the-shell)
+   * [In a Docker container](#in-a-docker-container)
 
-### Local Usage
+## Prerequisites
 
-- Register AWS account
-- Get your account credentials. Navigate to "My Security Credentials" (tab)[https://console.aws.amazon.com/iam/home#/security_credential] in account and select "Access keys (access key ID and secret access key)" section to view your credentials
-- Create repo in CodeCommit in Developer Tools and create simple file.txt so that it would create a master branch. Then create another branch from master, add file there and make PR to master
+* Register an AWS account
+* Create an [Access Key][doc-accesskey] in your AWS IAM dashboard.
+* Create a [CodeCommit repository][doc-codecommit].
 
-Define a few environment variables:
+## Deployment to Kubernetes
 
-```
-export REPO=triggermeshtest
-export BRANCH=master
-export EVENTS=pull_request,push
-export AWS_REGION=us-east-1
-export AWS_ACCESS_KEY_ID=<>
-export AWS_SECRET_ACCESS_KEY=<>
-```
+The _AWS CodeCommit event source_ can be deployed to Kubernetes in different manners:
 
-Then just run the local binary in your shell and send PR through Developer Tools.
+* As an `AWSCodeCommitSource` object, to a cluster where the TriggerMesh _AWS Sources Controller_ is running.
+* As a Knative `ContainerSource`, to any cluster running Knative Eventing.
 
-```
-$ ./awscodecommitsource
-```
+> :information_source: The sample manifests below reference AWS credentials (Access Key) from a Kubernetes Secret object
+> called `awscreds`. This Secret can be generated with the following command:
+>
+> ```console
+> $ kubectl -n <my_namespace> create secret generic awscreds \
+>   --from-literal=aws_access_key_id=<my_key_id> \
+>   --from-literal=aws_secret_access_key=<my_secret_key>
+> ```
+>
+> Alternatively, credentials can be used as litteral strings instead of references by replacing `valueFrom` attributes
+> with `value`.
 
-### Local Docker Usage
+### As a AWSCodeCommitSource object
 
-If you don't have a local Go environment, use Docker:
+Copy the sample manifest from `config/samples/awscodecommitsource.yaml` and replace the pre-filled `spec` attributes
+with the values corresponding to your _AWS CodeCommit_ repository. Then, create that `AWSCodeCommitSource` object in
+your Kubernetes cluster:
 
-```
-docker run -ti -e REPO="your_repo_name" \
-               -e BRANCH="your_branch_name" \
-               -e EVENTS="pull_request,push" \
-               -e AWS_REGION="us-east-1" \
-               -e AWS_ACCESS_KEY_ID="fgfdgsdfg" \
-               -e AWS_SECRET_ACCESS_KEY="dsgdgsfgsfdgdsf" \
-               gcr.io/triggermesh/awscodecommit:latest
-```
-
-### Knative usage
-
-Create secret called awscreds with the creds file:
-
-```
-kubectl create secret generic awscreds --from-literal=aws_access_key_id=<replace_with_key> \
-                                        --from-literal=aws_secret_access_key=<replace_with_key> \
+```console
+$ kubectl -n <my_namespace> create -f my-awscodecommitsource.yaml
 ```
 
-Edit the Container source manifest and apply it:
+### As a ContainerSource object
 
+Copy the sample manifest from `config/samples/awscodecommit-containersource.yaml` and replace the pre-filled environment
+variables under `env` with the values corresponding to your _AWS CodeCommit_ repository. Then, create that
+`ContainerSource` object in your Kubernetes cluster:
+
+```console
+$ kubectl -n <my_namespace> create -f my-awscodecommit-containersource.yaml
 ```
-kubectl apply -f codecommit-source.yaml
+
+## Running locally
+
+Running the event source on your local machine can be convenient for development purposes.
+
+### In the shell
+
+Ensure the following environment variables are exported to your current shell's environment:
+
+```sh
+export REPO=<my_codecommit_repo>
+export BRANCH=<my_git_branch>
+export EVENT_TYPES=push,pull_request
+export AWS_REGION=<my_repo_region>
+export AWS_ACCESS_KEY_ID=<my_key_id>
+export AWS_SECRET_ACCESS_KEY=<my_secret_key>
+export NAME=my-awscodecommitsource
+export NAMESPACE=default
+export K_LOGGING_CONFIG='{"level":"info"}'
+export K_METRICS_CONFIG='{"domain":"triggermesh.com/sources", "component":"awscodecommitsource", "configMap":{}}'
 ```
+
+Then, run the event source with:
+
+```console
+$ go run ./cmd/awscodecommitsource
+```
+
+### In a Docker container
+
+Using one of TriggerMesh's release images:
+
+```console
+$ docker run --rm \
+  -e  REPO=<my_codecommit_repo> \
+  -e  BRANCH=<my_git_branch> \
+  -e  EVENT_TYPES=push,pull_request \
+  -e  AWS_REGION=<my_repo_region> \
+  -e  AWS_ACCESS_KEY_ID=<my_key_id> \
+  -e  AWS_SECRET_ACCESS_KEY=<my_secret_key> \
+  -e  NAME=my-awscodecommitsource \
+  -e  NAMESPACE=default \
+  -e  K_LOGGING_CONFIG='{"level":"info"}' \
+  -e  K_METRICS_CONFIG='{"domain":"triggermesh.com/sources", "component":"awscodecommitsource", "configMap":{}}' \
+  gcr.io/triggermesh/awscodecommitsource:latest
+```
+
+
+[doc-accesskey]: https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys
+[doc-codecommit]: https://docs.aws.amazon.com/codecommit/latest/userguide/how-to-create-repository.html
