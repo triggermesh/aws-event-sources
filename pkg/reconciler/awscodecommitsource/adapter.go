@@ -41,7 +41,7 @@ const (
 	repoEnvVar               = "REPO"
 	branchEnvVar             = "BRANCH"
 	awsRegionEnvVar          = "AWS_REGION"
-	eventsEnvVar             = "EVENTS"
+	eventTypesEnvVar         = "EVENT_TYPES"
 	awsAccessKeyIdEnvVar     = "AWS_ACCESS_KEY_ID"
 	awsSecretAccessKeyEnvVar = "AWS_SECRET_ACCESS_KEY"
 )
@@ -163,7 +163,7 @@ func makeAdapterDeployment(src *v1alpha1.AWSCodeCommitSource, sinkURI string,
 		resource.EnvVar(repoEnvVar, src.Spec.Repository),
 		resource.EnvVar(branchEnvVar, src.Spec.Branch),
 		resource.EnvVar(awsRegionEnvVar, src.Spec.Region),
-		resource.EnvVar(eventsEnvVar, strings.Join(src.Spec.EventTypes, ",")),
+		resource.EnvVar(eventTypesEnvVar, strings.Join(src.Spec.EventTypes, ",")),
 		resource.EnvVarFromSecret(awsAccessKeyIdEnvVar,
 			src.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
 			src.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
