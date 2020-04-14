@@ -69,6 +69,10 @@ func (r *Reconciler) computeStatus(src *v1alpha1.AWSIoTSource,
 // createCloudEventAttributes returns the CloudEvent types supported by the
 // source.
 func (r *Reconciler) createCloudEventAttributes(srcSpec *v1alpha1.AWSIoTSourceSpec) []duckv1.CloudEventAttributes {
-	// TODO(antoineco): populate event types
-	return nil
+	return []duckv1.CloudEventAttributes{
+		{
+			Type:   v1alpha1.AWSIoTEventType("greetings"),
+			Source: v1alpha1.AWSIoTEventSource(srcSpec.Endpoint, srcSpec.Topic),
+		},
+	}
 }

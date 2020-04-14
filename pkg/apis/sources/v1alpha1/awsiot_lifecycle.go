@@ -38,9 +38,8 @@ func (s *AWSIoTSource) GetUntypedSpec() interface{} {
 
 // AWSIoTEventSource returns a representation of the source suitable for
 // usage as a CloudEvent source.
-func AWSIoTEventSource() string {
-	// TODO(antoineco): decide on format
-	return ""
+func AWSIoTEventSource(endpoint, topic string) string {
+	return fmt.Sprintf("%s/%s", endpoint, topic)
 }
 
 // AWSIoTEventType returns the given event type in a format suitable for
