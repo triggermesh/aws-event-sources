@@ -191,6 +191,7 @@ func (in *AWSCognitoSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSCognitoSourceSpec) DeepCopyInto(out *AWSCognitoSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }
 

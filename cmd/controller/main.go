@@ -20,10 +20,12 @@ import (
 	"knative.dev/pkg/injection/sharedmain"
 
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscodecommitsource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitosource"
 )
 
 func main() {
 	sharedmain.Main("controller",
 		awscodecommitsource.NewController,
+		awscognitosource.NewController,
 	)
 }

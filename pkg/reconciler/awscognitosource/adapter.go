@@ -19,6 +19,7 @@ package awscognitosource
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,6 +38,7 @@ import (
 const adapterName = "awscognitosource"
 
 const (
+	identityPoolIdEnvVar     = "IDENTITY_POOL_ID"
 	awsRegionEnvVar          = "AWS_REGION"
 	awsAccessKeyIdEnvVar     = "AWS_ACCESS_KEY_ID"
 	awsSecretAccessKeyEnvVar = "AWS_SECRET_ACCESS_KEY"
@@ -156,9 +158,26 @@ func makeAdapterDeployment(src *v1alpha1.AWSCognitoSource, sinkURI string,
 		resource.EnvVar(reconciler.SinkEnvVar, sinkURI),
 		resource.EnvVar(reconciler.LoggingConfigEnvVar, adapterCfg.LoggingCfg),
 		resource.EnvVar(reconciler.MetricsConfigEnvVar, adapterCfg.MetricsCfg),
-
-		// TODO(antoineco): add source specific env vars
+		resource.EnvVar(identityPoolIdEnvVar, src.Spec.IdentityPoolId),
+		resource.EnvVar(awsRegionEnvVar, extractRegionFromPoolId(src.Spec.IdentityPoolId)),
+		resource.EnvVarFromSecret(awsAccessKeyIdEnvVar,
+			src.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
+			src.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
+		resource.EnvVarFromSecret(awsSecretAccessKeyEnvVar,
+			src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
+			src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
 	)
+}
+
+// extractRegionFromPoolId parses an identity pool id and returns the AWS region.
+func extractRegionFromPoolId(identityPoolId string) (region string) {
+	subs := strings.Split(identityPoolId, ":")
+	// extra safety, the API validation should have already ensured that the
+	// format of the id is correct
+	if len(subs) == 2 {
+		region = subs[0]
+	}
+	return
 }
 
 // updateAdapterLoggingConfig serializes the logging config from a ConfigMap to
