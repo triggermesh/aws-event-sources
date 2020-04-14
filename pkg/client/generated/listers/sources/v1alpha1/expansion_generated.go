@@ -58,6 +58,14 @@ type AWSKinesisSourceListerExpansion interface{}
 // AWSKinesisSourceNamespaceLister.
 type AWSKinesisSourceNamespaceListerExpansion interface{}
 
+// AWSSNSSourceListerExpansion allows custom methods to be added to
+// AWSSNSSourceLister.
+type AWSSNSSourceListerExpansion interface{}
+
+// AWSSNSSourceNamespaceListerExpansion allows custom methods to be added to
+// AWSSNSSourceNamespaceLister.
+type AWSSNSSourceNamespaceListerExpansion interface{}
+
 // AWSSQSSourceListerExpansion allows custom methods to be added to
 // AWSSQSSourceLister.
 type AWSSQSSourceListerExpansion interface{}

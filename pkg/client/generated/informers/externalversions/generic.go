@@ -63,6 +63,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSIoTSources().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("awskinesissources"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSKinesisSources().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("awssnssources"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSSNSSources().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("awssqssources"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSSQSSources().Informer()}, nil
 
