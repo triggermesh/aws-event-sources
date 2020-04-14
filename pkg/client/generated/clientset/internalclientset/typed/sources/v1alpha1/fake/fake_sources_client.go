@@ -44,6 +44,10 @@ func (c *FakeSourcesV1alpha1) AWSIoTSources(namespace string) v1alpha1.AWSIoTSou
 	return &FakeAWSIoTSources{c, namespace}
 }
 
+func (c *FakeSourcesV1alpha1) AWSKinesisSources(namespace string) v1alpha1.AWSKinesisSourceInterface {
+	return &FakeAWSKinesisSources{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeSourcesV1alpha1) RESTClient() rest.Interface {

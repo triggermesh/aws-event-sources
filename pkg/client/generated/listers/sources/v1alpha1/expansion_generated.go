@@ -49,3 +49,11 @@ type AWSIoTSourceListerExpansion interface{}
 // AWSIoTSourceNamespaceListerExpansion allows custom methods to be added to
 // AWSIoTSourceNamespaceLister.
 type AWSIoTSourceNamespaceListerExpansion interface{}
+
+// AWSKinesisSourceListerExpansion allows custom methods to be added to
+// AWSKinesisSourceLister.
+type AWSKinesisSourceListerExpansion interface{}
+
+// AWSKinesisSourceNamespaceListerExpansion allows custom methods to be added to
+// AWSKinesisSourceNamespaceLister.
+type AWSKinesisSourceNamespaceListerExpansion interface{}
