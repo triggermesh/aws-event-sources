@@ -51,7 +51,11 @@ var (
 type AWSCognitoSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// TODO(antoineco): add source specific fields
+	// ID number of the identity pool.
+	IdentityPoolId string `json:"identityPoolId"`
+
+	// Credentials to interact with the AWS Cognito API.
+	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
 // AWSCognitoSourceStatus defines the observed state of the event source.
