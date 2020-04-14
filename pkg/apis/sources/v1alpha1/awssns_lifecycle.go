@@ -38,9 +38,8 @@ func (s *AWSSNSSource) GetUntypedSpec() interface{} {
 
 // AWSSNSEventSource returns a representation of the source suitable for
 // usage as a CloudEvent source.
-func AWSSNSEventSource() string {
-	// TODO(antoineco): decide on format
-	return ""
+func AWSSNSEventSource(region, topic string) string {
+	return fmt.Sprintf("%s:topic/%s", region, topic)
 }
 
 // AWSSNSEventType returns the given event type in a format suitable for

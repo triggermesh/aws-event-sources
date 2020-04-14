@@ -51,7 +51,13 @@ var (
 type AWSSNSSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// TODO(antoineco): add source specific fields
+	// Name of the AWS SNS topic.
+	Topic string `json:"topic"`
+	// Name of the AWS region where the AWS SNS topic is located.
+	Region string `json:"region"`
+
+	// Credentials to interact with the AWS SNS API.
+	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
 // AWSSNSSourceStatus defines the observed state of the event source.
