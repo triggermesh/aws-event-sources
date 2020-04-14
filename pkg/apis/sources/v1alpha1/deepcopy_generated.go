@@ -592,6 +592,7 @@ func (in *AWSSNSSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSSNSSourceSpec) DeepCopyInto(out *AWSSNSSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }
 
