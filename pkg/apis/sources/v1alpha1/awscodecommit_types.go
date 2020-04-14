@@ -29,7 +29,7 @@ import (
 // +genreconciler
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AWSCodeCommitSource is the Schema for an AWS CodeCommit event source.
+// AWSCodeCommitSource is the Schema for the event source.
 type AWSCodeCommitSource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -38,7 +38,7 @@ type AWSCodeCommitSource struct {
 	Status AWSCodeCommitSourceStatus `json:"status,omitempty"`
 }
 
-// Check the interfaces AWSCodeCommitSource should be implementing.
+// Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object     = (*AWSCodeCommitSource)(nil)
 	_ kmeta.OwnerRefable = (*AWSCodeCommitSource)(nil)
@@ -47,33 +47,32 @@ var (
 	_ apis.HasSpec       = (*AWSCodeCommitSource)(nil)
 )
 
-// AWSCodeCommitSourceSpec defines the desired state of AWSCodeCommitSource.
+// AWSCodeCommitSourceSpec defines the desired state of the event source.
 type AWSCodeCommitSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// Repository is the name of the repository.
+	// Name of the repository.
 	Repository string `json:"repository"`
-	// Branch is the name of the Git branch this source observes.
+	// Name of the Git branch this source observes.
 	Branch string `json:"branch"`
-	// Region is the name of the AWS region where the repository is located.
+	// Name of the AWS region where the repository is located.
 	Region string `json:"region"`
 
-	// EventTypes is a list of event types that should be processed by the
-	// source.
+	// List of event types that should be processed by the source.
 	EventTypes []string `json:"eventTypes"`
 
 	// Credentials to interact with the AWS CodeCommit API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
-// AWSCodeCommitSourceStatus defines the observed state of AWSCodeCommitSource.
+// AWSCodeCommitSourceStatus defines the observed state of the event source.
 type AWSCodeCommitSourceStatus struct {
 	duckv1.SourceStatus `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AWSCodeCommitSourceList contains a list of AWSCodeCommitSource
+// AWSCodeCommitSourceList contains a list of event sources.
 type AWSCodeCommitSourceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
