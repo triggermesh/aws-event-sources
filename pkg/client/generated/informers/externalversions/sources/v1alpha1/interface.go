@@ -30,6 +30,8 @@ type Interface interface {
 	AWSCognitoSources() AWSCognitoSourceInformer
 	// AWSDynamoDBSources returns a AWSDynamoDBSourceInformer.
 	AWSDynamoDBSources() AWSDynamoDBSourceInformer
+	// AWSIoTSources returns a AWSIoTSourceInformer.
+	AWSIoTSources() AWSIoTSourceInformer
 }
 
 type version struct {
@@ -56,4 +58,9 @@ func (v *version) AWSCognitoSources() AWSCognitoSourceInformer {
 // AWSDynamoDBSources returns a AWSDynamoDBSourceInformer.
 func (v *version) AWSDynamoDBSources() AWSDynamoDBSourceInformer {
 	return &aWSDynamoDBSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// AWSIoTSources returns a AWSIoTSourceInformer.
+func (v *version) AWSIoTSources() AWSIoTSourceInformer {
+	return &aWSIoTSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
