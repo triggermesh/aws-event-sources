@@ -31,6 +31,7 @@ type SourcesV1alpha1Interface interface {
 	AWSDynamoDBSourcesGetter
 	AWSIoTSourcesGetter
 	AWSKinesisSourcesGetter
+	AWSSQSSourcesGetter
 }
 
 // SourcesV1alpha1Client is used to interact with features provided by the sources.triggermesh.com group.
@@ -56,6 +57,10 @@ func (c *SourcesV1alpha1Client) AWSIoTSources(namespace string) AWSIoTSourceInte
 
 func (c *SourcesV1alpha1Client) AWSKinesisSources(namespace string) AWSKinesisSourceInterface {
 	return newAWSKinesisSources(c, namespace)
+}
+
+func (c *SourcesV1alpha1Client) AWSSQSSources(namespace string) AWSSQSSourceInterface {
+	return newAWSSQSSources(c, namespace)
 }
 
 // NewForConfig creates a new SourcesV1alpha1Client for the given config.

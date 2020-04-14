@@ -41,6 +41,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&AWSDynamoDBSource{}, &AWSDynamoDBSourceList{},
 		&AWSIoTSource{}, &AWSIoTSourceList{},
 		&AWSKinesisSource{}, &AWSKinesisSourceList{},
+		&AWSSQSSource{}, &AWSSQSSourceList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

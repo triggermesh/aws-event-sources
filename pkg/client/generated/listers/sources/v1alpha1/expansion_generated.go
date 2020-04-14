@@ -57,3 +57,11 @@ type AWSKinesisSourceListerExpansion interface{}
 // AWSKinesisSourceNamespaceListerExpansion allows custom methods to be added to
 // AWSKinesisSourceNamespaceLister.
 type AWSKinesisSourceNamespaceListerExpansion interface{}
+
+// AWSSQSSourceListerExpansion allows custom methods to be added to
+// AWSSQSSourceLister.
+type AWSSQSSourceListerExpansion interface{}
+
+// AWSSQSSourceNamespaceListerExpansion allows custom methods to be added to
+// AWSSQSSourceNamespaceLister.
+type AWSSQSSourceNamespaceListerExpansion interface{}

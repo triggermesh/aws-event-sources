@@ -48,6 +48,10 @@ func (c *FakeSourcesV1alpha1) AWSKinesisSources(namespace string) v1alpha1.AWSKi
 	return &FakeAWSKinesisSources{c, namespace}
 }
 
+func (c *FakeSourcesV1alpha1) AWSSQSSources(namespace string) v1alpha1.AWSSQSSourceInterface {
+	return &FakeAWSSQSSources{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeSourcesV1alpha1) RESTClient() rest.Interface {
