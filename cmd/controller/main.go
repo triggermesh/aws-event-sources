@@ -21,11 +21,13 @@ import (
 
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscodecommitsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitosource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsdynamodbsource"
 )
 
 func main() {
 	sharedmain.Main("controller",
 		awscodecommitsource.NewController,
 		awscognitosource.NewController,
+		awsdynamodbsource.NewController,
 	)
 }

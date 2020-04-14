@@ -22,9 +22,11 @@ metadata:
     duck.knative.dev/source: 'true'
     knative.dev/crd-install: 'true'
   annotations:
-    # TODO(antoineco): populate event types
     registry.knative.dev/eventTypes: |
       [
+        { "type": "com.amazon.dynamodb.insert" },
+        { "type": "com.amazon.dynamodb.modify" },
+        { "type": "com.amazon.dynamodb.remove" }
       ]
 spec:
   group: sources.triggermesh.com

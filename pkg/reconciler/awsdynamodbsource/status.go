@@ -69,6 +69,13 @@ func (r *Reconciler) computeStatus(src *v1alpha1.AWSDynamoDBSource,
 // createCloudEventAttributes returns the CloudEvent types supported by the
 // source.
 func (r *Reconciler) createCloudEventAttributes(srcSpec *v1alpha1.AWSDynamoDBSourceSpec) []duckv1.CloudEventAttributes {
-	// TODO(antoineco): populate event types
-	return nil
+	types := v1alpha1.AWSDynamoDBEventTypes()
+	ceAttributes := make([]duckv1.CloudEventAttributes, len(types))
+	for i, typ := range types {
+		ceAttributes[i] = duckv1.CloudEventAttributes{
+			Type:   v1alpha1.AWSDynamoDBEventType(typ),
+			Source: v1alpha1.AWSDynamoDBEventSource(srcSpec.Region, srcSpec.Table),
+		}
+	}
+	return ceAttributes
 }
