@@ -55,6 +55,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=sources.triggermesh.com, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("awscodecommitsources"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSCodeCommitSources().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("awscognitosources"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSCognitoSources().Informer()}, nil
 
 	}
 

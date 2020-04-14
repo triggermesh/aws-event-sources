@@ -32,6 +32,10 @@ func (c *FakeSourcesV1alpha1) AWSCodeCommitSources(namespace string) v1alpha1.AW
 	return &FakeAWSCodeCommitSources{c, namespace}
 }
 
+func (c *FakeSourcesV1alpha1) AWSCognitoSources(namespace string) v1alpha1.AWSCognitoSourceInterface {
+	return &FakeAWSCognitoSources{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeSourcesV1alpha1) RESTClient() rest.Interface {

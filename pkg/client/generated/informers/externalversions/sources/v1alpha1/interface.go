@@ -26,6 +26,8 @@ import (
 type Interface interface {
 	// AWSCodeCommitSources returns a AWSCodeCommitSourceInformer.
 	AWSCodeCommitSources() AWSCodeCommitSourceInformer
+	// AWSCognitoSources returns a AWSCognitoSourceInformer.
+	AWSCognitoSources() AWSCognitoSourceInformer
 }
 
 type version struct {
@@ -42,4 +44,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // AWSCodeCommitSources returns a AWSCodeCommitSourceInformer.
 func (v *version) AWSCodeCommitSources() AWSCodeCommitSourceInformer {
 	return &aWSCodeCommitSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// AWSCognitoSources returns a AWSCognitoSourceInformer.
+func (v *version) AWSCognitoSources() AWSCognitoSourceInformer {
+	return &aWSCognitoSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }

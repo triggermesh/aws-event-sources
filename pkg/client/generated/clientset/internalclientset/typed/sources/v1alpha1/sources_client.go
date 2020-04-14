@@ -27,6 +27,7 @@ import (
 type SourcesV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	AWSCodeCommitSourcesGetter
+	AWSCognitoSourcesGetter
 }
 
 // SourcesV1alpha1Client is used to interact with features provided by the sources.triggermesh.com group.
@@ -36,6 +37,10 @@ type SourcesV1alpha1Client struct {
 
 func (c *SourcesV1alpha1Client) AWSCodeCommitSources(namespace string) AWSCodeCommitSourceInterface {
 	return newAWSCodeCommitSources(c, namespace)
+}
+
+func (c *SourcesV1alpha1Client) AWSCognitoSources(namespace string) AWSCognitoSourceInterface {
+	return newAWSCognitoSources(c, namespace)
 }
 
 // NewForConfig creates a new SourcesV1alpha1Client for the given config.
