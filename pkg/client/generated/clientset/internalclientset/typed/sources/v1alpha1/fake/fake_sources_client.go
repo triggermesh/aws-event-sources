@@ -40,6 +40,10 @@ func (c *FakeSourcesV1alpha1) AWSDynamoDBSources(namespace string) v1alpha1.AWSD
 	return &FakeAWSDynamoDBSources{c, namespace}
 }
 
+func (c *FakeSourcesV1alpha1) AWSIoTSources(namespace string) v1alpha1.AWSIoTSourceInterface {
+	return &FakeAWSIoTSources{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeSourcesV1alpha1) RESTClient() rest.Interface {
