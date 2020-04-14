@@ -33,3 +33,11 @@ type AWSCognitoSourceListerExpansion interface{}
 // AWSCognitoSourceNamespaceListerExpansion allows custom methods to be added to
 // AWSCognitoSourceNamespaceLister.
 type AWSCognitoSourceNamespaceListerExpansion interface{}
+
+// AWSDynamoDBSourceListerExpansion allows custom methods to be added to
+// AWSDynamoDBSourceLister.
+type AWSDynamoDBSourceListerExpansion interface{}
+
+// AWSDynamoDBSourceNamespaceListerExpansion allows custom methods to be added to
+// AWSDynamoDBSourceNamespaceLister.
+type AWSDynamoDBSourceNamespaceListerExpansion interface{}
