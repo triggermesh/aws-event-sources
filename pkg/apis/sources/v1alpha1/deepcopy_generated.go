@@ -383,6 +383,24 @@ func (in *AWSIoTSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSIoTSourceSpec) DeepCopyInto(out *AWSIoTSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	in.RootCA.DeepCopyInto(&out.RootCA)
+	if in.RootCAPath != nil {
+		in, out := &in.RootCAPath, &out.RootCAPath
+		*out = new(string)
+		**out = **in
+	}
+	in.Certificate.DeepCopyInto(&out.Certificate)
+	if in.CertificatePath != nil {
+		in, out := &in.CertificatePath, &out.CertificatePath
+		*out = new(string)
+		**out = **in
+	}
+	in.PrivateKey.DeepCopyInto(&out.PrivateKey)
+	if in.PrivateKeyPath != nil {
+		in, out := &in.PrivateKeyPath, &out.PrivateKeyPath
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 

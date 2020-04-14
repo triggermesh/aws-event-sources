@@ -22,9 +22,9 @@ metadata:
     duck.knative.dev/source: 'true'
     knative.dev/crd-install: 'true'
   annotations:
-    # TODO(antoineco): populate event types
     registry.knative.dev/eventTypes: |
       [
+        { "type": "com.amazon.iot.greetings" }
       ]
 spec:
   group: sources.triggermesh.com

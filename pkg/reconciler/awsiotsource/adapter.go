@@ -37,8 +37,14 @@ import (
 const adapterName = "awsiotsource"
 
 const (
-	awsAccessKeyIdEnvVar     = "AWS_ACCESS_KEY_ID"
-	awsSecretAccessKeyEnvVar = "AWS_SECRET_ACCESS_KEY"
+	endpointEnvVar        = "THING_SHADOW_ENDPOINT"
+	topicEnvVar           = "THING_TOPIC"
+	rootCAEnvVar          = "ROOT_CA"
+	rootCAPathEnvVar      = "ROOT_CA_PATH"
+	certificateEnvVar     = "CERTIFICATE"
+	certificatePathEnvVar = "CERTIFICATE_PATH"
+	privateKeyEnvVar      = "PRIVATE_KEY"
+	privateKeyPathEnvVar  = "PRIVATE_KEY_PATH"
 )
 
 // adapterConfig contains properties used to configure the source's adapter.
@@ -155,8 +161,20 @@ func makeAdapterDeployment(src *v1alpha1.AWSIoTSource, sinkURI string,
 		resource.EnvVar(reconciler.SinkEnvVar, sinkURI),
 		resource.EnvVar(reconciler.LoggingConfigEnvVar, adapterCfg.LoggingCfg),
 		resource.EnvVar(reconciler.MetricsConfigEnvVar, adapterCfg.MetricsCfg),
-
-		// TODO(antoineco): add source specific env vars
+		resource.EnvVar(endpointEnvVar, src.Spec.Endpoint),
+		resource.EnvVar(topicEnvVar, src.Spec.Topic),
+		resource.EnvVarFromSecret(rootCAEnvVar,
+			src.Spec.RootCA.ValueFromSecret.Name,
+			src.Spec.RootCA.ValueFromSecret.Key),
+		resource.EnvVar(rootCAPathEnvVar, *src.Spec.RootCAPath),
+		resource.EnvVarFromSecret(certificateEnvVar,
+			src.Spec.Certificate.ValueFromSecret.Name,
+			src.Spec.Certificate.ValueFromSecret.Key),
+		resource.EnvVar(certificatePathEnvVar, *src.Spec.CertificatePath),
+		resource.EnvVarFromSecret(privateKeyEnvVar,
+			src.Spec.PrivateKey.ValueFromSecret.Name,
+			src.Spec.PrivateKey.ValueFromSecret.Key),
+		resource.EnvVar(privateKeyPathEnvVar, *src.Spec.PrivateKeyPath),
 	)
 }
 

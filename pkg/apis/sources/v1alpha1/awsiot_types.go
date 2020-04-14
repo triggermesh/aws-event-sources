@@ -51,7 +51,28 @@ var (
 type AWSIoTSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// TODO(antoineco): add source specific fields
+	// Host name of the endpoint the client connects to
+	Endpoint string `json:"endpoint"`
+	// Topic messages get published to
+	Topic string `json:"topic"`
+
+	// Contents of the root CA
+	RootCA ValueFromField `json:"rootCA"`
+	// Path where the root CA gets written
+	// +optional
+	RootCAPath *string `json:"rootCAPath,omitempty"`
+
+	// Contents of the client certificate
+	Certificate ValueFromField `json:"certificate"`
+	// Path where the client certificate gets written
+	// +optional
+	CertificatePath *string `json:"certificatePath,omitempty"`
+
+	// Contents of the client private key
+	PrivateKey ValueFromField `json:"privateKey"`
+	// Path where the client private key gets written
+	// +optional
+	PrivateKeyPath *string `json:"privateKeyPath,omitempty"`
 }
 
 // AWSIoTSourceStatus defines the observed state of the event source.

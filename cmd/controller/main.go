@@ -22,6 +22,7 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscodecommitsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitosource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsdynamodbsource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsiotsource"
 )
 
 func main() {
@@ -29,5 +30,6 @@ func main() {
 		awscodecommitsource.NewController,
 		awscognitosource.NewController,
 		awsdynamodbsource.NewController,
+		awsiotsource.NewController,
 	)
 }
