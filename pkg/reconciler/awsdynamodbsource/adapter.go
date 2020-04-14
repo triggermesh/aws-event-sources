@@ -37,6 +37,8 @@ import (
 const adapterName = "awsdynamodbsource"
 
 const (
+	tableEnvVar              = "TABLE"
+	awsRegionEnvVar          = "AWS_REGION"
 	awsAccessKeyIdEnvVar     = "AWS_ACCESS_KEY_ID"
 	awsSecretAccessKeyEnvVar = "AWS_SECRET_ACCESS_KEY"
 )
@@ -155,8 +157,14 @@ func makeAdapterDeployment(src *v1alpha1.AWSDynamoDBSource, sinkURI string,
 		resource.EnvVar(reconciler.SinkEnvVar, sinkURI),
 		resource.EnvVar(reconciler.LoggingConfigEnvVar, adapterCfg.LoggingCfg),
 		resource.EnvVar(reconciler.MetricsConfigEnvVar, adapterCfg.MetricsCfg),
-
-		// TODO(antoineco): add source specific env vars
+		resource.EnvVar(tableEnvVar, src.Spec.Table),
+		resource.EnvVar(awsRegionEnvVar, src.Spec.Region),
+		resource.EnvVarFromSecret(awsAccessKeyIdEnvVar,
+			src.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
+			src.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
+		resource.EnvVarFromSecret(awsSecretAccessKeyEnvVar,
+			src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
+			src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
 	)
 }
 

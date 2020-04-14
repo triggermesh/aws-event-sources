@@ -51,7 +51,14 @@ var (
 type AWSDynamoDBSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// TODO(antoineco): add source specific fields
+	// Name of the DynamoDB table
+	Table string `json:"table"`
+
+	// Name of the AWS region where the DynamoDB table is located.
+	Region string `json:"region"`
+
+	// Credentials to interact with the AWS Cognito API.
+	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
 // AWSDynamoDBSourceStatus defines the observed state of the event source.

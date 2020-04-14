@@ -38,9 +38,25 @@ func (s *AWSDynamoDBSource) GetUntypedSpec() interface{} {
 
 // AWSDynamoDBEventSource returns a representation of the source suitable for
 // usage as a CloudEvent source.
-func AWSDynamoDBEventSource() string {
-	// TODO(antoineco): decide on format
-	return ""
+func AWSDynamoDBEventSource(region, table string) string {
+	return fmt.Sprintf("%s:table/%s", region, table)
+}
+
+// Supported event types
+const (
+	AWSDynamoDBAddEventType    = "insert"
+	AWSDynamoDBModifyEventType = "modify"
+	AWSDynamoDBRemoveEventType = "remove"
+)
+
+// AWSDynamoDBEventTypes returns the list of event types supported by the event
+// source.
+func AWSDynamoDBEventTypes() []string {
+	return []string{
+		AWSDynamoDBAddEventType,
+		AWSDynamoDBModifyEventType,
+		AWSDynamoDBRemoveEventType,
+	}
 }
 
 // AWSDynamoDBEventType returns the given event type in a format suitable for

@@ -287,6 +287,7 @@ func (in *AWSDynamoDBSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSDynamoDBSourceSpec) DeepCopyInto(out *AWSDynamoDBSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }
 
