@@ -69,6 +69,10 @@ func (r *Reconciler) computeStatus(src *v1alpha1.AWSSQSSource,
 // createCloudEventAttributes returns the CloudEvent types supported by the
 // source.
 func (r *Reconciler) createCloudEventAttributes(srcSpec *v1alpha1.AWSSQSSourceSpec) []duckv1.CloudEventAttributes {
-	// TODO(antoineco): populate event types
-	return nil
+	return []duckv1.CloudEventAttributes{
+		{
+			Type:   v1alpha1.AWSSQSEventType("message"),
+			Source: v1alpha1.AWSSQSEventSource(srcSpec.Region, srcSpec.Queue),
+		},
+	}
 }

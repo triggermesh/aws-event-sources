@@ -51,7 +51,13 @@ var (
 type AWSSQSSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// TODO(antoineco): add source specific fields
+	// Name of the AWS SQS queue.
+	Queue string `json:"queue"`
+	// Name of the AWS region where the AWS SQS queue is located.
+	Region string `json:"region"`
+
+	// Credentials to interact with the AWS SQS API.
+	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
 // AWSSQSSourceStatus defines the observed state of the event source.

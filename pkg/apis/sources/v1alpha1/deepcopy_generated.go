@@ -592,6 +592,7 @@ func (in *AWSSQSSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSSQSSourceSpec) DeepCopyInto(out *AWSSQSSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }
 
