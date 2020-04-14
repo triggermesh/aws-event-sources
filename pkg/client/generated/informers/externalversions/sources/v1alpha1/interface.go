@@ -28,6 +28,8 @@ type Interface interface {
 	AWSCodeCommitSources() AWSCodeCommitSourceInformer
 	// AWSCognitoSources returns a AWSCognitoSourceInformer.
 	AWSCognitoSources() AWSCognitoSourceInformer
+	// AWSDynamoDBSources returns a AWSDynamoDBSourceInformer.
+	AWSDynamoDBSources() AWSDynamoDBSourceInformer
 }
 
 type version struct {
@@ -49,4 +51,9 @@ func (v *version) AWSCodeCommitSources() AWSCodeCommitSourceInformer {
 // AWSCognitoSources returns a AWSCognitoSourceInformer.
 func (v *version) AWSCognitoSources() AWSCognitoSourceInformer {
 	return &aWSCognitoSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// AWSDynamoDBSources returns a AWSDynamoDBSourceInformer.
+func (v *version) AWSDynamoDBSources() AWSDynamoDBSourceInformer {
+	return &aWSDynamoDBSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
