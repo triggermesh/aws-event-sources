@@ -51,7 +51,13 @@ var (
 type AWSKinesisSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// TODO(antoineco): add source specific fields
+	// Name of the AWS Kinesis data stream.
+	Stream string `json:"stream"`
+	// Name of the AWS region where the AWS Kinesis data stream is located.
+	Region string `json:"region"`
+
+	// Credentials to interact with the AWS Kinesis API.
+	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
 // AWSKinesisSourceStatus defines the observed state of the event source.

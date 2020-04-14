@@ -38,9 +38,8 @@ func (s *AWSKinesisSource) GetUntypedSpec() interface{} {
 
 // AWSKinesisEventSource returns a representation of the source suitable for
 // usage as a CloudEvent source.
-func AWSKinesisEventSource() string {
-	// TODO(antoineco): decide on format
-	return ""
+func AWSKinesisEventSource(region, stream string) string {
+	return fmt.Sprintf("%s:stream/%s", region, stream)
 }
 
 // AWSKinesisEventType returns the given event type in a format suitable for

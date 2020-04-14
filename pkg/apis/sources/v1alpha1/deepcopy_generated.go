@@ -496,6 +496,7 @@ func (in *AWSKinesisSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSKinesisSourceSpec) DeepCopyInto(out *AWSKinesisSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }
 
