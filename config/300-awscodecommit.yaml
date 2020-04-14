@@ -25,7 +25,7 @@ metadata:
     registry.knative.dev/eventTypes: |
       [
         { "type": "com.amazon.codecommit.push" },
-        { "type": "com.amazon.codecommit.pull_request" },
+        { "type": "com.amazon.codecommit.pull_request" }
       ]
 spec:
   group: sources.triggermesh.com

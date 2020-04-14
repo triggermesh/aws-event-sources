@@ -21,7 +21,6 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/tools/cache"
 
 	k8sclient "knative.dev/pkg/client/injection/kube/client"
@@ -38,7 +37,7 @@ import (
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscodecommitsource"
 )
 
-// NewController creates a Reconciler for AWSCodeCommitSource and returns the result of NewImpl.
+// NewController creates a Reconciler for the event source and returns the result of NewImpl.
 func NewController(
 	ctx context.Context,
 	cmw configmap.Watcher,
@@ -68,7 +67,7 @@ func NewController(
 	sourceInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
 
 	deploymentInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: controller.FilterGroupVersionKind(sourceGVK()),
+		FilterFunc: controller.FilterGroupVersionKind((&v1alpha1.AWSCodeCommitSource{}).GetGroupVersionKind()),
 		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
 	})
 
@@ -78,9 +77,4 @@ func NewController(
 	cmw.Watch(metrics.ConfigMapName(), r.updateAdapterMetricsConfig)
 
 	return impl
-}
-
-func sourceGVK() schema.GroupVersionKind {
-	src := &v1alpha1.AWSCodeCommitSource{}
-	return src.GetGroupVersionKind()
 }

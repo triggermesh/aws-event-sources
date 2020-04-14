@@ -33,7 +33,7 @@ import (
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscodecommitsource"
 )
 
-// Reconciler implements controller.Reconciler for AWSCodeCommitSource resources.
+// Reconciler implements controller.Reconciler for the event source type.
 type Reconciler struct {
 	logger *zap.SugaredLogger
 

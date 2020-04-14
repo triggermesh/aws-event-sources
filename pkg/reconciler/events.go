@@ -25,7 +25,7 @@ import (
 	"knative.dev/pkg/controller"
 )
 
-// reasons for API Events
+// Reasons for API Events
 const (
 	// ReasonCreate is used when an object is successfully created.
 	ReasonCreate = "Create"
