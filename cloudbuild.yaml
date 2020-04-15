@@ -22,9 +22,9 @@ steps:
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
-  - --dockerfile=awsdynamodb/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awsdynamodb:${_KANIKO_IMAGE_TAG}
-  - --cache-repo=gcr.io/$PROJECT_ID/awsdynamodb/cache
+  - --dockerfile=cmd/awsdynamodbsource/Dockerfile
+  - --destination=gcr.io/$PROJECT_ID/awsdynamodbsource:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/awsdynamodbsource/cache
   - --cache=${_KANIKO_USE_BUILD_CACHE}
   - --no-push=${_KANIKO_NO_PUSH}
   - ${_KANIKO_EXTRA_ARGS}
