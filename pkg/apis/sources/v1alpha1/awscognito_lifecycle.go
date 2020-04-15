@@ -39,8 +39,13 @@ func (s *AWSCognitoSource) GetUntypedSpec() interface{} {
 // AWSCognitoEventSource returns a representation of the source suitable for
 // usage as a CloudEvent source.
 func AWSCognitoEventSource(identityPoolId string) string {
-	return fmt.Sprintf("identitypool/%s", identityPoolId)
+	return fmt.Sprintf("aws:cognito:identitypool/%s", identityPoolId)
 }
+
+// Supported event types
+const (
+	AWSCognitoGenericEventType = "sync_trigger"
+)
 
 // AWSCognitoEventType returns the given event type in a format suitable for
 // usage as a CloudEvent type.

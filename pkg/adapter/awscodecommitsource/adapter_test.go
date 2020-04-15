@@ -12,7 +12,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 */
 
 package awscodecommitsource
@@ -24,7 +23,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codecommit/codecommitiface"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 
 	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
@@ -81,7 +79,7 @@ func TestSendPREvent(t *testing.T) {
 	assert.Len(t, gotEvents, 1, "Expected 1 event, got %d", len(gotEvents))
 
 	wantData := `{"pullRequest":{"ApprovalRules":null,"AuthorArn":null,"ClientRequestToken":null,"CreationDate":null,"Description":null,"LastActivityDate":null,"PullRequestId":"12345","PullRequestStatus":null,"PullRequestTargets":null,"RevisionId":null,"Title":null},"eventType":null,"repository":"","branch":"","eventSource":"aws:codecommit","awsRegion":""}`
-	gotData := gotEvents[0].Data()
+	gotData := string(gotEvents[0].Data())
 	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
 }
 
@@ -103,7 +101,7 @@ func TestSendPushEvent(t *testing.T) {
 	assert.Len(t, gotEvents, 1, "Expected 1 event, got %d", len(gotEvents))
 
 	wantData := `{"commit":{"AdditionalData":null,"Author":null,"CommitId":"12345","Committer":null,"Message":null,"Parents":null,"TreeId":null},"commitRepository":"","commitBranch":"","commitHash":null,"eventSource":"aws:codecommit","awsRegion":""}`
-	gotData := gotEvents[0].Data()
+	gotData := string(gotEvents[0].Data())
 	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
 }
 
@@ -162,12 +160,11 @@ func TestProcessCommits(t *testing.T) {
 			GetBranchErr:  tt.GetBranchErr,
 			GetCommitErr:  tt.GetCommitErr,
 		}
-		ceClient := adaptertest.NewTestClient()
 
 		a := &adapter{
 			logger:   loggingtesting.TestLogger(t),
 			ccClient: ccClient,
-			ceClient: ceClient,
+			ceClient: adaptertest.NewTestClient(),
 		}
 
 		err := a.processCommits()
@@ -283,7 +280,7 @@ func TestRemoveOldPRs(t *testing.T) {
 	}
 
 	prs := removeOldPRs(oldPRs, newPRs)
-	log.Info(prs)
+	t.Log(prs)
 	assert.Equal(t, 2, len(prs))
 	assert.Equal(t, expectedPRs, prs)
 }

@@ -12,7 +12,6 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 */
 
 package awscodecommitsource
@@ -57,7 +56,7 @@ type envConfig struct {
 	RepoBranch             string `envconfig:"BRANCH" required:"true"`
 	GitEventTypes          string `envconfig:"EVENT_TYPES" required:"true"`
 	AWSRegion              string `envconfig:"AWS_REGION" required:"true"`
-	AccountAccessKeyID     string `envconfig:"AWS_ACCESS_KEY_ID" required:"true"`
+	AccountAccessKeyId     string `envconfig:"AWS_ACCESS_KEY_ID" required:"true"`
 	AccountSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY" required:"true"`
 }
 
@@ -72,7 +71,7 @@ type adapter struct {
 	repoBranch             string
 	gitEvents              string
 	awsRegion              string
-	accountAccessKeyID     string
+	accountAccessKeyId     string
 	accountSecretAccessKey string
 }
 
@@ -89,8 +88,8 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 
 	// create CodeCommit client
 	sess, err := session.NewSession(&aws.Config{
-		Region:      aws.String(env.AWSRegion),
-		Credentials: credentials.NewStaticCredentials(env.AccountAccessKeyID, env.AccountSecretAccessKey, ""),
+		Region:      &env.AWSRegion,
+		Credentials: credentials.NewStaticCredentials(env.AccountAccessKeyId, env.AccountSecretAccessKey, ""),
 		MaxRetries:  aws.Int(5),
 	})
 	if err != nil {
@@ -107,7 +106,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 		repoBranch:             env.RepoBranch,
 		gitEvents:              env.GitEventTypes,
 		awsRegion:              env.AWSRegion,
-		accountAccessKeyID:     env.AccountAccessKeyID,
+		accountAccessKeyId:     env.AccountAccessKeyId,
 		accountSecretAccessKey: env.AccountSecretAccessKey,
 	}
 }
@@ -118,8 +117,8 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 		a.logger.Info("Push events enabled")
 
 		branchInfo, err := a.ccClient.GetBranch(&codecommit.GetBranchInput{
-			RepositoryName: aws.String(a.repo),
-			BranchName:     aws.String(a.repoBranch),
+			RepositoryName: &a.repo,
+			BranchName:     &a.repoBranch,
 		})
 		if err != nil {
 			a.logger.Fatalw("Failed to retrieve branch info", "error", err)
@@ -134,7 +133,7 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 		// get pull request IDs
 		pullRequestsOutput, err := a.ccClient.ListPullRequests(&codecommit.ListPullRequestsInput{
-			RepositoryName: aws.String(a.repo),
+			RepositoryName: &a.repo,
 		})
 		if err != nil {
 			a.logger.Fatalw("Failed to retrieve list of pull requests", "error", err)
@@ -186,8 +185,8 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 func (a *adapter) processCommits() error {
 	branchInfo, err := a.ccClient.GetBranch(&codecommit.GetBranchInput{
-		BranchName:     aws.String(a.repoBranch),
-		RepositoryName: aws.String(a.repo),
+		BranchName:     &a.repoBranch,
+		RepositoryName: &a.repo,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get branch info: %w", err)
@@ -195,7 +194,7 @@ func (a *adapter) processCommits() error {
 
 	commitOutput, err := a.ccClient.GetCommit(&codecommit.GetCommitInput{
 		CommitId:       branchInfo.Branch.CommitId,
-		RepositoryName: aws.String(a.repo),
+		RepositoryName: &a.repo,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get commit info: %w", err)
@@ -219,7 +218,7 @@ func (a *adapter) preparePullRequests() ([]*codecommit.PullRequest, error) {
 	pullRequests := []*codecommit.PullRequest{}
 
 	input := codecommit.ListPullRequestsInput{
-		RepositoryName: aws.String(a.repo),
+		RepositoryName: &a.repo,
 	}
 
 	for {
@@ -262,10 +261,10 @@ func (a *adapter) sendPushEvent(commit *codecommit.Commit) error {
 
 	data := &PushEvent{
 		Commit:           commit,
-		CommitRepository: aws.String(a.repo),
-		CommitBranch:     aws.String(a.repoBranch),
+		CommitRepository: &a.repo,
+		CommitBranch:     &a.repoBranch,
 		EventSource:      aws.String("aws:codecommit"),
-		AwsRegion:        aws.String(a.awsRegion),
+		AwsRegion:        &a.awsRegion,
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
@@ -286,10 +285,10 @@ func (a *adapter) sendPREvent(pullRequest *codecommit.PullRequest) error {
 
 	data := &PullRequestEvent{
 		PullRequest: pullRequest,
-		Repository:  aws.String(a.repo),
-		Branch:      aws.String(a.repoBranch),
+		Repository:  &a.repo,
+		Branch:      &a.repoBranch,
 		EventSource: aws.String("aws:codecommit"),
-		AwsRegion:   aws.String(a.awsRegion),
+		AwsRegion:   &a.awsRegion,
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)

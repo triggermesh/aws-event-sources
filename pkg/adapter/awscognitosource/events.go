@@ -14,14 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package main
+package awscognitosource
 
 import (
-	"knative.dev/eventing/pkg/adapter/v2"
+	"time"
 
-	"github.com/triggermesh/aws-event-sources/pkg/adapter/awscodecommitsource"
+	"github.com/aws/aws-sdk-go/service/cognitosync"
 )
 
-func main() {
-	adapter.Main("awscodecommitsource", awscodecommitsource.NewEnvConfig, awscodecommitsource.NewAdapter)
+// CognitoSyncEvent represents the payload of a Cognito sync event.
+type CognitoSyncEvent struct {
+	CreationDate     *time.Time
+	DataStorage      *int64
+	DatasetName      *string
+	IdentityID       *string
+	LastModifiedBy   *string
+	LastModifiedDate *time.Time
+	NumRecords       *int64
+	EventType        *string
+	Region           *string
+	IdentityPoolID   *string
+	DatasetRecords   []*cognitosync.Record
 }
