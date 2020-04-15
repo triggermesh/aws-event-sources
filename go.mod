@@ -17,10 +17,8 @@ require (
 	contrib.go.opencensus.io/exporter/zipkin v0.1.1 // indirect
 	github.com/aws/aws-sdk-go v1.30.6
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/cloudevents/sdk-go v1.1.2
 	github.com/cloudevents/sdk-go/v2 v2.0.0-preview8
 	github.com/imdario/mergo v0.3.9 // indirect
-	github.com/jarcoal/httpmock v1.0.5
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/onsi/gomega v1.7.0 // indirect
