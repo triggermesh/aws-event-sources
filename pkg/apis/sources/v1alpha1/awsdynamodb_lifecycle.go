@@ -39,7 +39,7 @@ func (s *AWSDynamoDBSource) GetUntypedSpec() interface{} {
 // AWSDynamoDBEventSource returns a representation of the source suitable for
 // usage as a CloudEvent source.
 func AWSDynamoDBEventSource(region, table string) string {
-	return fmt.Sprintf("%s:table/%s", region, table)
+	return fmt.Sprintf("aws:dynamodb:%s:table/%s", region, table)
 }
 
 // Supported event types
