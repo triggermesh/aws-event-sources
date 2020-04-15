@@ -22,7 +22,6 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/onsi/gomega v1.7.0 // indirect
-	github.com/sirupsen/logrus v1.5.0
 	github.com/stretchr/testify v1.5.1
 	go.uber.org/zap v1.14.1
 	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect

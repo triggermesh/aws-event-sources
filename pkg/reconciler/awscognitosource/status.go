@@ -71,7 +71,7 @@ func (r *Reconciler) computeStatus(src *v1alpha1.AWSCognitoSource,
 func (r *Reconciler) createCloudEventAttributes(srcSpec *v1alpha1.AWSCognitoSourceSpec) []duckv1.CloudEventAttributes {
 	return []duckv1.CloudEventAttributes{
 		{
-			Type:   v1alpha1.AWSCognitoEventType("sync_trigger"),
+			Type:   v1alpha1.AWSCognitoEventType(v1alpha1.AWSCognitoGenericEventType),
 			Source: v1alpha1.AWSCognitoEventSource(srcSpec.IdentityPoolId),
 		},
 	}
