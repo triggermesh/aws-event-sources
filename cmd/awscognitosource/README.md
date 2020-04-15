@@ -1,13 +1,13 @@
-# AWS CodeCommit event source for Knative Eventing
+# AWS Cognito event source for Knative Eventing
 
-This event source consumes messages from a AWS CodeCommit repository and sends them as CloudEvents to an arbitrary event
+This event source consumes messages from a AWS Cognito identity pool and sends them as CloudEvents to an arbitrary event
 sink.
 
 ## Contents
 
 1. [Prerequisites](#prerequisites)
 1. [Deployment to Kubernetes](#deployment-to-kubernetes)
-   * [As a AWSCodeCommitSource object](#as-a-awscodecommitsource-object)
+   * [As a AWSCognitoSource object](#as-a-awscognitosource-object)
    * [As a ContainerSource object](#as-a-containersource-object)
 1. [Running locally](#running-locally)
    * [In the shell](#in-the-shell)
@@ -17,13 +17,13 @@ sink.
 
 * Register an AWS account
 * Create an [Access Key][doc-accesskey] in your AWS IAM dashboard.
-* Create a [CodeCommit repository][doc-codecommit].
+* Create a [Cognito identity pool][doc-cognito].
 
 ## Deployment to Kubernetes
 
-The _AWS CodeCommit event source_ can be deployed to Kubernetes in different manners:
+The _AWS Cognito event source_ can be deployed to Kubernetes in different manners:
 
-* As an `AWSCodeCommitSource` object, to a cluster where the TriggerMesh _AWS Sources Controller_ is running.
+* As an `AWSCognitoSource` object, to a cluster where the TriggerMesh _AWS Sources Controller_ is running.
 * As a Knative `ContainerSource`, to any cluster running Knative Eventing.
 
 > :information_source: The sample manifests below reference AWS credentials (Access Key) from a Kubernetes Secret object
@@ -38,24 +38,24 @@ The _AWS CodeCommit event source_ can be deployed to Kubernetes in different man
 > Alternatively, credentials can be used as literal strings instead of references by replacing `valueFrom` attributes
 > with `value`.
 
-### As a AWSCodeCommitSource object
+### As a AWSCognitoSource object
 
-Copy the sample manifest from `config/samples/awscodecommitsource.yaml` and replace the pre-filled `spec` attributes
-with the values corresponding to your _AWS CodeCommit_ repository. Then, create that `AWSCodeCommitSource` object in
+Copy the sample manifest from `config/samples/awscognitosource.yaml` and replace the pre-filled `spec` attributes
+with the values corresponding to your _AWS Cognito_ identity pool. Then, create that `AWSCognitoSource` object in
 your Kubernetes cluster:
 
 ```console
-$ kubectl -n <my_namespace> create -f my-awscodecommitsource.yaml
+$ kubectl -n <my_namespace> create -f my-awscognitosource.yaml
 ```
 
 ### As a ContainerSource object
 
-Copy the sample manifest from `config/samples/awscodecommit-containersource.yaml` and replace the pre-filled environment
-variables under `env` with the values corresponding to your _AWS CodeCommit_ repository. Then, create that
+Copy the sample manifest from `config/samples/awscognito-containersource.yaml` and replace the pre-filled environment
+variables under `env` with the values corresponding to your _AWS Cognito_ identity pool. Then, create that
 `ContainerSource` object in your Kubernetes cluster:
 
 ```console
-$ kubectl -n <my_namespace> create -f my-awscodecommit-containersource.yaml
+$ kubectl -n <my_namespace> create -f my-awscognito-containersource.yaml
 ```
 
 ## Running locally
@@ -67,22 +67,19 @@ Running the event source on your local machine can be convenient for development
 Ensure the following environment variables are exported to your current shell's environment:
 
 ```sh
-export REPO=<my_codecommit_repo>
-export BRANCH=<my_git_branch>
-export EVENT_TYPES=push,pull_request
-export AWS_REGION=<my_repo_region>
+export IDENTITY_POOL_ID=<my_identity_pool_id>
 export AWS_ACCESS_KEY_ID=<my_key_id>
 export AWS_SECRET_ACCESS_KEY=<my_secret_key>
-export NAME=my-awscodecommitsource
+export NAME=my-awscognitosource
 export NAMESPACE=default
 export K_LOGGING_CONFIG='{"level":"info"}'
-export K_METRICS_CONFIG='{"domain":"triggermesh.com/sources", "component":"awscodecommitsource", "configMap":{}}'
+export K_METRICS_CONFIG='{"domain":"triggermesh.com/sources", "component":"awscognitosource", "configMap":{}}'
 ```
 
 Then, run the event source with:
 
 ```console
-$ go run ./cmd/awscodecommitsource
+$ go run ./cmd/awscognitosource
 ```
 
 ### In a Docker container
@@ -91,18 +88,15 @@ Using one of TriggerMesh's release images:
 
 ```console
 $ docker run --rm \
-  -e REPO=<my_codecommit_repo> \
-  -e BRANCH=<my_git_branch> \
-  -e EVENT_TYPES=push,pull_request \
-  -e AWS_REGION=<my_repo_region> \
+  -e IDENTITY_POOL_ID=<my_identity_pool_id> \
   -e AWS_ACCESS_KEY_ID=<my_key_id> \
   -e AWS_SECRET_ACCESS_KEY=<my_secret_key> \
-  -e NAME=my-awscodecommitsource \
+  -e NAME=my-awscognitosource \
   -e NAMESPACE=default \
   -e K_LOGGING_CONFIG='{"level":"info"}' \
-  -e K_METRICS_CONFIG='{"domain":"triggermesh.com/sources", "component":"awscodecommitsource", "configMap":{}}' \
-  gcr.io/triggermesh/awscodecommitsource:latest
+  -e K_METRICS_CONFIG='{"domain":"triggermesh.com/sources", "component":"awscognitosource", "configMap":{}}' \
+  gcr.io/triggermesh/awscognitosource:latest
 ```
 
 [doc-accesskey]: https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys
-[doc-codecommit]: https://docs.aws.amazon.com/codecommit/latest/userguide/how-to-create-repository.html
+[doc-cognito]: https://docs.aws.amazon.com/cognito/latest/developerguide/tutorial-create-identity-pool.html
