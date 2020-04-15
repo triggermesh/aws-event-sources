@@ -1,19 +1,15 @@
 FROM golang:1.14-alpine AS builder
 
-ENV GO111MODULE on
 ENV CGO_ENABLED 0
 ENV GOOS linux
 ENV GOARCH amd64
 
-WORKDIR /go/src/awscognito
+WORKDIR /go/src/awscognitosource
 
-RUN apk update && apk add --no-cache openssh-client ca-certificates
+RUN apk add --no-cache openssh-client ca-certificates
 
-COPY awscognito/go.mod awscognito/go.sum /go/src/awscognito/
-RUN go mod download
-
-COPY awscognito/ /go/src/awscognito/
-RUN go install -installsuffix cgo ./...
+COPY ./ .
+RUN go install -installsuffix cgo ./cmd/awscognitosource
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
@@ -26,6 +22,6 @@ LABEL description "This is the Triggermesh Knative Event Source for AWS Cognito"
 
 COPY licenses/ /licenses/
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /go/bin/awscognito /go/bin/awscognito
+COPY --from=builder /go/bin/awscognitosource /go/bin/awscognitosource
 
-ENTRYPOINT ["/go/bin/awscognito"]
+ENTRYPOINT ["/go/bin/awscognitosource"]
