@@ -71,7 +71,7 @@ func (r *Reconciler) computeStatus(src *v1alpha1.AWSKinesisSource,
 func (r *Reconciler) createCloudEventAttributes(srcSpec *v1alpha1.AWSKinesisSourceSpec) []duckv1.CloudEventAttributes {
 	return []duckv1.CloudEventAttributes{
 		{
-			Type:   v1alpha1.AWSKinesisEventType("stream_record"),
+			Type:   v1alpha1.AWSKinesisEventType(v1alpha1.AWSKinesisGenericEventType),
 			Source: v1alpha1.AWSKinesisEventSource(srcSpec.Region, srcSpec.Stream),
 		},
 	}

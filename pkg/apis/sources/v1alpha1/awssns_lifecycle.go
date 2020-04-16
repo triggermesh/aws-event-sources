@@ -44,7 +44,7 @@ func AWSSNSEventSource(region, topic string) string {
 
 // Supported event types
 const (
-	AWSKinesisGenericEventType = "notification"
+	AWSSNSGenericEventType = "notification"
 )
 
 // AWSSNSEventType returns the given event type in a format suitable for

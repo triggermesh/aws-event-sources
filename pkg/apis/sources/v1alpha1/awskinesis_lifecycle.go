@@ -39,8 +39,13 @@ func (s *AWSKinesisSource) GetUntypedSpec() interface{} {
 // AWSKinesisEventSource returns a representation of the source suitable for
 // usage as a CloudEvent source.
 func AWSKinesisEventSource(region, stream string) string {
-	return fmt.Sprintf("%s:stream/%s", region, stream)
+	return fmt.Sprintf("aws:kinesis:%s:stream/%s", region, stream)
 }
+
+// Supported event types
+const (
+	AWSKinesisGenericEventType = "stream_record"
+)
 
 // AWSKinesisEventType returns the given event type in a format suitable for
 // usage as a CloudEvent type.
