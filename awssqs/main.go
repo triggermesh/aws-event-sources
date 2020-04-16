@@ -198,6 +198,7 @@ func (clients Clients) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 
 	event := cloudevents.NewEvent("1.0")
 	event.SetType("com.amazon.sqs.message")
+	event.SetSubject("triggermesh")
 	event.SetSource(queueURL)
 	event.SetID(*msg.MessageId)
 	event.SetDataContentType(cloudevents.ApplicationJSON)
