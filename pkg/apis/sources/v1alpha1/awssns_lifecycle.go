@@ -42,6 +42,11 @@ func AWSSNSEventSource(region, topic string) string {
 	return fmt.Sprintf("%s:topic/%s", region, topic)
 }
 
+// Supported event types
+const (
+	AWSKinesisGenericEventType = "notification"
+)
+
 // AWSSNSEventType returns the given event type in a format suitable for
 // usage as a CloudEvent type.
 func AWSSNSEventType(eventType string) string {
