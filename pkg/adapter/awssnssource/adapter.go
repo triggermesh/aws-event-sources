@@ -200,7 +200,7 @@ func (a *adapter) handleNotification(_ http.ResponseWriter, r *http.Request) {
 		}
 
 		event := cloudevents.NewEvent(cloudevents.VersionV1)
-		event.SetType(v1alpha1.AWSSNSEventType(v1alpha1.AWSKinesisGenericEventType))
+		event.SetType(v1alpha1.AWSSNSEventType(v1alpha1.AWSSNSGenericEventType))
 		event.SetSubject(data["Subject"].(string))
 		event.SetSource(v1alpha1.AWSSNSEventSource(a.awsRegion, a.topic))
 		event.SetID(data["MessageId"].(string))

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019 TriggerMesh, Inc
+Copyright (c) 2020 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,9 +12,9 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 */
-package main
+
+package awskinesissource
 
 import (
 	"errors"
@@ -24,9 +24,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
-	"github.com/cloudevents/sdk-go"
-	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
+
+	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
+	loggingtesting "knative.dev/pkg/logging/testing"
 )
 
 type mockedGetRecords struct {
@@ -50,13 +51,9 @@ func (m mockedGetShardIterator) GetShardIterator(in *kinesis.GetShardIteratorInp
 }
 
 func TestProcessInputs(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
-
-	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+	streamARN := aws.String("testARN")
 
 	now := time.Now()
-
 	records := []*kinesis.Record{
 		{
 			SequenceNumber:              aws.String("1"),
@@ -66,67 +63,71 @@ func TestProcessInputs(t *testing.T) {
 		},
 	}
 
-	transport, err := cloudevents.NewHTTPTransport(
-		cloudevents.WithTarget("https://foo.com"),
-	)
-	assert.NoError(t, err)
+	a := &adapter{
+		logger:   loggingtesting.TestLogger(t),
+		ceClient: adaptertest.NewTestClient(),
+	}
 
-	cloudClient, err := cloudevents.NewClient(transport)
-	assert.NoError(t, err)
-
-	clients := Clients{
-		Kinesis: mockedGetRecords{Resp: kinesis.GetRecordsOutput{
+	a.knsClient = mockedGetRecords{
+		Resp: kinesis.GetRecordsOutput{
 			NextShardIterator: aws.String("nextIterator"),
 			Records:           records,
-		}, err: nil},
-		CloudEvents: cloudClient,
+		},
+		err: nil,
 	}
 
 	inputs := []kinesis.GetRecordsInput{
 		{},
 	}
 
-	err = clients.processInputs(inputs, []*string{aws.String("shardID")})
+	err := a.processInputs(inputs, []*string{aws.String("shardID")}, streamARN)
 	assert.NoError(t, err)
 
-	clients = Clients{
-		Kinesis:     mockedGetRecords{Resp: kinesis.GetRecordsOutput{}, err: errors.New("error")},
-		CloudEvents: cloudClient,
+	a.knsClient = mockedGetRecords{
+		Resp: kinesis.GetRecordsOutput{},
+		err:  errors.New("fake error"),
 	}
 
-	err = clients.processInputs(inputs, []*string{aws.String("shardID")})
+	err = a.processInputs(inputs, []*string{aws.String("shardID")}, streamARN)
 	assert.NoError(t, err)
 }
 
 func TestGetRecordsInputs(t *testing.T) {
+	a := &adapter{
+		logger: loggingtesting.TestLogger(t),
+	}
 
-	clients := Clients{
-		Kinesis: mockedGetShardIterator{Resp: kinesis.GetShardIteratorOutput{ShardIterator: aws.String("shardIterator")}, err: nil},
+	a.knsClient = mockedGetShardIterator{
+		Resp: kinesis.GetShardIteratorOutput{ShardIterator: aws.String("shardIterator")},
+		err:  nil,
 	}
 
 	shards := []*kinesis.Shard{
 		{ShardId: aws.String("1")},
 	}
 
-	inputs, _ := clients.getRecordsInputs(shards)
+	inputs, _ := a.getRecordsInputs(shards)
 	assert.Equal(t, 1, len(inputs))
 
-	clients = Clients{
-		Kinesis: mockedGetShardIterator{Resp: kinesis.GetShardIteratorOutput{}, err: errors.New("err")},
+	a.knsClient = mockedGetShardIterator{
+		Resp: kinesis.GetShardIteratorOutput{},
+		err:  errors.New("fake error"),
 	}
 
-	inputs, _ = clients.getRecordsInputs(shards)
+	inputs, _ = a.getRecordsInputs(shards)
 	assert.Equal(t, 0, len(inputs))
-
 }
 
 func TestSendCloudevent(t *testing.T) {
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
+	streamARN := aws.String("testARN")
 
-	streamName = "fooStream"
+	ceClient := adaptertest.NewTestClient()
 
-	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+	a := &adapter{
+		logger:   loggingtesting.TestLogger(t),
+		stream:   "fooStream",
+		ceClient: ceClient,
+	}
 
 	record := kinesis.Record{
 		Data:           []byte("foo"),
@@ -134,18 +135,13 @@ func TestSendCloudevent(t *testing.T) {
 		PartitionKey:   aws.String("key"),
 	}
 
-	transport, err := cloudevents.NewHTTPTransport(
-		cloudevents.WithTarget("https://foo.com"),
-	)
+	err := a.sendKinesisRecord(&record, aws.String(""), streamARN)
 	assert.NoError(t, err)
 
-	cloudClient, err := cloudevents.NewClient(transport)
-	assert.NoError(t, err)
+	gotEvents := ceClient.Sent()
+	assert.Len(t, gotEvents, 1, "Expected 1 event, got %d", len(gotEvents))
 
-	clients := Clients{
-		CloudEvents: cloudClient,
-	}
-
-	err = clients.sendKinesisRecord(&record, aws.String(""))
-	assert.NoError(t, err)
+	wantData := `{"eventID":null,"eventVersion":null,"kinesis":{"partitionKey":"key","data":"Zm9v","sequenceNumber":"1","kinesisSchemaVersion":"1.0"},"eventName":"aws:kinesis:record","eventSourceARN":"testARN","eventSource":"aws:kinesis","awsRegion":""}`
+	gotData := string(gotEvents[0].Data())
+	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
 }
