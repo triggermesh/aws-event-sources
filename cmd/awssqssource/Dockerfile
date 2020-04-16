@@ -1,19 +1,15 @@
 FROM golang:1.14-alpine AS builder
 
-ENV GO111MODULE on
 ENV CGO_ENABLED 0
 ENV GOOS linux
 ENV GOARCH amd64
 
-WORKDIR /go/src/awssqs
+WORKDIR /go/src/awssqssource
 
-RUN apk update && apk add --no-cache openssh-client ca-certificates
+RUN apk add --no-cache openssh-client ca-certificates
 
-COPY awssqs/go.mod awssqs/go.sum /go/src/awssqs/
-RUN go mod download
-
-COPY awssqs/ /go/src/awssqs/
-RUN go install -installsuffix cgo ./...
+COPY ./ .
+RUN go install -installsuffix cgo ./cmd/awssqssource
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
@@ -26,6 +22,6 @@ LABEL description "This is the Triggermesh Knative Event Source for AWS SQS"
 
 COPY licenses/ /licenses/
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /go/bin/awssqs /go/bin/awssqs
+COPY --from=builder /go/bin/awssqssource /go/bin/awssqssource
 
-ENTRYPOINT ["/go/bin/awssqs"]
+ENTRYPOINT ["/go/bin/awssqssource"]

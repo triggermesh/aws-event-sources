@@ -32,7 +32,7 @@ Download Knative event sources for AWS ${RELEASE}
 - awscognitosource ([container](https://gcr.io/triggermesh/awscognitosource:${RELEASE})) ([linux/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awscognitosource-linux-amd64)) ([macos/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awscognitosource-darwin-amd64))
 - awsdynamodbsource ([container](https://gcr.io/triggermesh/awsdynamodbsource:${RELEASE})) ([linux/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awsdynamodbsource-linux-amd64)) ([macos/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awsdynamodbsource-darwin-amd64))
 - awskinesis ([container](https://gcr.io/triggermesh/awskinesis:${RELEASE})) ([linux/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awskinesis-linux-amd64)) ([macos/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awskinesis-darwin-amd64))
-- awssqs ([container](https://gcr.io/triggermesh/awssqs:${RELEASE})) ([linux/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awssqs-linux-amd64)) ([macos/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awssqs-darwin-amd64))
+- awssqssource ([container](https://gcr.io/triggermesh/awssqssource:${RELEASE})) ([linux/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awssqssource-linux-amd64)) ([macos/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awssqssource-darwin-amd64))
 
 ## Changelog
 
