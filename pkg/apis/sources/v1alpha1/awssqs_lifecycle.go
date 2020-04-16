@@ -39,8 +39,13 @@ func (s *AWSSQSSource) GetUntypedSpec() interface{} {
 // AWSSQSEventSource returns a representation of the source suitable for
 // usage as a CloudEvent source.
 func AWSSQSEventSource(region, queue string) string {
-	return fmt.Sprintf("%s:queue/%s", region, queue)
+	return fmt.Sprintf("aws:sqs:%s:queue/%s", region, queue)
 }
+
+// Supported event types
+const (
+	AWSSQSGenericEventType = "message"
+)
 
 // AWSSQSEventType returns the given event type in a format suitable for
 // usage as a CloudEvent type.

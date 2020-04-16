@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019 TriggerMesh, Inc
+Copyright (c) 2020 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,9 +12,9 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
-
 */
-package main
+
+package awssqssource
 
 import (
 	"errors"
@@ -23,9 +23,10 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	"github.com/cloudevents/sdk-go"
-	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/assert"
+
+	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
+	loggingtesting "knative.dev/pkg/logging/testing"
 )
 
 type mockedReceiveMsgs struct {
@@ -71,22 +72,26 @@ func TestQueueLookup(t *testing.T) {
 		},
 		{ // Case 2, expect error
 			Resp:     sqs.GetQueueUrlOutput{QueueUrl: aws.String("")},
-			err:      errors.New("No such queue"),
+			err:      errors.New("fake getQueueUrl error"),
 			Expected: aws.String(""),
 		},
 	}
 
 	for _, c := range cases {
-		clients := Clients{
-			SQS: mockedGetQueueUrl{Resp: c.Resp, err: c.err},
+		a := &adapter{
+			logger:    loggingtesting.TestLogger(t),
+			sqsClient: mockedGetQueueUrl{Resp: c.Resp, err: c.err},
 		}
-		url, err := clients.QueueLookup("testQueue")
+
+		url, err := a.queueLookup("testQueue")
 		assert.Equal(t, c.err, err)
 		assert.Equal(t, c.Expected, url.QueueUrl)
 	}
 }
 
 func TestGetMessages(t *testing.T) {
+	const queueURL = "mockURL"
+
 	cases := []struct {
 		Resp     sqs.ReceiveMessageOutput
 		err      error
@@ -111,11 +116,12 @@ func TestGetMessages(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		clients := Clients{
-			SQS: mockedReceiveMsgs{Resp: c.Resp, err: c.err},
+		a := &adapter{
+			logger:    loggingtesting.TestLogger(t),
+			sqsClient: mockedReceiveMsgs{Resp: c.Resp, err: c.err},
 		}
-		queueURL = "mockURL"
-		msgs, err := clients.GetMessages(20)
+
+		msgs, err := a.getMessages(queueURL, waitTimeoutSec)
 		assert.Equal(t, c.err, err)
 		assert.Equal(t, len(c.Expected), len(msgs))
 	}
@@ -128,46 +134,49 @@ func TestPushMessage(t *testing.T) {
 		Attributes: map[string]*string{
 			"SentTimestamp": aws.String("1549540781"),
 		}}
-	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
 
-	httpmock.RegisterResponder("POST", "https://foo.com", httpmock.NewStringResponder(200, ``))
+	ceClient := adaptertest.NewTestClient()
 
-	transport, err := cloudevents.NewHTTPTransport(
-		cloudevents.WithTarget("https://foo.com"),
-	)
-	assert.NoError(t, err)
-
-	cloudClient, err := cloudevents.NewClient(transport)
-	assert.NoError(t, err)
-
-	clients := Clients{
-		CloudEvents: cloudClient,
+	a := &adapter{
+		logger:   loggingtesting.TestLogger(t),
+		ceClient: ceClient,
 	}
 
-	err = clients.sendSQSEvent(&msg, aws.String("testQueueARN"))
+	err := a.sendSQSEvent(&msg, aws.String("testQueueARN"))
 	assert.NoError(t, err)
+
+	gotEvents := ceClient.Sent()
+	assert.Len(t, gotEvents, 1, "Expected 1 event, got %d", len(gotEvents))
+
+	wantData := `{"messageId":"foo","receiptHandle":null,"body":"bar","attributes":{"SentTimestamp":"1549540781"},"messageAttributes":null,"md5OfBody":null,"eventSource":"aws:sqs","eventSourceARN":"testQueueARN","awsRegion":""}`
+	gotData := string(gotEvents[0].Data())
+	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
 }
 
 func TestDeleteMessage(t *testing.T) {
-
-	clients := Clients{
-		SQS: mockedDeleteMsgs{Resp: sqs.DeleteMessageOutput{}, err: nil},
-	}
+	const queueURL = "mockURL"
 
 	msg := sqs.Message{
 		ReceiptHandle: aws.String("foo"),
 	}
-	err := clients.DeleteMessage(msg.ReceiptHandle)
+
+	a := &adapter{
+		logger: loggingtesting.TestLogger(t),
+	}
+
+	a.sqsClient = mockedDeleteMsgs{
+		Resp: sqs.DeleteMessageOutput{},
+		err:  nil,
+	}
+
+	err := a.deleteMessage(queueURL, msg.ReceiptHandle)
 	assert.NoError(t, err)
 
-	clients = Clients{
-		SQS: mockedDeleteMsgs{Resp: sqs.DeleteMessageOutput{}, err: errors.New("Could not delete msg")},
+	a.sqsClient = mockedDeleteMsgs{
+		Resp: sqs.DeleteMessageOutput{},
+		err:  errors.New("fake deleteMessage error"),
 	}
 
-	msg = sqs.Message{
-		ReceiptHandle: aws.String("foo"),
-	}
-	err = clients.DeleteMessage(msg.ReceiptHandle)
+	err = a.deleteMessage(queueURL, msg.ReceiptHandle)
 	assert.Error(t, err)
 }
