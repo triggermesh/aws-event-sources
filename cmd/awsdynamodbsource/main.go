@@ -23,5 +23,5 @@ import (
 )
 
 func main() {
-	adapter.Main("awscodecommitsource", awsdynamodbsource.NewEnvConfig, awsdynamodbsource.NewAdapter)
+	adapter.Main("awsdynamodbsource", awsdynamodbsource.NewEnvConfig, awsdynamodbsource.NewAdapter)
 }
