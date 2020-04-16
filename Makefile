@@ -1,4 +1,4 @@
-SUBDIRS ?= cmd/awscodecommitsource cmd/awscognitosource cmd/awsdynamodbsource awskinesis cmd/awssqssource
+SUBDIRS ?= cmd/awscodecommitsource cmd/awscognitosource cmd/awsdynamodbsource cmd/awskinesissource cmd/awssqssource
 TARGETS := $(shell awk '{FS = ":";} /^[a-zA-Z0-9._-]+:.*?/ { printf "%s ", $$1 }' scripts/inc.Makefile)
 
 .PHONY: $(SUBDIRS) $(TARGETS)

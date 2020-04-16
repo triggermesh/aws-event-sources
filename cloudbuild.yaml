@@ -32,9 +32,9 @@ steps:
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
-  - --dockerfile=awskinesis/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awskinesis:${_KANIKO_IMAGE_TAG}
-  - --cache-repo=gcr.io/$PROJECT_ID/awskinesis/cache
+  - --dockerfile=cmd/awskinesissource/Dockerfile
+  - --destination=gcr.io/$PROJECT_ID/awskinesissource:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/awskinesissource/cache
   - --cache=${_KANIKO_USE_BUILD_CACHE}
   - --no-push=${_KANIKO_NO_PUSH}
   - ${_KANIKO_EXTRA_ARGS}
