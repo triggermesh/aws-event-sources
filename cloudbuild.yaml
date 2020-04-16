@@ -42,9 +42,9 @@ steps:
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
-  - --dockerfile=awssqs/Dockerfile
-  - --destination=gcr.io/$PROJECT_ID/awssqs:${_KANIKO_IMAGE_TAG}
-  - --cache-repo=gcr.io/$PROJECT_ID/awssqs/cache
+  - --dockerfile=cmd/awssqssource/Dockerfile
+  - --destination=gcr.io/$PROJECT_ID/awssqssource:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/awssqssource/cache
   - --cache=${_KANIKO_USE_BUILD_CACHE}
   - --no-push=${_KANIKO_NO_PUSH}
   - ${_KANIKO_EXTRA_ARGS}
