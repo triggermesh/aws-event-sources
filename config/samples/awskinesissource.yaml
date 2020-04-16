@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Sample AWSDynamoDBSource object.
+# Sample AWSKinesisSource object.
 
 apiVersion: sources.triggermesh.com/v1alpha1
-kind: AWSDynamoDBSource
+kind: AWSKinesisSource
 metadata:
-  name: awsdynamodbsource-sample
+  name: awskinesissource-sample
 spec:
-  table: triggermeshtest
+  stream: triggermeshtest
   region: us-west-2
 
   credentials:
