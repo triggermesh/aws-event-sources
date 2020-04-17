@@ -64,11 +64,7 @@ fmt-test: ## Check source formatting
 	@test -z $(shell $(GOFMT) -l $(shell $(GO) list -f '{{$$d := .Dir}}{{range .GoFiles}}{{$$d}}/{{.}} {{end}} {{$$d := .Dir}}{{range .TestGoFiles}}{{$$d}}/{{.}} {{end}}' ./...))
 
 image: ## Builds the container image
-ifeq ($(notdir $(shell dirname $(CURDIR)..)),cmd)
 	$(DOCKER) build -t $(IMAGE) -f Dockerfile ../../
-else
-	$(DOCKER) build -t $(IMAGE) -f Dockerfile ../
-endif
 
 clean: ## Clean build artifacts
 	$(RM) -rf $(PACKAGE)
