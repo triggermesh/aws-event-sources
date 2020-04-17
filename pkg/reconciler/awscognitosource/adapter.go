@@ -48,7 +48,7 @@ const (
 // These are automatically populated by envconfig.
 type adapterConfig struct {
 	// Container image
-	Image string `default:"gcr.io/triggermesh/awscognito"`
+	Image string `default:"gcr.io/triggermesh/awscognitosource"`
 	// Logging configuration, serialized as JSON.
 	LoggingCfg string `ignored:"true"`
 	// Metrics (observability) configuration, serialized as JSON.

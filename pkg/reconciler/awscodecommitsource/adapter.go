@@ -50,7 +50,7 @@ const (
 // These are automatically populated by envconfig.
 type adapterConfig struct {
 	// Container image
-	Image string `default:"gcr.io/triggermesh/awscodecommit"`
+	Image string `default:"gcr.io/triggermesh/awscodecommitsource"`
 	// Logging configuration, serialized as JSON.
 	LoggingCfg string `ignored:"true"`
 	// Metrics (observability) configuration, serialized as JSON.
