@@ -34,9 +34,9 @@ type FakeAWSCodeCommitSources struct {
 	ns   string
 }
 
-var awscodecommitsourcesResource = schema.GroupVersionResource{Group: "sources.triggermesh.com", Version: "v1alpha1", Resource: "awscodecommitsources"}
+var awscodecommitsourcesResource = schema.GroupVersionResource{Group: "sources.triggermesh.io", Version: "v1alpha1", Resource: "awscodecommitsources"}
 
-var awscodecommitsourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.com", Version: "v1alpha1", Kind: "AWSCodeCommitSource"}
+var awscodecommitsourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSCodeCommitSource"}
 
 // Get takes name of the aWSCodeCommitSource, and returns the corresponding aWSCodeCommitSource object, and an error if there is any.
 func (c *FakeAWSCodeCommitSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSCodeCommitSource, err error) {

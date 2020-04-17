@@ -36,7 +36,7 @@ import (
 
 const (
 	defaultControllerAgentName = "awsiotsource-controller"
-	defaultFinalizerName       = "awsiotsources.sources.triggermesh.com"
+	defaultFinalizerName       = "awsiotsources.sources.triggermesh.io"
 	defaultQueueName           = "awsiotsources"
 )
 

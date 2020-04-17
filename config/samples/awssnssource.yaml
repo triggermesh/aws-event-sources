@@ -14,7 +14,7 @@
 
 # Sample AWSSNSSource object.
 
-apiVersion: sources.triggermesh.com/v1alpha1
+apiVersion: sources.triggermesh.io/v1alpha1
 kind: AWSSNSSource
 metadata:
   name: awssnssource-sample

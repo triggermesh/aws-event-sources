@@ -36,7 +36,7 @@ import (
 
 const (
 	defaultControllerAgentName = "awscognitosource-controller"
-	defaultFinalizerName       = "awscognitosources.sources.triggermesh.com"
+	defaultFinalizerName       = "awscognitosources.sources.triggermesh.io"
 	defaultQueueName           = "awscognitosources"
 )
 

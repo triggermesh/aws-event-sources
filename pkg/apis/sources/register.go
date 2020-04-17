@@ -19,7 +19,7 @@ package sources
 import "k8s.io/apimachinery/pkg/runtime/schema"
 
 // GroupName is the name of the API group this package's resources belong to.
-const GroupName = "sources.triggermesh.com"
+const GroupName = "sources.triggermesh.io"
 
 // AWSCodeCommitSourceResource respresents an event source for AWS CodeCommit.
 var AWSCodeCommitSourceResource = schema.GroupResource{

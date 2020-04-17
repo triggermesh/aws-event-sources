@@ -14,7 +14,7 @@
 
 # Sample AWSSQSSource object.
 
-apiVersion: sources.triggermesh.com/v1alpha1
+apiVersion: sources.triggermesh.io/v1alpha1
 kind: AWSSQSSource
 metadata:
   name: awssqssource-sample

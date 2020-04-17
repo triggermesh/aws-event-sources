@@ -36,7 +36,7 @@ import (
 
 const (
 	defaultControllerAgentName = "awssnssource-controller"
-	defaultFinalizerName       = "awssnssources.sources.triggermesh.com"
+	defaultFinalizerName       = "awssnssources.sources.triggermesh.io"
 	defaultQueueName           = "awssnssources"
 )
 

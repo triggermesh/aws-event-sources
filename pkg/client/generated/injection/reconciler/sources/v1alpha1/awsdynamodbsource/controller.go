@@ -36,7 +36,7 @@ import (
 
 const (
 	defaultControllerAgentName = "awsdynamodbsource-controller"
-	defaultFinalizerName       = "awsdynamodbsources.sources.triggermesh.com"
+	defaultFinalizerName       = "awsdynamodbsources.sources.triggermesh.io"
 	defaultQueueName           = "awsdynamodbsources"
 )
 

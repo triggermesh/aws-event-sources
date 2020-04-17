@@ -34,9 +34,9 @@ type FakeAWSIoTSources struct {
 	ns   string
 }
 
-var awsiotsourcesResource = schema.GroupVersionResource{Group: "sources.triggermesh.com", Version: "v1alpha1", Resource: "awsiotsources"}
+var awsiotsourcesResource = schema.GroupVersionResource{Group: "sources.triggermesh.io", Version: "v1alpha1", Resource: "awsiotsources"}
 
-var awsiotsourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.com", Version: "v1alpha1", Kind: "AWSIoTSource"}
+var awsiotsourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSIoTSource"}
 
 // Get takes name of the aWSIoTSource, and returns the corresponding aWSIoTSource object, and an error if there is any.
 func (c *FakeAWSIoTSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSIoTSource, err error) {

@@ -34,9 +34,9 @@ type FakeAWSSQSSources struct {
 	ns   string
 }
 
-var awssqssourcesResource = schema.GroupVersionResource{Group: "sources.triggermesh.com", Version: "v1alpha1", Resource: "awssqssources"}
+var awssqssourcesResource = schema.GroupVersionResource{Group: "sources.triggermesh.io", Version: "v1alpha1", Resource: "awssqssources"}
 
-var awssqssourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.com", Version: "v1alpha1", Kind: "AWSSQSSource"}
+var awssqssourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSSQSSource"}
 
 // Get takes name of the aWSSQSSource, and returns the corresponding aWSSQSSource object, and an error if there is any.
 func (c *FakeAWSSQSSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSSQSSource, err error) {

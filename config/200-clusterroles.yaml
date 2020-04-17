@@ -46,14 +46,14 @@ rules:
 
 # Read Source resources and update their statuses
 - apiGroups:
-  - sources.triggermesh.com
+  - sources.triggermesh.io
   resources:
   - awscodecommitsources
   verbs:
   - list
   - watch
 - apiGroups:
-  - sources.triggermesh.com
+  - sources.triggermesh.io
   resources:
   - awscodecommitsources/status
   verbs:

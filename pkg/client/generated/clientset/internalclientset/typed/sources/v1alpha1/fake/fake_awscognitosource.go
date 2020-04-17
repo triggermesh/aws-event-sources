@@ -34,9 +34,9 @@ type FakeAWSCognitoSources struct {
 	ns   string
 }
 
-var awscognitosourcesResource = schema.GroupVersionResource{Group: "sources.triggermesh.com", Version: "v1alpha1", Resource: "awscognitosources"}
+var awscognitosourcesResource = schema.GroupVersionResource{Group: "sources.triggermesh.io", Version: "v1alpha1", Resource: "awscognitosources"}
 
-var awscognitosourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.com", Version: "v1alpha1", Kind: "AWSCognitoSource"}
+var awscognitosourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSCognitoSource"}
 
 // Get takes name of the aWSCognitoSource, and returns the corresponding aWSCognitoSource object, and an error if there is any.
 func (c *FakeAWSCognitoSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSCognitoSource, err error) {

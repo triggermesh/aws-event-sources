@@ -61,7 +61,7 @@ spec:
         - name: K_METRICS_CONFIG
           value: |
             {
-              "domain": "triggermesh.com/sources",
+              "domain": "triggermesh.io/sources",
               "component": "awssnssource",
               "configMap": {}
             }

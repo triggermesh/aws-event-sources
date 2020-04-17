@@ -36,7 +36,7 @@ import (
 
 const (
 	defaultControllerAgentName = "awscodecommitsource-controller"
-	defaultFinalizerName       = "awscodecommitsources.sources.triggermesh.com"
+	defaultFinalizerName       = "awscodecommitsources.sources.triggermesh.io"
 	defaultQueueName           = "awscodecommitsources"
 )
 

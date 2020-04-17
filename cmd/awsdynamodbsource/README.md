@@ -74,7 +74,7 @@ export AWS_SECRET_ACCESS_KEY=<my_secret_key>
 export NAME=my-awsdynamodbsource
 export NAMESPACE=default
 export K_LOGGING_CONFIG='{"level":"info"}'
-export K_METRICS_CONFIG='{"domain":"triggermesh.com/sources", "component":"awsdynamodbsource", "configMap":{}}'
+export K_METRICS_CONFIG='{"domain":"triggermesh.io/sources", "component":"awsdynamodbsource", "configMap":{}}'
 ```
 
 Then, run the event source with:
@@ -96,7 +96,7 @@ $ docker run --rm \
   -e NAME=my-awsdynamodbsource \
   -e NAMESPACE=default \
   -e K_LOGGING_CONFIG='{"level":"info"}' \
-  -e K_METRICS_CONFIG='{"domain":"triggermesh.com/sources", "component":"awsdynamodbsource", "configMap":{}}' \
+  -e K_METRICS_CONFIG='{"domain":"triggermesh.io/sources", "component":"awsdynamodbsource", "configMap":{}}' \
   gcr.io/triggermesh/awsdynamodbsource:latest
 ```
 

@@ -34,9 +34,9 @@ type FakeAWSDynamoDBSources struct {
 	ns   string
 }
 
-var awsdynamodbsourcesResource = schema.GroupVersionResource{Group: "sources.triggermesh.com", Version: "v1alpha1", Resource: "awsdynamodbsources"}
+var awsdynamodbsourcesResource = schema.GroupVersionResource{Group: "sources.triggermesh.io", Version: "v1alpha1", Resource: "awsdynamodbsources"}
 
-var awsdynamodbsourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.com", Version: "v1alpha1", Kind: "AWSDynamoDBSource"}
+var awsdynamodbsourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSDynamoDBSource"}
 
 // Get takes name of the aWSDynamoDBSource, and returns the corresponding aWSDynamoDBSource object, and an error if there is any.
 func (c *FakeAWSDynamoDBSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSDynamoDBSource, err error) {

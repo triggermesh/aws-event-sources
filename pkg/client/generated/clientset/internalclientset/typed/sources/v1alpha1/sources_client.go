@@ -35,7 +35,7 @@ type SourcesV1alpha1Interface interface {
 	AWSSQSSourcesGetter
 }
 
-// SourcesV1alpha1Client is used to interact with features provided by the sources.triggermesh.com group.
+// SourcesV1alpha1Client is used to interact with features provided by the sources.triggermesh.io group.
 type SourcesV1alpha1Client struct {
 	restClient rest.Interface
 }
