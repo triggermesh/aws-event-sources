@@ -1,6 +1,14 @@
-**/c.out
-**/*-coverage.html
-**/*-unit-tests.xml
+# Local configurations and secrets
 **/.env
 **/.aws
 
+# Continuous integration
+**/c.out
+**/*-coverage.html
+**/*-unit-tests.xml
+
+# Editors and IDEs
+/.idea/
+*~
+*.swp
+*.swo
