@@ -36,6 +36,6 @@ const (
 // Common label values
 const (
 	SourcesGroup     = "aws-event-sources"
-	ManagedBy        = "aws-sources-controller"
+	ManagedBy        = "aws-event-sources-controller"
 	AdapterComponent = "adapter"
 )

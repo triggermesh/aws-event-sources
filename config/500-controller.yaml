@@ -15,7 +15,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: &app aws-sources-controller
+  name: &app aws-event-sources-controller
   namespace: knative-eventing
   labels:
     eventing.knative.dev/release: devel
@@ -38,7 +38,7 @@ spec:
       containers:
       - name: controller
         terminationMessagePolicy: FallbackToLogsOnError
-        image: ko://github.com/triggermesh/aws-event-sources/cmd/controller
+        image: ko://github.com/triggermesh/aws-event-sources/cmd/aws-event-sources-controller
 
         resources:
           requests:

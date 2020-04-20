@@ -29,7 +29,7 @@ import (
 )
 
 func main() {
-	sharedmain.Main("controller",
+	sharedmain.Main("aws-event-sources-controller",
 		awscodecommitsource.NewController,
 		awscognitosource.NewController,
 		awsdynamodbsource.NewController,

@@ -20,7 +20,7 @@ Providing that the local environment is configured with a valid kubeconfig (eith
 executing
 
 ```
-$ go run ./cmd/controller
+$ go run ./cmd/aws-event-sources-controller
 ```
 
 > :information_source: The source controller requires a few environment variables to be exported in order to start.
@@ -46,21 +46,21 @@ using [ko](https://github.com/google/ko).
 ```
 $ ko apply --local -f config/
 ...
-2020/04/07 13:44:00 Using base gcr.io/distroless/static:latest for github.com/triggermesh/aws-event-sources/cmd/controller
-2020/04/07 13:44:01 Building github.com/triggermesh/aws-event-sources/cmd/controller
-2020/04/07 13:44:05 Loading ko.local/controller-0d0554a556
-2020/04/07 13:44:06 Loaded ko.local/controller-0d0554a556
+2020/04/07 13:44:00 Using base gcr.io/distroless/static:latest for github.com/triggermesh/aws-event-sources/cmd/aws-event-sources-controller
+2020/04/07 13:44:01 Building github.com/triggermesh/aws-event-sources/cmd/aws-event-sources-controller
+2020/04/07 13:44:05 Loading ko.local/aws-event-sources-controller-0d0554a556
+2020/04/07 13:44:06 Loaded ko.local/aws-event-sources-controller-0d0554a556
 2020/04/07 13:44:06 Adding tag latest
 2020/04/07 13:44:06 Added tag latest
-deployment.apps/aws-sources-controller created
+deployment.apps/aws-event-sources-controller created
 ```
 
 The controller will be deployed inside the `knative-eventing` namespace.
 
 ```console
-$ kn knative-eventing get deployment/aws-sources-controller
-NAME                     READY   UP-TO-DATE   AVAILABLE   AGE
-aws-sources-controller   1/1     1            1           1m
+$ kn knative-eventing get deployment/aws-event-sources-controller
+NAME                           READY   UP-TO-DATE   AVAILABLE   AGE
+aws-event-sources-controller   1/1     1            1           1m
 ```
 
 > :information_source: Although `ko` does not make use of the `docker` client, the `--local` flag assumes the
