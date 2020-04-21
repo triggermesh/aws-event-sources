@@ -8,86 +8,40 @@
 
 **How:** The sources listed in this repo are fully open source and can be used in any Knative cluster. They consist of Go event consumers for various AWS services. Most of them are packaged as `Container Sources` and make use of [CloudEvents](https://cloudevents.io/)
 
-## Sources and Usage
+## List of event sources
 
-Most sources have the following structure:
+| AWS service | Support level |
+|-------------|---------------|
+| CodeCommit  | alpha         |
+| Cognito     | alpha         |
+| DynamoDB    | alpha         |
+| IoT         | alpha/WIP     |
+| Kinesis     | alpha         |
+| SNS         | alpha         |
+| SQS         | alpha         |
 
-```shell
-├── awscodecommit
-│   ├── Dockerfile
-│   ├── Gopkg.lock
-│   ├── Gopkg.toml
-│   ├── Makefile
-│   ├── README.md
-│   ├── codecommit-source.yaml
-│   ├── main.go
-│   └── main_test.go
-```
+## Usage
 
-The code is in `main.go`. The `Dockerfile` shows how the source is containerized and the `*-source.yaml` is the `ContainerSource` manifest that you can deploy on your knative cluster.
-
-For example, the following manifest will start the _CodeCommit_ source.
+Each individual event source can be found in a sub-directory under `cmd/`. Most sources have the following structure:
 
 ```
-apiVersion: sources.eventing.knative.dev/v1alpha1
-kind: ContainerSource
-metadata:
-  name: awscodecommit
-spec:
-  image: gcr.io/triggermesh/awscodecommit:latest
-  sink:
-    apiVersion: eventing.knative.dev/v1alpha1
-    kind: Channel
-    name: default
-  env:
-    - name: AWS_ACCESS_KEY_ID
-      valueFrom:
-        secretKeyRef:
-          name: awscreds
-          key: aws_access_key_id
-    - name: AWS_SECRET_ACCESS_KEY
-      valueFrom:
-        secretKeyRef:
-          name: awscreds
-          key: aws_secret_access_key
-    - name: AWS_REGION
-      value: us-west-2
-    - name: REPO
-      value: triggermeshtest
-    - name: BRANCH
-      value: master
-    - name: EVENTS
-      value: pull_request,push
+cmd/awscodecommitsource
+├── Dockerfile
+├── Makefile
+├── README.md
+└── main.go
 ```
 
-Given the above manifest stored as a file named `codecommit-source.yaml`. You can edit it to fit your needs (e.g change the repository name), then start the source via:
+* `README.md` contains the usage instructions for the event source. You should probably start by checking that file.
+* `main.go` contains the entry point code that starts the execution of the event source.
+* `Dockerfile` contains the directives necessary for building a container image for the event source.
+* `Makefile` contains goals for building, verifying and testing the code of the event source. Try `make help` to show all available goals for the event source.
 
-```
-kubectl apply -f codecommit-source.yaml
-```
-
-For information on what is a knative [Channel](https://github.com/knative/docs/tree/master/eventing) please see the Knative [documentation](https://github.com/knative/docs/tree/master/eventing).
-
-### Credentials
-
-In the example manifests provided in this repo, the AWS credentials are loaded via a Kubernetes secret named `awscreds` which needs to contain the keys `aws_access_key_id` and `aws_secret_access_key`.
-
-## List
-
-| AWS service | Source Type | Support Level|
-|-------------|-------------|--------|
-|CodeCommit|Container source|alpha|
-|Cognito|Container source|alpha|
-|DynamoDB|Container source|alpha|
-|IoT|Container source|alpha/WIP|
-|Kinesis|Container source|alpha|
-|S3|Container source|alpha|
-|SNS|Container source|alpha|
-|SQS|Container source|alpha|
+For detailed usage instructions about a particular source, please refer to its own `README.md` file.
 
 ## Caveat
 
-AWS Events are very rich. AWS SNS and AWS CloudWatch can be used with almost every AWS services, hence there are many different ways to consume and/or receive AWS events. These sources represent one way of doing it.
+AWS events are very rich. AWS SNS and AWS CloudWatch can be used with almost every AWS service, hence there are many different ways to consume and/or receive AWS events. These sources represent one way of doing it.
 
 ## TriggerMesh Cloud Early Access
 
@@ -112,3 +66,7 @@ TriggerMesh Inc supports those sources commercially, email info@triggermesh.com 
 ## Code of Conduct
 
 This plugin is by no means part of [CNCF](https://www.cncf.io/) but we abide by its [code of conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md)
+
+## Contributing
+
+Refer to [DEVELOPMENT.md](./DEVELOPMENT.md).
