@@ -29,7 +29,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
@@ -46,10 +45,8 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	Topic                  string `envconfig:"TOPIC" required:"true"`
-	AWSRegion              string `envconfig:"AWS_REGION" required:"true"`
-	AccountAccessKeyId     string `envconfig:"AWS_ACCESS_KEY_ID" required:"true"`
-	AccountSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY" required:"true"`
+	Topic     string `envconfig:"TOPIC" required:"true"`
+	AWSRegion string `envconfig:"AWS_REGION" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -59,10 +56,8 @@ type adapter struct {
 	snsClient snsiface.SNSAPI
 	ceClient  cloudevents.Client
 
-	topic                  string
-	awsRegion              string
-	accountAccessKeyID     string
-	accountSecretAccessKey string
+	topic     string
+	awsRegion string
 }
 
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
@@ -77,14 +72,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 	env := envAcc.(*envConfig)
 
 	// create SNS client
-	sess, err := session.NewSession(&aws.Config{
-		Region:      &env.AWSRegion,
-		Credentials: credentials.NewStaticCredentials(env.AccountAccessKeyId, env.AccountSecretAccessKey, ""),
-		MaxRetries:  aws.Int(5),
-	})
-	if err != nil {
-		logger.Fatalw("Failed to create SNS client", "error", err)
-	}
+	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
 
 	return &adapter{
 		logger: logger,
@@ -92,10 +80,8 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 		snsClient: sns.New(sess),
 		ceClient:  ceClient,
 
-		topic:                  env.Topic,
-		awsRegion:              env.AWSRegion,
-		accountAccessKeyID:     env.AccountAccessKeyId,
-		accountSecretAccessKey: env.AccountSecretAccessKey,
+		topic:     env.Topic,
+		awsRegion: env.AWSRegion,
 	}
 }
 

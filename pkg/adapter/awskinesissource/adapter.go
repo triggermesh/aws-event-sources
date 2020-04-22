@@ -23,7 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
@@ -40,10 +39,8 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	Stream                 string `envconfig:"STREAM" required:"true"`
-	AWSRegion              string `envconfig:"AWS_REGION" required:"true"`
-	AccountAccessKeyId     string `envconfig:"AWS_ACCESS_KEY_ID" required:"true"`
-	AccountSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY" required:"true"`
+	Stream    string `envconfig:"STREAM" required:"true"`
+	AWSRegion string `envconfig:"AWS_REGION" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -53,10 +50,8 @@ type adapter struct {
 	knsClient kinesisiface.KinesisAPI
 	ceClient  cloudevents.Client
 
-	stream                 string
-	awsRegion              string
-	accountAccessKeyID     string
-	accountSecretAccessKey string
+	stream    string
+	awsRegion string
 }
 
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
@@ -71,14 +66,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 	env := envAcc.(*envConfig)
 
 	// create Kinesis client
-	sess, err := session.NewSession(&aws.Config{
-		Region:      &env.AWSRegion,
-		Credentials: credentials.NewStaticCredentials(env.AccountAccessKeyId, env.AccountSecretAccessKey, ""),
-		MaxRetries:  aws.Int(5),
-	})
-	if err != nil {
-		logger.Fatalw("Failed to create Kinesis client", "error", err)
-	}
+	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
 
 	return &adapter{
 		logger: logger,
@@ -86,10 +74,8 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 		knsClient: kinesis.New(sess),
 		ceClient:  ceClient,
 
-		stream:                 env.Stream,
-		awsRegion:              env.AWSRegion,
-		accountAccessKeyID:     env.AccountAccessKeyId,
-		accountSecretAccessKey: env.AccountSecretAccessKey,
+		stream:    env.Stream,
+		awsRegion: env.AWSRegion,
 	}
 }
 
