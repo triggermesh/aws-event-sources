@@ -32,7 +32,6 @@ import (
 	"knative.dev/pkg/resolver"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-	"github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client"
 	informerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awsdynamodbsource"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awsdynamodbsource"
 )
@@ -56,7 +55,6 @@ func NewController(
 	r := &Reconciler{
 		logger:           logger,
 		adapterCfg:       adapterCfg,
-		sourceClient:     client.Get(ctx).SourcesV1alpha1().AWSDynamoDBSources,
 		deploymentClient: k8sclient.Get(ctx).AppsV1().Deployments,
 		deploymentLister: deploymentInformer.Lister().Deployments,
 	}

@@ -18,57 +18,33 @@ package awsiotsource
 
 import (
 	appsv1 "k8s.io/api/apps/v1"
-	"k8s.io/apimachinery/pkg/api/equality"
 
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
-// syncStatus ensures the status of a given source is up-to-date.
-func (r *Reconciler) syncStatus(src *v1alpha1.AWSIoTSource, adapter *appsv1.Deployment) error {
-	currentStatus := &src.Status
-	expectedStatus := r.computeStatus(src, adapter)
-
-	if equality.Semantic.DeepEqual(expectedStatus, currentStatus) {
-		return nil
-	}
-
-	src = &v1alpha1.AWSIoTSource{
-		ObjectMeta: src.ObjectMeta,
-		Status:     *expectedStatus,
-	}
-
-	_, err := r.sourceClient(src.Namespace).UpdateStatus(src)
-	return err
-}
-
-// computeStatus returns the expected status of a given source.
-func (r *Reconciler) computeStatus(src *v1alpha1.AWSIoTSource,
-	adapter *appsv1.Deployment) *v1alpha1.AWSIoTSourceStatus {
-
-	status := src.Status.DeepCopy()
-	status.InitializeConditions()
-	status.CloudEventAttributes = r.createCloudEventAttributes(&src.Spec)
-	status.ObservedGeneration = src.Generation
+// computeStatus sets the attributes and conditions of the sources's status.
+func (r *Reconciler) computeStatus(src *v1alpha1.AWSIoTSource, adapter *appsv1.Deployment) {
+	src.Status.InitializeConditions()
+	src.Status.CloudEventAttributes = createCloudEventAttributes(&src.Spec)
+	src.Status.ObservedGeneration = src.Generation
 
 	sinkURI, err := r.sinkResolver.URIFromDestinationV1(src.Spec.Sink, src)
 	if err != nil {
-		status.MarkNoSink()
-		return status
+		src.Status.MarkNoSink()
+		return
 	}
-	status.MarkSink(sinkURI)
+	src.Status.MarkSink(sinkURI)
 
 	if adapter != nil {
-		status.PropagateAvailability(adapter)
+		src.Status.PropagateAvailability(adapter)
 	}
-
-	return status
 }
 
 // createCloudEventAttributes returns the CloudEvent types supported by the
 // source.
-func (r *Reconciler) createCloudEventAttributes(srcSpec *v1alpha1.AWSIoTSourceSpec) []duckv1.CloudEventAttributes {
+func createCloudEventAttributes(srcSpec *v1alpha1.AWSIoTSourceSpec) []duckv1.CloudEventAttributes {
 	return []duckv1.CloudEventAttributes{
 		{
 			Type:   v1alpha1.AWSIoTEventType("greetings"),
