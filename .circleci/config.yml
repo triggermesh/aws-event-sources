@@ -5,21 +5,26 @@ orbs:
   gcp-cli: circleci/gcp-cli@1.8.4
 
 jobs:
-  build:
+  checkout:
     executor:
       name: go/default
       tag: '1.14'
     steps:
       - checkout
-      - restore_cache:
-          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
-      - run:
-          name: Downloading Go modules
-          command: make mod-download
-      - save_cache:
-          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
+      - go/mod-download-cached
+      - persist_to_workspace:
+          root: ~/
           paths:
-            - $GOPATH/pkg/mod
+            - go
+            - project
+
+  build:
+    executor:
+      name: go/default
+      tag: '1.14'
+    steps:
+      - attach_workspace:
+          at: ~/
       - run:
           name: Building package
           command: make build
@@ -35,16 +40,8 @@ jobs:
       name: go/default
       tag: '1.14'
     steps:
-      - checkout
-      - restore_cache:
-          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
-      - run:
-          name: Downloading Go modules
-          command: make mod-download
-      - save_cache:
-          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
-          paths:
-            - $GOPATH/pkg/mod
+      - attach_workspace:
+          at: ~/
       - run:
           name: Validating code formatting
           command: make fmt-test
@@ -70,7 +67,8 @@ jobs:
     executor:
       name: gcp-cli/google
     steps:
-      - checkout
+      - attach_workspace:
+          at: ~/
       - gcp-cli/initialize
       - run:
           name: Publishing docker image
@@ -81,16 +79,8 @@ jobs:
       name: go/default
       tag: '1.14'
     steps:
-      - checkout
-      - restore_cache:
-          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
-      - run:
-          name: Downloading Go modules
-          command: make mod-download
-      - save_cache:
-          key: v1-repo-{{ .Environment.CIRCLE_BRANCH }}
-          paths:
-            - $GOPATH/pkg/mod
+      - attach_workspace:
+          at: ~/
       - run:
           name: Building release packages
           command: make release
@@ -110,11 +100,19 @@ jobs:
 workflows:
   build-test-and-publish:
     jobs:
+      - checkout:
+          filters:
+            tags:
+              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
       - build:
+          requires:
+            - checkout
           filters:
             tags:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
       - test:
+          requires:
+            - checkout
           filters:
             tags:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
