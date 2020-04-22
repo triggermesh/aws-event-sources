@@ -25,7 +25,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
@@ -42,10 +41,8 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	Table                  string `envconfig:"TABLE" required:"true"`
-	AWSRegion              string `envconfig:"AWS_REGION" required:"true"`
-	AccountAccessKeyId     string `envconfig:"AWS_ACCESS_KEY_ID" required:"true"`
-	AccountSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY" required:"true"`
+	Table     string `envconfig:"TABLE" required:"true"`
+	AWSRegion string `envconfig:"AWS_REGION" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -55,10 +52,8 @@ type adapter struct {
 	dyndbClient dynamodbstreamsiface.DynamoDBStreamsAPI
 	ceClient    cloudevents.Client
 
-	table                  string
-	awsRegion              string
-	accountAccessKeyID     string
-	accountSecretAccessKey string
+	table     string
+	awsRegion string
 }
 
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
@@ -73,14 +68,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 	env := envAcc.(*envConfig)
 
 	// create DynamoDB client
-	sess, err := session.NewSession(&aws.Config{
-		Region:      &env.AWSRegion,
-		Credentials: credentials.NewStaticCredentials(env.AccountAccessKeyId, env.AccountSecretAccessKey, ""),
-		MaxRetries:  aws.Int(5),
-	})
-	if err != nil {
-		logger.Fatalw("Failed to create DynamoDB client", "error", err)
-	}
+	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
 
 	return &adapter{
 		logger: logger,
@@ -88,10 +76,8 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 		dyndbClient: dynamodbstreams.New(sess),
 		ceClient:    ceClient,
 
-		table:                  env.Table,
-		awsRegion:              env.AWSRegion,
-		accountAccessKeyID:     env.AccountAccessKeyId,
-		accountSecretAccessKey: env.AccountSecretAccessKey,
+		table:     env.Table,
+		awsRegion: env.AWSRegion,
 	}
 }
 

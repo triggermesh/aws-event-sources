@@ -23,7 +23,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
@@ -40,10 +39,8 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	Queue                  string `envconfig:"QUEUE" required:"true"`
-	AWSRegion              string `envconfig:"AWS_REGION" required:"true"`
-	AccountAccessKeyId     string `envconfig:"AWS_ACCESS_KEY_ID" required:"true"`
-	AccountSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY" required:"true"`
+	Queue     string `envconfig:"QUEUE" required:"true"`
+	AWSRegion string `envconfig:"AWS_REGION" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -53,10 +50,8 @@ type adapter struct {
 	sqsClient sqsiface.SQSAPI
 	ceClient  cloudevents.Client
 
-	queue                  string
-	awsRegion              string
-	accountAccessKeyId     string
-	accountSecretAccessKey string
+	queue     string
+	awsRegion string
 }
 
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
@@ -71,14 +66,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 	env := envAcc.(*envConfig)
 
 	// create SQS client
-	sess, err := session.NewSession(&aws.Config{
-		Region:      &env.AWSRegion,
-		Credentials: credentials.NewStaticCredentials(env.AccountAccessKeyId, env.AccountSecretAccessKey, ""),
-		MaxRetries:  aws.Int(5),
-	})
-	if err != nil {
-		logger.Fatalw("Failed to create SQS client", "error", err)
-	}
+	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
 
 	return &adapter{
 		logger: logger,
@@ -86,10 +74,8 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 		sqsClient: sqs.New(sess),
 		ceClient:  ceClient,
 
-		queue:                  env.Queue,
-		awsRegion:              env.AWSRegion,
-		accountAccessKeyId:     env.AccountAccessKeyId,
-		accountSecretAccessKey: env.AccountSecretAccessKey,
+		queue:     env.Queue,
+		awsRegion: env.AWSRegion,
 	}
 }
 

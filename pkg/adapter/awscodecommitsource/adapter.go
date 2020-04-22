@@ -24,7 +24,6 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codecommit/codecommitiface"
@@ -52,12 +51,10 @@ const (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	Repo                   string `envconfig:"REPO" required:"true"`
-	RepoBranch             string `envconfig:"BRANCH" required:"true"`
-	GitEventTypes          string `envconfig:"EVENT_TYPES" required:"true"`
-	AWSRegion              string `envconfig:"AWS_REGION" required:"true"`
-	AccountAccessKeyId     string `envconfig:"AWS_ACCESS_KEY_ID" required:"true"`
-	AccountSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY" required:"true"`
+	Repo          string `envconfig:"REPO" required:"true"`
+	RepoBranch    string `envconfig:"BRANCH" required:"true"`
+	GitEventTypes string `envconfig:"EVENT_TYPES" required:"true"`
+	AWSRegion     string `envconfig:"AWS_REGION" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -67,12 +64,10 @@ type adapter struct {
 	ccClient codecommitiface.CodeCommitAPI
 	ceClient cloudevents.Client
 
-	repo                   string
-	repoBranch             string
-	gitEvents              string
-	awsRegion              string
-	accountAccessKeyId     string
-	accountSecretAccessKey string
+	repo       string
+	repoBranch string
+	gitEvents  string
+	awsRegion  string
 }
 
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
@@ -87,14 +82,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 	env := envAcc.(*envConfig)
 
 	// create CodeCommit client
-	sess, err := session.NewSession(&aws.Config{
-		Region:      &env.AWSRegion,
-		Credentials: credentials.NewStaticCredentials(env.AccountAccessKeyId, env.AccountSecretAccessKey, ""),
-		MaxRetries:  aws.Int(5),
-	})
-	if err != nil {
-		logger.Fatalw("Failed to create CodeCommit client", "error", err)
-	}
+	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
 
 	return &adapter{
 		logger: logger,
@@ -102,12 +90,10 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 		ccClient: codecommit.New(sess),
 		ceClient: ceClient,
 
-		repo:                   env.Repo,
-		repoBranch:             env.RepoBranch,
-		gitEvents:              env.GitEventTypes,
-		awsRegion:              env.AWSRegion,
-		accountAccessKeyId:     env.AccountAccessKeyId,
-		accountSecretAccessKey: env.AccountSecretAccessKey,
+		repo:       env.Repo,
+		repoBranch: env.RepoBranch,
+		gitEvents:  env.GitEventTypes,
+		awsRegion:  env.AWSRegion,
 	}
 }
 

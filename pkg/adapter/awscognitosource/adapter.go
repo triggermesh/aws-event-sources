@@ -18,12 +18,10 @@ package awscognitosource
 
 import (
 	"context"
-	"strings"
 
 	"go.uber.org/zap"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity/cognitoidentityiface"
@@ -42,9 +40,8 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	IdentityPoolId         string `envconfig:"IDENTITY_POOL_ID" required:"true"`
-	AccountAccessKeyId     string `envconfig:"AWS_ACCESS_KEY_ID" required:"true"`
-	AccountSecretAccessKey string `envconfig:"AWS_SECRET_ACCESS_KEY" required:"true"`
+	IdentityPoolId string `envconfig:"IDENTITY_POOL_ID" required:"true"`
+	AWSRegion      string `envconfig:"AWS_REGION" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -55,10 +52,8 @@ type adapter struct {
 	cgnSyncClient     cognitosynciface.CognitoSyncAPI
 	ceClient          cloudevents.Client
 
-	identityPoolId         string
-	awsRegion              string
-	accountAccessKeyId     string
-	accountSecretAccessKey string
+	identityPoolId string
+	awsRegion      string
 }
 
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
@@ -72,17 +67,8 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 
 	env := envAcc.(*envConfig)
 
-	region := extractRegionFromPoolId(env.IdentityPoolId)
-
 	// create Cognito clients
-	sess, err := session.NewSession(&aws.Config{
-		Region:      &region,
-		Credentials: credentials.NewStaticCredentials(env.AccountAccessKeyId, env.AccountSecretAccessKey, ""),
-		MaxRetries:  aws.Int(5),
-	})
-	if err != nil {
-		logger.Fatalw("Failed to create Cognito clients", "error", err)
-	}
+	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
 
 	return &adapter{
 		logger: logger,
@@ -91,23 +77,9 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 		cgnSyncClient:     cognitosync.New(sess),
 		ceClient:          ceClient,
 
-		identityPoolId:         env.IdentityPoolId,
-		awsRegion:              region,
-		accountAccessKeyId:     env.AccountAccessKeyId,
-		accountSecretAccessKey: env.AccountSecretAccessKey,
+		identityPoolId: env.IdentityPoolId,
+		awsRegion:      env.AWSRegion,
 	}
-}
-
-// extractRegionFromPoolId parses an identity pool id and returns the AWS region.
-// TODO(antoineco): consolidate this duplicated function (already used in the adapter)
-func extractRegionFromPoolId(identityPoolId string) (region string) {
-	subs := strings.Split(identityPoolId, ":")
-	// extra safety, the API validation should have already ensured that the
-	// format of the id is correct
-	if len(subs) == 2 {
-		region = subs[0]
-	}
-	return
 }
 
 // Start implements adapter.Adapter.
