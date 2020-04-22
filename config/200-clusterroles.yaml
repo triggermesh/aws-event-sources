@@ -30,12 +30,12 @@ rules:
   - patch
   - update
 
-# Manage Knative Services, for receive-adapters
+# Manage receive-adapters
 - apiGroups:
-  - serving.knative.dev
+  - apps
   resources:
-  - services
-  verbs:
+  - deployments
+  verbs: &all
   - get
   - list
   - watch
@@ -43,18 +43,78 @@ rules:
   - update
   - delete
   - patch
+- apiGroups:
+  - serving.knative.dev
+  resources:
+  - services
+  verbs: *all
 
 # Read Source resources and update their statuses
 - apiGroups:
   - sources.triggermesh.io
   resources:
   - awscodecommitsources
+  - awscognitosources
+  - awsdynamodbsources
+  - awsiotsources
+  - awskinesissources
+  - awssnssources
+  - awssqssources
   verbs:
   - list
   - watch
+  - get
+  - patch
 - apiGroups:
   - sources.triggermesh.io
   resources:
   - awscodecommitsources/status
+  - awscognitosources/status
+  - awsdynamodbsources/status
+  - awsiotsources/status
+  - awskinesissources/status
+  - awssnssources/status
+  - awssqssources/status
   verbs:
   - update
+
+# Read controller configurations
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  verbs: &listwatch
+  - list
+  - watch
+- apiGroups:
+  - ''
+  resources:
+  - configmaps
+  resourceNames:
+  - config-logging
+  - config-observability
+  - config-leader-election
+  verbs:
+  - get
+
+# Resolve sink URIs
+- apiGroups:
+  - ''
+  resources:
+  - services
+  verbs: *listwatch
+- apiGroups:
+  - serving.knative.dev
+  resources:
+  - services
+  verbs: *listwatch
+- apiGroups:
+  - eventing.knative.dev
+  resources:
+  - brokers
+  verbs: *listwatch
+- apiGroups:
+  - messaging.knative.dev
+  resources:
+  - channels
+  verbs: *listwatch
