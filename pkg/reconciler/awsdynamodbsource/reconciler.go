@@ -29,7 +29,6 @@ import (
 	"knative.dev/pkg/resolver"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-	clientv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/clientset/internalclientset/typed/sources/v1alpha1"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awsdynamodbsource"
 )
 
@@ -44,7 +43,6 @@ type Reconciler struct {
 	adapterCfg *adapterConfig
 
 	// API clients
-	sourceClient     func(namespace string) clientv1alpha1.AWSDynamoDBSourceInterface
 	deploymentClient func(namespace string) appsclientv1.DeploymentInterface
 
 	// objects listers
@@ -64,7 +62,9 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, o *v1alpha1.AWSDynamoDBS
 		return fmt.Errorf("failed to reconcile adapter: %w", err)
 	}
 
-	return r.syncStatus(o, adapter)
+	r.computeStatus(o, adapter)
+
+	return nil
 }
 
 // Optionally, use FinalizeKind to add finalizers. FinalizeKind will be called
