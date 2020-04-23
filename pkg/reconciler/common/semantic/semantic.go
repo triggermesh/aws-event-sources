@@ -14,15 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package reconciler
+package semantic
 
 import (
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/labels"
 )
 
 // Semantic can do semantic deep equality checks for Kubernetes API objects.
@@ -37,7 +35,7 @@ var Semantic = conversion.EqualitiesOrDie(
 	deploymentEqual,
 )
 
-// eq is an instance of Equalities for internal derivative deep comparisons
+// eq is an instance of Equalities for internal deep derivative comparisons
 // of API objects. Adapted from "k8s.io/apimachinery/equality".Semantic.
 var eq = conversion.EqualitiesOrDie(
 	func(a, b resource.Quantity) bool {
@@ -46,29 +44,11 @@ var eq = conversion.EqualitiesOrDie(
 		}
 		return a.Cmp(b) == 0
 	},
-	func(a, b metav1.MicroTime) bool {
-		if a.IsZero() {
-			return true
-		}
-		return a.UTC() == b.UTC()
-	},
 	func(a, b metav1.Time) bool { // e.g. metadata.creationTimestamp
 		if a.IsZero() {
 			return true
 		}
 		return a.UTC() == b.UTC()
-	},
-	func(a, b labels.Selector) bool {
-		if a.Empty() {
-			return true
-		}
-		return a.String() == b.String()
-	},
-	func(a, b fields.Selector) bool {
-		if a.Empty() {
-			return true
-		}
-		return a.String() == b.String()
 	},
 	func(a, b int64) bool { // e.g. metadata.generation
 		if a == 0 {

@@ -14,13 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package reconciler
-
-// Common environment variables propagated to adapters.
-const (
-	NameEnvVar          = "NAME"
-	NamespaceEnvVar     = "NAMESPACE"
-	SinkEnvVar          = "K_SINK"
-	LoggingConfigEnvVar = "K_LOGGING_CONFIG"
-	MetricsConfigEnvVar = "K_METRICS_CONFIG"
-)
+// Package common contains constants shared by reconcilers.
+package common

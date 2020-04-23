@@ -17,7 +17,7 @@
 apiVersion: sources.triggermesh.io/v1alpha1
 kind: AWSSNSSource
 metadata:
-  name: awssnssource-sample
+  name: sample
 spec:
   topic: triggermeshtest
   region: us-west-2

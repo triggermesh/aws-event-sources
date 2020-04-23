@@ -17,13 +17,17 @@ require (
 	contrib.go.opencensus.io/exporter/zipkin v0.1.1 // indirect
 	github.com/aws/aws-sdk-go v1.30.6
 	github.com/blang/semver v3.5.1+incompatible // indirect
-	github.com/cloudevents/sdk-go/v2 v2.0.0-preview8
+	github.com/cloudevents/sdk-go/v2 v2.0.0-RC1
+	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
+	github.com/google/go-cmp v0.4.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/onsi/ginkgo v1.11.0 // indirect
 	github.com/onsi/gomega v1.7.0 // indirect
+	github.com/robfig/cron v1.2.0 // indirect
 	github.com/stretchr/testify v1.5.1
-	go.uber.org/zap v1.14.1
+	go.opencensus.io v0.22.3 // indirect
+	go.uber.org/zap v1.15.0
 	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect
 	k8s.io/api v0.18.0
 	k8s.io/apiextensions-apiserver v0.18.0 // indirect
@@ -31,6 +35,6 @@ require (
 	k8s.io/client-go v0.18.0
 	k8s.io/code-generator v0.18.0
 	k8s.io/utils v0.0.0-20200327001022-6496210b90e8 // indirect
-	knative.dev/eventing v0.13.1-0.20200408164402-7babc039e52b
+	knative.dev/eventing v0.14.1
 	knative.dev/pkg v0.0.0-20200407145900-0c36abbff9e5
 )

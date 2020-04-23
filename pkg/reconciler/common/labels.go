@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package reconciler
+package common
 
 // Kubernetes recommended labels
 // https://kubernetes.io/docs/concepts/overview/working-with-objects/common-labels/
@@ -35,7 +35,7 @@ const (
 
 // Common label values
 const (
-	SourcesGroup     = "aws-event-sources"
+	PartOf           = "aws-event-sources"
 	ManagedBy        = "aws-event-sources-controller"
 	AdapterComponent = "adapter"
 )

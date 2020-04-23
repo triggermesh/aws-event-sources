@@ -18,7 +18,13 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
 )
+
+// AWSEventSourceStatus defines the observed state of an event source.
+type AWSEventSourceStatus struct {
+	duckv1.SourceStatus `json:",inline"`
+}
 
 // AWSSecurityCredentials represents a set of AWS security credentials.
 // See https://docs.aws.amazon.com/general/latest/gr/aws-security-credentials.html

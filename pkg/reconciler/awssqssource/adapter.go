@@ -27,11 +27,14 @@ import (
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/metrics"
-	pkgreconciler "knative.dev/pkg/reconciler"
+	"knative.dev/pkg/reconciler"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-	"github.com/triggermesh/aws-event-sources/pkg/reconciler"
-	"github.com/triggermesh/aws-event-sources/pkg/reconciler/resource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/object"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/resource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/semantic"
 )
 
 const adapterName = "awssqssource"
@@ -55,49 +58,54 @@ type adapterConfig struct {
 }
 
 // reconcileAdapter reconciles the state of the source's adapter.
-func (r *Reconciler) reconcileAdapter(ctx context.Context,
-	src *v1alpha1.AWSSQSSource) (*appsv1.Deployment, error) {
+func (r *Reconciler) reconcileAdapter(ctx context.Context) error {
+	o := object.FromContext(ctx).(*v1alpha1.AWSSQSSource)
 
-	sinkRef := &src.Spec.Sink.Ref
+	sinkRef := &o.Spec.Sink.Ref
 	if *sinkRef != nil && (*sinkRef).Namespace == "" {
-		(*sinkRef).Namespace = src.Namespace
+		(*sinkRef).Namespace = o.Namespace
 	}
 
-	sinkURI, err := r.sinkResolver.URIFromDestinationV1(src.Spec.Sink, src)
+	sinkURI, err := r.sinkResolver.URIFromDestinationV1(o.Spec.Sink, o)
 	if err != nil {
-		reconciler.EventWarn(ctx, src, reconciler.ReasonBadSinkURI, "Could not resolve sink URI: %s", err)
+		o.Status.MarkNoSink()
+		event.EventWarn(ctx, common.ReasonBadSinkURI, "Could not resolve sink URI: %s", err)
 		// skip adapter reconciliation if the sink URI can't be resolved.
-		return nil, nil
+		return nil
 	}
-	desiredAdapter := makeAdapterDeployment(src, sinkURI.String(), r.adapterCfg)
+	o.Status.MarkSink(sinkURI)
 
-	currentAdapter, err := r.getOrCreateAdapter(ctx, src, desiredAdapter)
+	desiredAdapter := makeAdapterDeployment(ctx, sinkURI.String(), r.adapterCfg)
+
+	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
 	if err != nil {
-		return nil, err
+		o.Status.PropagateAvailability(currentAdapter)
+		return err
 	}
 
-	currentAdapter, err = r.syncAdapterDeployment(ctx, src, currentAdapter, desiredAdapter)
+	currentAdapter, err = r.syncAdapterDeployment(ctx, currentAdapter, desiredAdapter)
 	if err != nil {
-		return nil, fmt.Errorf("failed to synchronize adapter Deployment: %w", err)
+		return fmt.Errorf("failed to synchronize adapter Deployment: %w", err)
 	}
+	o.Status.PropagateAvailability(currentAdapter)
 
-	return currentAdapter, nil
+	return nil
 }
 
 // getOrCreateAdapter returns the existing adapter Deployment for a given
 // source, or creates it if it is missing.
-func (r *Reconciler) getOrCreateAdapter(ctx context.Context, src *v1alpha1.AWSSQSSource,
-	desiredAdapter *appsv1.Deployment) (*appsv1.Deployment, error) {
+func (r *Reconciler) getOrCreateAdapter(ctx context.Context, desiredAdapter *appsv1.Deployment) (*appsv1.Deployment, error) {
+	o := object.FromContext(ctx).(*v1alpha1.AWSSQSSource)
 
-	adapter, err := r.deploymentLister(src.Namespace).Get(desiredAdapter.Name)
+	adapter, err := r.deploymentLister(o.Namespace).Get(desiredAdapter.Name)
 	switch {
 	case apierrors.IsNotFound(err):
-		adapter, err = r.deploymentClient(src.Namespace).Create(desiredAdapter)
+		adapter, err = r.deploymentClient(o.Namespace).Create(desiredAdapter)
 		if err != nil {
-			return nil, pkgreconciler.NewEvent(corev1.EventTypeWarning, reconciler.ReasonFailedCreate,
-				"Creation failed for adapter Deployment %q: %s", desiredAdapter.Name, err)
+			return nil, reconciler.NewEvent(corev1.EventTypeWarning, common.ReasonFailedAdapterCreate,
+				"Failed to create adapter Deployment %q: %s", desiredAdapter.Name, err)
 		}
-		reconciler.Event(ctx, src, reconciler.ReasonCreate, "Created adapter Deployment %q", adapter.Name)
+		event.Event(ctx, common.ReasonAdapterCreate, "Created adapter Deployment %q", adapter.Name)
 
 	case err != nil:
 		return nil, fmt.Errorf("failed to get adapter Deployment from cache: %w", err)
@@ -108,10 +116,10 @@ func (r *Reconciler) getOrCreateAdapter(ctx context.Context, src *v1alpha1.AWSSQ
 
 // syncAdapterDeployment synchronizes the desired state of an adapter Deployment
 // against its current state in the running cluster.
-func (r *Reconciler) syncAdapterDeployment(ctx context.Context, src *v1alpha1.AWSSQSSource,
+func (r *Reconciler) syncAdapterDeployment(ctx context.Context,
 	currentAdapter, desiredAdapter *appsv1.Deployment) (*appsv1.Deployment, error) {
 
-	if reconciler.Semantic.DeepEqual(desiredAdapter, currentAdapter) {
+	if semantic.Semantic.DeepEqual(desiredAdapter, currentAdapter) {
 		return currentAdapter, nil
 	}
 
@@ -119,57 +127,59 @@ func (r *Reconciler) syncAdapterDeployment(ctx context.Context, src *v1alpha1.AW
 	// optimistic concurrency, as per Kubernetes API conventions
 	desiredAdapter.ResourceVersion = currentAdapter.ResourceVersion
 
+	// (fake Clientset) preserve status to avoid resetting conditions
+	desiredAdapter.Status = currentAdapter.Status
+
 	adapter, err := r.deploymentClient(currentAdapter.Namespace).Update(desiredAdapter)
 	if err != nil {
-		return nil, pkgreconciler.NewEvent(corev1.EventTypeWarning, reconciler.ReasonFailedUpdate,
-			"Update failed for adapter Deployment %q: %s", desiredAdapter.Name, err)
+		return nil, reconciler.NewEvent(corev1.EventTypeWarning, common.ReasonFailedAdapterUpdate,
+			"Failed to update adapter Deployment %q: %s", desiredAdapter.Name, err)
 	}
-	reconciler.Event(ctx, src, reconciler.ReasonUpdate, "Updated adapter Deployment %q", adapter.Name)
+	event.Event(ctx, common.ReasonAdapterUpdate, "Updated adapter Deployment %q", adapter.Name)
 
 	return adapter, nil
 }
 
 // makeAdapterDeployment returns a Deployment object for the source's adapter.
-func makeAdapterDeployment(src *v1alpha1.AWSSQSSource, sinkURI string,
-	adapterCfg *adapterConfig) *appsv1.Deployment {
+func makeAdapterDeployment(ctx context.Context, sinkURI string, adapterCfg *adapterConfig) *appsv1.Deployment {
+	o := object.FromContext(ctx).(*v1alpha1.AWSSQSSource)
+	name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), o.Name)
 
-	name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), src.Name)
+	return resource.NewDeployment(o.Namespace, name,
+		resource.Controller(o),
 
-	return resource.NewDeployment(src.Namespace, name,
-		resource.Controller(src),
+		resource.Label(common.AppNameLabel, adapterName),
+		resource.Label(common.AppInstanceLabel, o.Name),
+		resource.Label(common.AppComponentLabel, common.AdapterComponent),
+		resource.Label(common.AppPartOfLabel, common.PartOf),
+		resource.Label(common.AppManagedByLabel, common.ManagedBy),
 
-		resource.Label(reconciler.AppNameLabel, adapterName),
-		resource.Label(reconciler.AppInstanceLabel, src.Name),
-		resource.Label(reconciler.AppComponentLabel, reconciler.AdapterComponent),
-		resource.Label(reconciler.AppPartOfLabel, reconciler.SourcesGroup),
-		resource.Label(reconciler.AppManagedByLabel, reconciler.ManagedBy),
-
-		resource.Selector(reconciler.AppNameLabel, adapterName),
-		resource.Selector(reconciler.AppInstanceLabel, src.Name),
-		resource.PodLabel(reconciler.AppComponentLabel, reconciler.AdapterComponent),
-		resource.PodLabel(reconciler.AppPartOfLabel, reconciler.SourcesGroup),
-		resource.PodLabel(reconciler.AppManagedByLabel, reconciler.ManagedBy),
+		resource.Selector(common.AppNameLabel, adapterName),
+		resource.Selector(common.AppInstanceLabel, o.Name),
+		resource.PodLabel(common.AppComponentLabel, common.AdapterComponent),
+		resource.PodLabel(common.AppPartOfLabel, common.PartOf),
+		resource.PodLabel(common.AppManagedByLabel, common.ManagedBy),
 
 		resource.Image(adapterCfg.Image),
 
-		resource.EnvVar(reconciler.NameEnvVar, src.Name),
-		resource.EnvVar(reconciler.NamespaceEnvVar, src.Namespace),
-		resource.EnvVar(reconciler.SinkEnvVar, sinkURI),
-		resource.EnvVar(reconciler.LoggingConfigEnvVar, adapterCfg.LoggingCfg),
-		resource.EnvVar(reconciler.MetricsConfigEnvVar, adapterCfg.MetricsCfg),
-		resource.EnvVar(queueEnvVar, src.Spec.Queue),
-		resource.EnvVar(awsRegionEnvVar, src.Spec.Region),
+		resource.EnvVar(common.NameEnvVar, o.Name),
+		resource.EnvVar(common.NamespaceEnvVar, o.Namespace),
+		resource.EnvVar(common.SinkEnvVar, sinkURI),
+		resource.EnvVar(common.LoggingConfigEnvVar, adapterCfg.LoggingCfg),
+		resource.EnvVar(common.MetricsConfigEnvVar, adapterCfg.MetricsCfg),
+		resource.EnvVar(queueEnvVar, o.Spec.Queue),
+		resource.EnvVar(awsRegionEnvVar, o.Spec.Region),
 		resource.EnvVarFromSecret(awsAccessKeyIdEnvVar,
-			src.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
-			src.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
+			o.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
+			o.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
 		resource.EnvVarFromSecret(awsSecretAccessKeyEnvVar,
-			src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
-			src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
+			o.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
+			o.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
 	)
 }
 
 // updateAdapterLoggingConfig serializes the logging config from a ConfigMap to
-// JSON and updates the existing config stored in the Reconciler.
+// JSON and updates the existing config stored in the common.
 func (r *Reconciler) updateAdapterLoggingConfig(cfg *corev1.ConfigMap) {
 	delete(cfg.Data, "_example")
 

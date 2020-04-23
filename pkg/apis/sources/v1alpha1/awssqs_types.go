@@ -34,8 +34,8 @@ type AWSSQSSource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSSQSSourceSpec   `json:"spec,omitempty"`
-	Status AWSSQSSourceStatus `json:"status,omitempty"`
+	Spec   AWSSQSSourceSpec     `json:"spec,omitempty"`
+	Status AWSEventSourceStatus `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
@@ -58,11 +58,6 @@ type AWSSQSSourceSpec struct {
 
 	// Credentials to interact with the AWS SQS API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
-}
-
-// AWSSQSSourceStatus defines the observed state of the event source.
-type AWSSQSSourceStatus struct {
-	duckv1.SourceStatus `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

@@ -17,30 +17,9 @@ limitations under the License.
 package awscodecommitsource
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
-
-	duckv1 "knative.dev/pkg/apis/duck/v1"
-
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
 )
-
-// computeStatus sets the attributes and conditions of the sources's status.
-func (r *Reconciler) computeStatus(src *v1alpha1.AWSCodeCommitSource, adapter *appsv1.Deployment) {
-	src.Status.InitializeConditions()
-	src.Status.CloudEventAttributes = createCloudEventAttributes(&src.Spec)
-	src.Status.ObservedGeneration = src.Generation
-
-	sinkURI, err := r.sinkResolver.URIFromDestinationV1(src.Spec.Sink, src)
-	if err != nil {
-		src.Status.MarkNoSink()
-		return
-	}
-	src.Status.MarkSink(sinkURI)
-
-	if adapter != nil {
-		src.Status.PropagateAvailability(adapter)
-	}
-}
 
 // createCloudEventAttributes returns the CloudEvent types supported by the
 // source.

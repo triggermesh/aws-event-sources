@@ -34,8 +34,8 @@ type AWSIoTSource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSIoTSourceSpec   `json:"spec,omitempty"`
-	Status AWSIoTSourceStatus `json:"status,omitempty"`
+	Spec   AWSIoTSourceSpec     `json:"spec,omitempty"`
+	Status AWSEventSourceStatus `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
@@ -73,11 +73,6 @@ type AWSIoTSourceSpec struct {
 	// Path where the client private key gets written
 	// +optional
 	PrivateKeyPath *string `json:"privateKeyPath,omitempty"`
-}
-
-// AWSIoTSourceStatus defines the observed state of the event source.
-type AWSIoTSourceStatus struct {
-	duckv1.SourceStatus `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

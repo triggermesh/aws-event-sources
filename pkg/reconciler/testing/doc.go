@@ -14,5 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package reconciler contains building blocks and helpers to be used by reconcilers.
-package reconciler
+// Package testing contains test helpers for reconcilers.
+package testing

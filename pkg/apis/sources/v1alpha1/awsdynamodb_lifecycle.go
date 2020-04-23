@@ -19,11 +19,7 @@ package v1alpha1
 import (
 	"fmt"
 
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	"knative.dev/eventing/pkg/apis/duck"
-	"knative.dev/pkg/apis"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
@@ -63,51 +59,4 @@ func AWSDynamoDBEventTypes() []string {
 // usage as a CloudEvent type.
 func AWSDynamoDBEventType(eventType string) string {
 	return fmt.Sprintf("com.amazon.dynamodb.%s", eventType)
-}
-
-var awsDynamoDBConditionSet = apis.NewLivingConditionSet(
-	ConditionSinkProvided,
-	ConditionDeployed,
-)
-
-// InitializeConditions sets relevant unset conditions to Unknown state.
-func (s *AWSDynamoDBSourceStatus) InitializeConditions() {
-	awsDynamoDBConditionSet.Manage(s).InitializeConditions()
-}
-
-// MarkSink sets the SinkProvided condition to True using the given URI.
-func (s *AWSDynamoDBSourceStatus) MarkSink(uri *apis.URL) {
-	s.SinkURI = uri
-	if uri == nil {
-		awsDynamoDBConditionSet.Manage(s).MarkFalse(ConditionSinkProvided,
-			ReasonSinkEmpty, "The sink has no URI")
-		return
-	}
-	awsDynamoDBConditionSet.Manage(s).MarkTrue(ConditionSinkProvided)
-}
-
-// MarkNoSink sets the SinkProvided condition to False.
-func (s *AWSDynamoDBSourceStatus) MarkNoSink() {
-	s.SinkURI = nil
-	awsDynamoDBConditionSet.Manage(s).MarkFalse(ConditionSinkProvided,
-		ReasonSinkNotFound, "The sink does not exist or its URI is not set")
-}
-
-// PropagateAvailability uses the readiness of the provided Deployment to
-// determine whether the Deployed condition should be marked as true or false.
-func (s *AWSDynamoDBSourceStatus) PropagateAvailability(d *appsv1.Deployment) {
-	if duck.DeploymentIsAvailable(&d.Status, false) {
-		awsDynamoDBConditionSet.Manage(s).MarkTrue(ConditionDeployed)
-		return
-	}
-
-	msg := "The adapter Deployment is unavailable"
-
-	for _, cond := range d.Status.Conditions {
-		if cond.Type == appsv1.DeploymentAvailable && cond.Message != "" {
-			msg += ": " + cond.Message
-		}
-	}
-
-	awsDynamoDBConditionSet.Manage(s).MarkFalse(ConditionDeployed, ReasonUnavailable, msg)
 }

@@ -34,8 +34,8 @@ type AWSDynamoDBSource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSDynamoDBSourceSpec   `json:"spec,omitempty"`
-	Status AWSDynamoDBSourceStatus `json:"status,omitempty"`
+	Spec   AWSDynamoDBSourceSpec `json:"spec,omitempty"`
+	Status AWSEventSourceStatus  `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
@@ -59,11 +59,6 @@ type AWSDynamoDBSourceSpec struct {
 
 	// Credentials to interact with the AWS Cognito API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
-}
-
-// AWSDynamoDBSourceStatus defines the observed state of the event source.
-type AWSDynamoDBSourceStatus struct {
-	duckv1.SourceStatus `json:",inline"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

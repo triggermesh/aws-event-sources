@@ -22,6 +22,19 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+// NewContainer creates a Container object.
+func NewContainer(name string, opts ...ObjectOption) *corev1.Container {
+	c := &corev1.Container{
+		Name: name,
+	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c
+}
+
 // Image sets a Container's image.
 func Image(img string) ObjectOption {
 	return func(object interface{}) {

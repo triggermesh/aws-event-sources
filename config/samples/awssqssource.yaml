@@ -17,7 +17,7 @@
 apiVersion: sources.triggermesh.io/v1alpha1
 kind: AWSSQSSource
 metadata:
-  name: awssqssource-sample
+  name: sample
 spec:
   queue: triggermeshtest
   region: us-west-2

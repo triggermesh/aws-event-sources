@@ -21,8 +21,46 @@ import "k8s.io/apimachinery/pkg/runtime/schema"
 // GroupName is the name of the API group this package's resources belong to.
 const GroupName = "sources.triggermesh.io"
 
-// AWSCodeCommitSourceResource respresents an event source for AWS CodeCommit.
-var AWSCodeCommitSourceResource = schema.GroupResource{
-	Group:    GroupName,
-	Resource: "awscodecommitsources",
-}
+var (
+	// AWSCodeCommitSourceResource respresents an event source for AWS CodeCommit.
+	AWSCodeCommitSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awscodecommitsources",
+	}
+
+	// AWSCognitoSourceResource respresents an event source for AWS Cognito.
+	AWSCognitoSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awscognitosources",
+	}
+
+	// AWSDynamoDBSourceResource respresents an event source for AWS DynamoDB.
+	AWSDynamoDBSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awsdynamodbsources",
+	}
+
+	// AWSIoTSourceResource respresents an event source for AWS IoT.
+	AWSIoTSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awsiotsources",
+	}
+
+	// AWSKinesisSourceResource respresents an event source for AWS Kinesis.
+	AWSKinesisSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awskinesissources",
+	}
+
+	// AWSSNSSourceResource respresents an event source for AWS SNS.
+	AWSSNSSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awssnssources",
+	}
+
+	// AWSSQSSourceResource respresents an event source for AWS SQS.
+	AWSSQSSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awssqssources",
+	}
+)

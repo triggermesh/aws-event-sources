@@ -24,7 +24,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	k8sclient "knative.dev/pkg/client/injection/kube/client"
-	deploymentinformerv1alpha1 "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment"
+	deploymentinformerv1 "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
@@ -50,7 +50,7 @@ func NewController(
 	logger := logging.FromContext(ctx)
 
 	sourceInformer := informerv1alpha1.Get(ctx)
-	deploymentInformer := deploymentinformerv1alpha1.Get(ctx)
+	deploymentInformer := deploymentinformerv1.Get(ctx)
 
 	r := &Reconciler{
 		logger:           logger,

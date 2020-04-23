@@ -18,18 +18,18 @@ package awssqssource
 
 import (
 	"context"
-	"fmt"
 
 	"go.uber.org/zap"
 
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	appslistersv1 "k8s.io/client-go/listers/apps/v1"
 
-	pkgreconciler "knative.dev/pkg/reconciler"
+	"knative.dev/pkg/reconciler"
 	"knative.dev/pkg/resolver"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awssqssource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/object"
 )
 
 // Reconciler implements controller.Reconciler for the event source type.
@@ -53,23 +53,24 @@ type Reconciler struct {
 var _ reconcilerv1alpha1.Interface = (*Reconciler)(nil)
 
 // Optionally check that our Reconciler implements Finalizer
-//var _ awssqssource.Finalizer = (*Reconciler)(nil)
+//var _ reconcilerv1alpha1.Finalizer = (*Reconciler)(nil)
 
 // ReconcileKind implements Interface.ReconcileKind.
-func (r *Reconciler) ReconcileKind(ctx context.Context, o *v1alpha1.AWSSQSSource) pkgreconciler.Event {
-	adapter, err := r.reconcileAdapter(ctx, o)
-	if err != nil {
-		return fmt.Errorf("failed to reconcile adapter: %w", err)
-	}
+func (r *Reconciler) ReconcileKind(ctx context.Context, o *v1alpha1.AWSSQSSource) reconciler.Event {
+	// inject object into context for usage in event recorder and
+	// reconciliation logic
+	ctx = object.With(ctx, o)
 
-	r.computeStatus(o, adapter)
+	o.Status.InitializeConditions()
+	o.Status.ObservedGeneration = o.Generation
+	o.Status.CloudEventAttributes = createCloudEventAttributes(&o.Spec)
 
-	return nil
+	return r.reconcileAdapter(ctx)
 }
 
 // Optionally, use FinalizeKind to add finalizers. FinalizeKind will be called
 // when the resource is deleted.
-//func (r *Reconciler) FinalizeKind(ctx context.Context, o *v1alpha1.AWSSQSSource) pkgreconciler.Event {
+//func (r *Reconciler) FinalizeKind(ctx context.Context, o *v1alpha1.AWSSQSSource) reconciler.Event {
 //	// TODO: add custom finalization logic here.
 //	return nil
 //}

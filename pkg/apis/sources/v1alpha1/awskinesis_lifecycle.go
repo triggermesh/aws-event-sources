@@ -19,11 +19,7 @@ package v1alpha1
 import (
 	"fmt"
 
-	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	"knative.dev/eventing/pkg/apis/duck"
-	"knative.dev/pkg/apis"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
@@ -51,51 +47,4 @@ const (
 // usage as a CloudEvent type.
 func AWSKinesisEventType(eventType string) string {
 	return fmt.Sprintf("com.amazon.kinesis.%s", eventType)
-}
-
-var awsKinesisConditionSet = apis.NewLivingConditionSet(
-	ConditionSinkProvided,
-	ConditionDeployed,
-)
-
-// InitializeConditions sets relevant unset conditions to Unknown state.
-func (s *AWSKinesisSourceStatus) InitializeConditions() {
-	awsKinesisConditionSet.Manage(s).InitializeConditions()
-}
-
-// MarkSink sets the SinkProvided condition to True using the given URI.
-func (s *AWSKinesisSourceStatus) MarkSink(uri *apis.URL) {
-	s.SinkURI = uri
-	if uri == nil {
-		awsKinesisConditionSet.Manage(s).MarkFalse(ConditionSinkProvided,
-			ReasonSinkEmpty, "The sink has no URI")
-		return
-	}
-	awsKinesisConditionSet.Manage(s).MarkTrue(ConditionSinkProvided)
-}
-
-// MarkNoSink sets the SinkProvided condition to False.
-func (s *AWSKinesisSourceStatus) MarkNoSink() {
-	s.SinkURI = nil
-	awsKinesisConditionSet.Manage(s).MarkFalse(ConditionSinkProvided,
-		ReasonSinkNotFound, "The sink does not exist or its URI is not set")
-}
-
-// PropagateAvailability uses the readiness of the provided Deployment to
-// determine whether the Deployed condition should be marked as true or false.
-func (s *AWSKinesisSourceStatus) PropagateAvailability(d *appsv1.Deployment) {
-	if duck.DeploymentIsAvailable(&d.Status, false) {
-		awsKinesisConditionSet.Manage(s).MarkTrue(ConditionDeployed)
-		return
-	}
-
-	msg := "The adapter Deployment is unavailable"
-
-	for _, cond := range d.Status.Conditions {
-		if cond.Type == appsv1.DeploymentAvailable && cond.Message != "" {
-			msg += ": " + cond.Message
-		}
-	}
-
-	awsKinesisConditionSet.Manage(s).MarkFalse(ConditionDeployed, ReasonUnavailable, msg)
 }

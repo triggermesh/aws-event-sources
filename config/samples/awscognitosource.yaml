@@ -17,7 +17,7 @@
 apiVersion: sources.triggermesh.io/v1alpha1
 kind: AWSCognitoSource
 metadata:
-  name: awscognitosource-sample
+  name: sample
 spec:
   identityPoolId: us-west-2:2f266209-2504-4f0c-9c8b-1e37c4344917
 
