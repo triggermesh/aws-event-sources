@@ -17,7 +17,7 @@ include scripts/inc.Makefile
 GOPKGS = ./pkg/adapter/... ./pkg/apis/... ./pkg/reconciler/...
 
 test:
-	$(GOTEST) -cover -coverprofile=c.out $(GOPKGS)
+	$(GOTEST) -p=1 -cover -coverprofile=c.out $(GOPKGS)
 
 coverage: ## Generate code coverage
 	$(GOTOOL) cover -html=c.out -o $(OUTPUT_DIR)$(PACKAGE)-coverage.html
