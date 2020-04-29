@@ -23,7 +23,7 @@ coverage: ## Generate code coverage
 	$(GOTOOL) cover -html=c.out -o $(OUTPUT_DIR)$(PACKAGE)-coverage.html
 
 lint:
-	$(GOLINT) $(GOPKGS)
+	$(GOLINT) -set_exit_status $(GOPKGS)
 
 vet:
 	$(GO) vet $(GOPKGS)
