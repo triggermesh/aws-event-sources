@@ -13,7 +13,7 @@ GO         ?= go
 GOFMT      ?= gofmt
 GOLINT     ?= golint
 GOTOOL     ?= go tool
-GOTEST     ?= gotestsum --junitfile $(OUTPUT_DIR)$(PACKAGE)-unit-tests.xml --
+GOTEST     ?= gotestsum --junitfile $(OUTPUT_DIR)$(PACKAGE)-unit-tests.xml --format pkgname-and-test-fails --
 
 GOPKGS      = ./...
 LDFLAGS     =
