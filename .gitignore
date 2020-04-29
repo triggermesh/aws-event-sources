@@ -12,3 +12,7 @@
 *~
 *.swp
 *.swo
+
+# Build artifacts
+**/*-linux-amd64
+**/*-darwin-amd64
