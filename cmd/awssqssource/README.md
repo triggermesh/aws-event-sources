@@ -82,7 +82,7 @@ export AWS_ACCESS_KEY_ID=<my_key_id>
 export AWS_SECRET_ACCESS_KEY=<my_secret_key>
 export NAME=my-awssqssource
 export NAMESPACE=default
-export K_LOGGING_CONFIG='{"level":"info"}'
+export K_LOGGING_CONFIG=''
 export K_METRICS_CONFIG='{"domain":"triggermesh.io/sources", "component":"awssqssource", "configMap":{}}'
 ```
 
@@ -104,7 +104,7 @@ $ docker run --rm \
   -e AWS_SECRET_ACCESS_KEY=<my_secret_key> \
   -e NAME=my-awssqssource \
   -e NAMESPACE=default \
-  -e K_LOGGING_CONFIG='{"level":"info"}' \
+  -e K_LOGGING_CONFIG='' \
   -e K_METRICS_CONFIG='{"domain":"triggermesh.io/sources", "component":"awssqssource", "configMap":{}}' \
   gcr.io/triggermesh/awssqssource:latest
 ```

@@ -60,10 +60,7 @@ spec:
             fieldRef:
               fieldPath: metadata.namespace
         - name: K_LOGGING_CONFIG
-          value: |
-            {
-              "level": "info"
-            }
+          value: ''
         - name: K_METRICS_CONFIG
           value: |
             {
