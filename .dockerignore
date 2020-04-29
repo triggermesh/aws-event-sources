@@ -17,6 +17,9 @@
 **/c.out
 **/*-coverage.html
 **/*-unit-tests.xml
+**/Dockerfile
+**/*-linux-amd64
+**/*-darwin-amd64
 
 # Binaries
 /cmd/aws-event-sources-controller/aws-event-sources-controller
