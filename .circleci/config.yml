@@ -3,6 +3,7 @@ version: 2.1
 orbs:
   go: circleci/go@1.1.1
   gcp-cli: circleci/gcp-cli@1.8.4
+  ghpr: narrativescience/ghpr@0.1.0
 
 jobs:
   checkout:
@@ -10,7 +11,10 @@ jobs:
       name: go/default
       tag: '1.14'
     steps:
-      - checkout
+      - ghpr/build-prospective-branch
+      - ghpr/post-pr-comment:
+          comment: ":dog: The CI job was __aborted__ because we __failed to create a prospective merge branch__. Please __resolve the merge conflicts__."
+          when: on_fail
       - go/mod-download-cached
       - persist_to_workspace:
           root: ~/
@@ -101,6 +105,7 @@ workflows:
   build-test-and-publish:
     jobs:
       - checkout:
+          context: production
           filters:
             tags:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
