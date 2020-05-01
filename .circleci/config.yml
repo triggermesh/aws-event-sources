@@ -4,6 +4,7 @@ orbs:
   go: circleci/go@1.1.1
   gcp-cli: circleci/gcp-cli@1.8.4
   ghpr: narrativescience/ghpr@0.1.0
+  jq: circleci/jq@2.0.1
 
 jobs:
   checkout:
@@ -11,6 +12,7 @@ jobs:
       name: go/default
       tag: '1.14'
     steps:
+      - jq/install
       - ghpr/build-prospective-branch
       - ghpr/post-pr-comment:
           comment: ":dog: The CI job was __aborted__ because we __failed to create a prospective merge branch__. Please __resolve the merge conflicts__."
