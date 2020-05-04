@@ -118,3 +118,29 @@ rules:
   resources:
   - channels
   verbs: *listwatch
+
+---
+
+# The role is needed for the aggregated role source-observer in knative-eventing to provide readonly access to "Sources".
+# see https://github.com/knative/eventing/blob/release-0.14/docs/spec/sources.md#source-rbac
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aws-event-sources-source-observer
+  labels:
+    duck.knative.dev/source: 'true'
+rules:
+- apiGroups:
+  - sources.triggermesh.io
+  resources:
+  - awscodecommitsources
+  - awscognitosources
+  - awsdynamodbsources
+  - awsiotsources
+  - awskinesissources
+  - awssnssources
+  - awssqssources
+  verbs:
+  - get
+  - list
+  - watch
