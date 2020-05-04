@@ -22,6 +22,8 @@ import (
 
 	"go.uber.org/zap"
 
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/kinesis"
@@ -54,13 +56,13 @@ type adapter struct {
 	awsRegion string
 }
 
+// NewEnvConfig returns an accessor for the source's adapter envConfig.
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
 	return &envConfig{}
 }
 
-func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
-	ceClient cloudevents.Client) pkgadapter.Adapter {
-
+// NewAdapter returns a constructor for the source's adapter.
+func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClient cloudevents.Client) pkgadapter.Adapter {
 	logger := logging.FromContext(ctx)
 
 	env := envAcc.(*envConfig)
@@ -86,7 +88,7 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 		StreamName: &a.stream,
 	})
 	if err != nil {
-		a.logger.Fatalw("Failed to describe stream", "error", err)
+		a.logger.Fatalw("Failed to describe stream", zap.Error(err))
 	}
 
 	streamARN := myStream.StreamDescription.StreamARN
@@ -99,7 +101,7 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 	for {
 		err := a.processInputs(inputs, shardIDs, streamARN)
 		if err != nil {
-			a.logger.Errorw("Failed to process inputs", "error", err)
+			a.logger.Errorw("Failed to process inputs", zap.Error(err))
 		}
 	}
 }
@@ -110,7 +112,6 @@ func (a *adapter) getRecordsInputs(shards []*kinesis.Shard) ([]kinesis.GetRecord
 
 	// Kinesis stream might have several shards and each of them had "LATEST" Iterator.
 	for _, shard := range shards {
-
 		// Obtain starting Shard Iterator. This is needed to not process already processed records
 		myShardIterator, err := a.knsClient.GetShardIterator(&kinesis.GetShardIteratorInput{
 			ShardId:           shard.ShardId,
@@ -119,7 +120,7 @@ func (a *adapter) getRecordsInputs(shards []*kinesis.Shard) ([]kinesis.GetRecord
 		})
 
 		if err != nil {
-			a.logger.Errorw("Failed to get shard iterator", "error", err)
+			a.logger.Errorw("Failed to get shard iterator", zap.Error(err))
 			continue
 		}
 
@@ -136,23 +137,28 @@ func (a *adapter) getRecordsInputs(shards []*kinesis.Shard) ([]kinesis.GetRecord
 }
 
 func (a *adapter) processInputs(inputs []kinesis.GetRecordsInput, shardIDs []*string, streamARN *string) error {
+	var errs []error
+
 	for i, input := range inputs {
-		shardID := shardIDs[i]
+		input := input
 
 		recordsOutput, err := a.knsClient.GetRecords(&input)
 		if err != nil {
-			a.logger.Errorw("Failed to get records", "error", err)
+			a.logger.Errorw("Failed to get records", zap.Error(err))
+			errs = append(errs, err)
 			continue
 		}
 
+		shardID := shardIDs[i]
+
 		for _, record := range recordsOutput.Records {
-			err := a.sendKinesisRecord(record, shardID, streamARN)
-			if err != nil {
-				a.logger.Errorw("Failed to send CloudEvent", "error", err)
+			if err := a.sendKinesisRecord(record, shardID, streamARN); err != nil {
+				a.logger.Errorw("Failed to send CloudEvent", zap.Error(err))
+				errs = append(errs, err)
 			}
 		}
 
-		// remove old imput
+		// remove old input
 		inputs = append(inputs[:i], inputs[i+1:]...)
 
 		// generate new input
@@ -165,7 +171,7 @@ func (a *adapter) processInputs(inputs []kinesis.GetRecordsInput, shardIDs []*st
 		inputs = append(inputs, input)
 	}
 
-	return nil
+	return utilerrors.NewAggregate(errs)
 }
 
 func (a *adapter) sendKinesisRecord(record *kinesis.Record, shardID, streamARN *string) error {
@@ -189,7 +195,9 @@ func (a *adapter) sendKinesisRecord(record *kinesis.Record, shardID, streamARN *
 	event.SetSubject(a.stream)
 	event.SetSource(v1alpha1.AWSKinesisEventSource(a.awsRegion, a.stream))
 	event.SetID(fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber))
-	event.SetData(cloudevents.ApplicationJSON, data)
+	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+		return fmt.Errorf("failed to set event data: %w", err)
+	}
 
 	if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
 		return result

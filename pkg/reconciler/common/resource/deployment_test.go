@@ -106,8 +106,6 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 }
 
 func TestNewDeploymentWithCustomContainer(t *testing.T) {
-	const img = "registry/image:tag"
-
 	ksvc := NewDeployment(tNs, tName,
 		Container(&corev1.Container{Name: "foo"}),
 	)

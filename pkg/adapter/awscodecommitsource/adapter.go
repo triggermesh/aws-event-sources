@@ -38,7 +38,7 @@ import (
 var (
 	//syncTime       = 10
 	lastCommit     string
-	pullRequestIDs []*string
+	pullRequestIDs []*string //nolint:unused
 )
 
 const (
@@ -70,13 +70,13 @@ type adapter struct {
 	awsRegion  string
 }
 
+// NewEnvConfig returns an accessor for the source's adapter envConfig.
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
 	return &envConfig{}
 }
 
-func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
-	ceClient cloudevents.Client) pkgadapter.Adapter {
-
+// NewAdapter returns a constructor for the source's adapter.
+func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClient cloudevents.Client) pkgadapter.Adapter {
 	logger := logging.FromContext(ctx)
 
 	env := envAcc.(*envConfig)
@@ -111,7 +111,6 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 		}
 
 		lastCommit = *branchInfo.Branch.CommitId
-
 	}
 
 	if strings.Contains(a.gitEvents, prEventType) {
@@ -126,7 +125,6 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 		}
 
 		pullRequestIDs = pullRequestsOutput.PullRequestIds
-
 	}
 
 	if !strings.Contains(a.gitEvents, pushEventType) && !strings.Contains(a.gitEvents, prEventType) {
@@ -156,7 +154,6 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 			pullRequests = removeOldPRs(processedPullRequests, pullRequests)
 
 			for _, pr := range pullRequests {
-
 				err = a.sendPREvent(pr)
 				if err != nil {
 					a.logger.Errorw("Failed to send PR event", "error", err)
@@ -164,9 +161,7 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 				processedPullRequests = append(processedPullRequests, pr)
 			}
 		}
-
 	}
-
 }
 
 func (a *adapter) processCommits() error {
@@ -219,7 +214,6 @@ func (a *adapter) preparePullRequests() ([]*codecommit.PullRequest, error) {
 		prIDs = append(prIDs, pullRequestsOutput.PullRequestIds...)
 
 		for _, id := range prIDs {
-
 			pri := codecommit.GetPullRequestInput{PullRequestId: id}
 
 			prInfo, err := a.ccClient.GetPullRequest(&pri)
@@ -241,7 +235,7 @@ func (a *adapter) preparePullRequests() ([]*codecommit.PullRequest, error) {
 }
 
 // sendPushEvent sends an event containing data about a git commit that was
-// pushed to a branch
+// pushed to a branch.
 func (a *adapter) sendPushEvent(commit *codecommit.Commit) error {
 	a.logger.Info("Sending Push event")
 
@@ -258,7 +252,9 @@ func (a *adapter) sendPushEvent(commit *codecommit.Commit) error {
 	event.SetSubject(fmt.Sprintf("%s/%s", a.repo, a.repoBranch))
 	event.SetSource(v1alpha1.AWSCodeCommitEventSource(a.awsRegion, a.repo))
 	event.SetID(*commit.CommitId)
-	event.SetData(cloudevents.ApplicationJSON, data)
+	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+		return fmt.Errorf("failed to set event data: %w", err)
+	}
 
 	if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
 		return result
@@ -282,7 +278,9 @@ func (a *adapter) sendPREvent(pullRequest *codecommit.PullRequest) error {
 	event.SetSubject(fmt.Sprintf("%s/%s", a.repo, a.repoBranch))
 	event.SetSource(v1alpha1.AWSCodeCommitEventSource(a.awsRegion, a.repo))
 	event.SetID(*pullRequest.PullRequestId)
-	event.SetData(cloudevents.ApplicationJSON, data)
+	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+		return fmt.Errorf("failed to set event data: %w", err)
+	}
 
 	if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
 		return result

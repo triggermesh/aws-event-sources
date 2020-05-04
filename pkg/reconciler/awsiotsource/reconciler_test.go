@@ -53,8 +53,7 @@ const (
 	tKey  = tNs + "/" + tName
 	tUID  = types.UID("00000000-0000-0000-0000-000000000000")
 
-	tImg  = "registry/image:tag"
-	tPort = 8080
+	tImg = "registry/image:tag"
 
 	tMetricsDomain = "testing"
 )
@@ -69,8 +68,6 @@ var (
 		Key: "key",
 	}
 )
-
-var tEventTypes = []string{"pull-request", "push"}
 
 var tSinkURI = &apis.URL{
 	Scheme: "http",
@@ -326,13 +323,6 @@ func newEventSourceWithSink() *v1alpha1.AWSIoTSource {
 	return o
 }
 
-// Sink: False, Deployed: Unknown
-func newEventSourceWithoutSink() *v1alpha1.AWSIoTSource {
-	o := newEventSource()
-	o.Status.MarkNoSink()
-	return o
-}
-
 // Sink: True, Deployed: True
 func newEventSourceDeployedWithSink() *v1alpha1.AWSIoTSource {
 	o := newEventSource()
@@ -439,34 +429,34 @@ func newAdapterDeployment() *appsv1.Deployment {
 									`"PrometheusPort":0,` +
 									`"ConfigMap":{"metrics.backend":"prometheus"}}`,
 							}, {
-								Name:  endpointEnvVar,
+								Name:  envEndpoint,
 								Value: tFoo,
 							}, {
-								Name:  topicEnvVar,
+								Name:  envTopic,
 								Value: tFoo,
 							}, {
-								Name: rootCAEnvVar,
+								Name: envRootCA,
 								ValueFrom: &corev1.EnvVarSource{
 									SecretKeyRef: tFooRef,
 								},
 							}, {
-								Name:  rootCAPathEnvVar,
+								Name:  envRootCAPath,
 								Value: tFoo,
 							}, {
-								Name: certificateEnvVar,
+								Name: envCertificate,
 								ValueFrom: &corev1.EnvVarSource{
 									SecretKeyRef: tFooRef,
 								},
 							}, {
-								Name:  certificatePathEnvVar,
+								Name:  envCertificatePath,
 								Value: tFoo,
 							}, {
-								Name: privateKeyEnvVar,
+								Name: envPrivateKey,
 								ValueFrom: &corev1.EnvVarSource{
 									SecretKeyRef: tFooRef,
 								},
 							}, {
-								Name:  privateKeyPathEnvVar,
+								Name:  envPrivateKeyPath,
 								Value: tFoo,
 							},
 						},

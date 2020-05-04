@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	"knative.dev/pkg/apis"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/metrics"
@@ -40,14 +41,14 @@ import (
 const adapterName = "awsiotsource"
 
 const (
-	endpointEnvVar        = "THING_SHADOW_ENDPOINT"
-	topicEnvVar           = "THING_TOPIC"
-	rootCAEnvVar          = "ROOT_CA"
-	rootCAPathEnvVar      = "ROOT_CA_PATH"
-	certificateEnvVar     = "CERTIFICATE"
-	certificatePathEnvVar = "CERTIFICATE_PATH"
-	privateKeyEnvVar      = "PRIVATE_KEY"
-	privateKeyPathEnvVar  = "PRIVATE_KEY_PATH"
+	envEndpoint        = "THING_SHADOW_ENDPOINT"
+	envTopic           = "THING_TOPIC"
+	envRootCA          = "ROOT_CA"
+	envRootCAPath      = "ROOT_CA_PATH"
+	envCertificate     = "CERTIFICATE"
+	envCertificatePath = "CERTIFICATE_PATH"
+	envPrivateKey      = "PRIVATE_KEY"
+	envPrivateKeyPath  = "PRIVATE_KEY_PATH"
 )
 
 // adapterConfig contains properties used to configure the source's adapter.
@@ -73,13 +74,13 @@ func (r *Reconciler) reconcileAdapter(ctx context.Context) error {
 	sinkURI, err := r.sinkResolver.URIFromDestinationV1(o.Spec.Sink, o)
 	if err != nil {
 		o.Status.MarkNoSink()
-		event.EventWarn(ctx, common.ReasonBadSinkURI, "Could not resolve sink URI: %s", err)
+		event.Warn(ctx, common.ReasonBadSinkURI, "Could not resolve sink URI: %s", err)
 		// skip adapter reconciliation if the sink URI can't be resolved.
 		return nil
 	}
 	o.Status.MarkSink(sinkURI)
 
-	desiredAdapter := makeAdapterDeployment(ctx, sinkURI.String(), r.adapterCfg)
+	desiredAdapter := makeAdapterDeployment(ctx, sinkURI, r.adapterCfg)
 
 	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
 	if err != nil {
@@ -109,7 +110,7 @@ func (r *Reconciler) getOrCreateAdapter(ctx context.Context, desiredAdapter *app
 			return nil, reconciler.NewEvent(corev1.EventTypeWarning, common.ReasonFailedAdapterCreate,
 				"Failed to create adapter Deployment %q: %s", desiredAdapter.Name, err)
 		}
-		event.Event(ctx, common.ReasonAdapterCreate, "Created adapter Deployment %q", adapter.Name)
+		event.Normal(ctx, common.ReasonAdapterCreate, "Created adapter Deployment %q", adapter.Name)
 
 	case err != nil:
 		return nil, fmt.Errorf("failed to get adapter Deployment from cache: %w", err)
@@ -139,15 +140,20 @@ func (r *Reconciler) syncAdapterDeployment(ctx context.Context,
 		return nil, reconciler.NewEvent(corev1.EventTypeWarning, common.ReasonFailedAdapterUpdate,
 			"Failed to update adapter Deployment %q: %s", desiredAdapter.Name, err)
 	}
-	event.Event(ctx, common.ReasonAdapterUpdate, "Updated adapter Deployment %q", adapter.Name)
+	event.Normal(ctx, common.ReasonAdapterUpdate, "Updated adapter Deployment %q", adapter.Name)
 
 	return adapter, nil
 }
 
 // makeAdapterDeployment returns a Deployment object for the source's adapter.
-func makeAdapterDeployment(ctx context.Context, sinkURI string, adapterCfg *adapterConfig) *appsv1.Deployment {
+func makeAdapterDeployment(ctx context.Context, sinkURI *apis.URL, adapterCfg *adapterConfig) *appsv1.Deployment {
 	o := object.FromContext(ctx).(*v1alpha1.AWSIoTSource)
 	name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), o.Name)
+
+	var sinkURIStr string
+	if sinkURI != nil {
+		sinkURIStr = sinkURI.String()
+	}
 
 	return resource.NewDeployment(o.Namespace, name,
 		resource.Controller(o),
@@ -168,23 +174,23 @@ func makeAdapterDeployment(ctx context.Context, sinkURI string, adapterCfg *adap
 
 		resource.EnvVar(common.NameEnvVar, o.Name),
 		resource.EnvVar(common.NamespaceEnvVar, o.Namespace),
-		resource.EnvVar(common.SinkEnvVar, sinkURI),
+		resource.EnvVar(common.SinkEnvVar, sinkURIStr),
 		resource.EnvVar(common.LoggingConfigEnvVar, adapterCfg.LoggingCfg),
 		resource.EnvVar(common.MetricsConfigEnvVar, adapterCfg.MetricsCfg),
-		resource.EnvVar(endpointEnvVar, o.Spec.Endpoint),
-		resource.EnvVar(topicEnvVar, o.Spec.Topic),
-		resource.EnvVarFromSecret(rootCAEnvVar,
+		resource.EnvVar(envEndpoint, o.Spec.Endpoint),
+		resource.EnvVar(envTopic, o.Spec.Topic),
+		resource.EnvVarFromSecret(envRootCA,
 			o.Spec.RootCA.ValueFromSecret.Name,
 			o.Spec.RootCA.ValueFromSecret.Key),
-		resource.EnvVar(rootCAPathEnvVar, *o.Spec.RootCAPath),
-		resource.EnvVarFromSecret(certificateEnvVar,
+		resource.EnvVar(envRootCAPath, *o.Spec.RootCAPath),
+		resource.EnvVarFromSecret(envCertificate,
 			o.Spec.Certificate.ValueFromSecret.Name,
 			o.Spec.Certificate.ValueFromSecret.Key),
-		resource.EnvVar(certificatePathEnvVar, *o.Spec.CertificatePath),
-		resource.EnvVarFromSecret(privateKeyEnvVar,
+		resource.EnvVar(envCertificatePath, *o.Spec.CertificatePath),
+		resource.EnvVarFromSecret(envPrivateKey,
 			o.Spec.PrivateKey.ValueFromSecret.Name,
 			o.Spec.PrivateKey.ValueFromSecret.Key),
-		resource.EnvVar(privateKeyPathEnvVar, *o.Spec.PrivateKeyPath),
+		resource.EnvVar(envPrivateKeyPath, *o.Spec.PrivateKeyPath),
 	)
 }
 

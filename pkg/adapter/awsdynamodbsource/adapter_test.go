@@ -20,10 +20,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
-	"github.com/stretchr/testify/assert"
 
 	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
 	loggingtesting "knative.dev/pkg/logging/testing"

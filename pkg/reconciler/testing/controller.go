@@ -28,6 +28,7 @@ import (
 	rt "knative.dev/pkg/reconciler/testing"
 )
 
+// TestControllerConstructor tests that a controller constructor meets our requirements.
 func TestControllerConstructor(t *testing.T, ctor injection.ControllerConstructor) {
 	t.Helper()
 
@@ -58,6 +59,8 @@ func TestControllerConstructor(t *testing.T, ctor injection.ControllerConstructo
 	EnsureNoNilField(t, ctrler)
 }
 
+// TestControllerConstructorFailures tests that a controller constructor fails
+// when various requirements are not met.
 func TestControllerConstructorFailures(t *testing.T, ctor injection.ControllerConstructor) {
 	t.Helper()
 
@@ -93,12 +96,12 @@ func TestControllerConstructorFailures(t *testing.T, ctor injection.ControllerCo
 			ctx, _ := rt.SetupFakeContext(t)
 			cmw := &configmap.StaticWatcher{}
 
-			undo := tc.initFn(&cmw)
+			undo := tc.initFn(&cmw) //nolint:scopelint
 			if undo != nil {
 				defer undo()
 			}
 
-			tc.assertFn(t, func() {
+			tc.assertFn(t, func() { //nolint:scopelint
 				_ = ctor(ctx, cmw)
 			})
 		})

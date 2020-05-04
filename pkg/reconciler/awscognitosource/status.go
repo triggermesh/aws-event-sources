@@ -27,7 +27,7 @@ func createCloudEventAttributes(srcSpec *v1alpha1.AWSCognitoSourceSpec) []duckv1
 	return []duckv1.CloudEventAttributes{
 		{
 			Type:   v1alpha1.AWSCognitoEventType(v1alpha1.AWSCognitoGenericEventType),
-			Source: v1alpha1.AWSCognitoEventSource(srcSpec.IdentityPoolId),
+			Source: v1alpha1.AWSCognitoEventSource(srcSpec.IdentityPoolID),
 		},
 	}
 }

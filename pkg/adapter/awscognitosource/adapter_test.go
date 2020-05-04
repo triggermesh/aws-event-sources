@@ -20,12 +20,13 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity/cognitoidentityiface"
 	"github.com/aws/aws-sdk-go/service/cognitosync"
 	"github.com/aws/aws-sdk-go/service/cognitosync/cognitosynciface"
-	"github.com/stretchr/testify/assert"
 
 	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
 	loggingtesting "knative.dev/pkg/logging/testing"
@@ -111,7 +112,6 @@ func TestGetDatasets(t *testing.T) {
 	datasets, err = a.getDatasets(identities)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(datasets))
-
 }
 
 func TestGetRecords(t *testing.T) {
@@ -147,7 +147,7 @@ func TestSendCognitoEvent(t *testing.T) {
 
 	a := &adapter{
 		logger:         loggingtesting.TestLogger(t),
-		identityPoolId: "fooPool",
+		identityPoolID: "fooPool",
 		ceClient:       ceClient,
 	}
 

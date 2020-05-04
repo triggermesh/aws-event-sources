@@ -53,16 +53,13 @@ const (
 	tKey  = tNs + "/" + tName
 	tUID  = types.UID("00000000-0000-0000-0000-000000000000")
 
-	tImg  = "registry/image:tag"
-	tPort = 8080
+	tImg = "registry/image:tag"
 
 	tTopic  = "triggermeshtest"
 	tRegion = "us-test-0"
 
 	tMetricsDomain = "testing"
 )
-
-var tEventTypes = []string{"pull-request", "push"}
 
 var tSinkURI = &apis.URL{
 	Scheme: "http",
@@ -71,13 +68,13 @@ var tSinkURI = &apis.URL{
 }
 
 var (
-	tAccessKeyIdSks = &corev1.SecretKeySelector{
+	tAccessKeyIDSelector = &corev1.SecretKeySelector{
 		LocalObjectReference: corev1.LocalObjectReference{
 			Name: "test-secret",
 		},
 		Key: "keyId",
 	}
-	tSecretAccessKeySks = &corev1.SecretKeySelector{
+	tSecretAccessKeySelector = &corev1.SecretKeySelector{
 		LocalObjectReference: corev1.LocalObjectReference{
 			Name: "test-secret",
 		},
@@ -295,10 +292,10 @@ func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSSNSSource {
 			Region: tRegion,
 			Credentials: v1alpha1.AWSSecurityCredentials{
 				AccessKeyID: v1alpha1.ValueFromField{
-					ValueFromSecret: tAccessKeyIdSks,
+					ValueFromSecret: tAccessKeyIDSelector,
 				},
 				SecretAccessKey: v1alpha1.ValueFromField{
-					ValueFromSecret: tSecretAccessKeySks,
+					ValueFromSecret: tSecretAccessKeySelector,
 				},
 			},
 		},
@@ -326,13 +323,6 @@ func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSSNSSource {
 func newEventSourceWithSink() *v1alpha1.AWSSNSSource {
 	o := newEventSource()
 	o.Status.MarkSink(tSinkURI)
-	return o
-}
-
-// Sink: False, Deployed: Unknown
-func newEventSourceWithoutSink() *v1alpha1.AWSSNSSource {
-	o := newEventSource()
-	o.Status.MarkNoSink()
 	return o
 }
 
@@ -442,20 +432,20 @@ func newAdapterDeployment() *appsv1.Deployment {
 									`"PrometheusPort":0,` +
 									`"ConfigMap":{"metrics.backend":"prometheus"}}`,
 							}, {
-								Name:  topicEnvVar,
+								Name:  envTopic,
 								Value: tTopic,
 							}, {
-								Name:  awsRegionEnvVar,
+								Name:  envRegion,
 								Value: tRegion,
 							}, {
-								Name: awsAccessKeyIdEnvVar,
+								Name: envAccessKeyID,
 								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: tAccessKeyIdSks,
+									SecretKeyRef: tAccessKeyIDSelector,
 								},
 							}, {
-								Name: awsSecretAccessKeyEnvVar,
+								Name: envSecretAccessKey,
 								ValueFrom: &corev1.EnvVarSource{
-									SecretKeyRef: tSecretAccessKeySks,
+									SecretKeyRef: tSecretAccessKeySelector,
 								},
 							},
 						},

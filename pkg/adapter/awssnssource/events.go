@@ -20,23 +20,25 @@ import (
 	"time"
 )
 
+// SNSEventRecord represents a SNS event.
 type SNSEventRecord struct {
-	EventVersion         string    `json:"EventVersion"`
-	EventSubscriptionArn string    `json:"EventSubscriptionArn"`
-	EventSource          string    `json:"EventSource"`
-	SNS                  SNSEntity `json:"Sns"`
+	EventVersion string    `json:"eventVersion"`
+	EventSource  string    `json:"eventSource"`
+	SNS          SNSEntity `json:"sns"`
 }
 
+// SNSEntity is the data from a SNS notification.
+// see https://docs.aws.amazon.com/sns/latest/dg/sns-message-and-json-formats.html#http-notification-json
 type SNSEntity struct {
-	Signature         string                 `json:"Signature"`
-	MessageID         string                 `json:"MessageId"`
-	Type              string                 `json:"Type"`
-	TopicArn          string                 `json:"TopicArn"`
-	MessageAttributes map[string]interface{} `json:"MessageAttributes"`
-	SignatureVersion  string                 `json:"SignatureVersion"`
-	Timestamp         time.Time              `json:"Timestamp"`
-	SigningCertURL    string                 `json:"SigningCertUrl"`
-	Message           string                 `json:"Message"`
-	UnsubscribeURL    string                 `json:"UnsubscribeUrl"`
-	Subject           string                 `json:"Subject"`
+	Message           string                 `json:"message"`
+	MessageID         string                 `json:"messageId"`
+	Signature         string                 `json:"signature"`
+	SignatureVersion  string                 `json:"signatureVersion"`
+	SigningCertURL    string                 `json:"signingCertUrl"`
+	Subject           string                 `json:"subject"`
+	Timestamp         time.Time              `json:"timestamp"`
+	TopicArn          string                 `json:"topicArn"`
+	Type              string                 `json:"type"`
+	UnsubscribeURL    string                 `json:"unsubscribeUrl"`
+	MessageAttributes map[string]interface{} `json:"messageAttributes"`
 }

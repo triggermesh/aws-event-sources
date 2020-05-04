@@ -21,10 +21,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/kinesis/kinesisiface"
-	"github.com/stretchr/testify/assert"
 
 	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
 	loggingtesting "knative.dev/pkg/logging/testing"
@@ -83,13 +84,15 @@ func TestProcessInputs(t *testing.T) {
 	err := a.processInputs(inputs, []*string{aws.String("shardID")}, streamARN)
 	assert.NoError(t, err)
 
+	const errMsg = "fake error"
+
 	a.knsClient = mockedGetRecords{
 		Resp: kinesis.GetRecordsOutput{},
-		err:  errors.New("fake error"),
+		err:  errors.New(errMsg),
 	}
 
 	err = a.processInputs(inputs, []*string{aws.String("shardID")}, streamARN)
-	assert.NoError(t, err)
+	assert.EqualError(t, err, errMsg)
 }
 
 func TestGetRecordsInputs(t *testing.T) {

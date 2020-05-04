@@ -26,13 +26,13 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/object"
 )
 
-// Event records a normal event for an API object.
-func Event(ctx context.Context, reason, msgFmt string, args ...interface{}) {
+// Normal records a normal event for an API object.
+func Normal(ctx context.Context, reason, msgFmt string, args ...interface{}) {
 	recordEvent(ctx, corev1.EventTypeNormal, reason, msgFmt, args...)
 }
 
-// EventWarn records a warning event for an API object.
-func EventWarn(ctx context.Context, reason, msgFmt string, args ...interface{}) {
+// Warn records a warning event for an API object.
+func Warn(ctx context.Context, reason, msgFmt string, args ...interface{}) {
 	recordEvent(ctx, corev1.EventTypeWarning, reason, msgFmt, args...)
 }
 

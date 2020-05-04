@@ -18,6 +18,7 @@ package awssqssource
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -54,13 +55,13 @@ type adapter struct {
 	awsRegion string
 }
 
+// NewEnvConfig returns an accessor for the source's adapter envConfig.
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
 	return &envConfig{}
 }
 
-func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
-	ceClient cloudevents.Client) pkgadapter.Adapter {
-
+// NewAdapter returns a constructor for the source's adapter.
+func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClient cloudevents.Client) pkgadapter.Adapter {
 	logger := logging.FromContext(ctx)
 
 	env := envAcc.(*envConfig)
@@ -85,14 +86,15 @@ const waitTimeoutSec = 20
 func (a *adapter) Start(stopCh <-chan struct{}) error {
 	url, err := a.queueLookup(a.queue)
 	if err != nil {
-		a.logger.With("error", err).Fatalf("Unable to find URL of SQS queue: %s", a.queue)
+		a.logger.Fatalw("Unable to find URL of SQS queue "+a.queue, zap.Error(err))
 	}
 
 	queueURL := *url.QueueUrl
 	a.logger.Infof("Listening to SQS queue at URL: %s", queueURL)
 
 	// Look for new messages every 5 seconds
-	for range time.Tick(5 * time.Second) {
+	ticker := time.NewTicker(5 * time.Second)
+	for range ticker.C {
 		msgs, err := a.getMessages(queueURL, waitTimeoutSec)
 		if err != nil {
 			a.logger.Errorw("Failed to get messages from SQS queue", "error", err)
@@ -125,7 +127,6 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 			a.logger.Errorw("Failed to delete message from SQS queue", "error", err)
 			continue
 		}
-
 	}
 
 	return nil
@@ -176,7 +177,9 @@ func (a *adapter) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 	event.SetSource(v1alpha1.AWSSQSEventSource(a.awsRegion, a.queue))
 	event.SetSubject(*msg.MessageId)
 	event.SetID(*msg.MessageId)
-	event.SetData(cloudevents.ApplicationJSON, data)
+	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+		return fmt.Errorf("failed to set event data: %w", err)
+	}
 
 	if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
 		return result

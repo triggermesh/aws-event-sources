@@ -46,8 +46,8 @@ func TestEvents(t *testing.T) {
 	ctx := controller.WithEventRecorder(context.TODO(), er)
 	ctx = object.With(ctx, &v1alpha1.AWSCodeCommitSource{})
 
-	Event(ctx, reason, messageFmt, normalMsg)
-	EventWarn(ctx, reason, messageFmt, warningMsg)
+	Normal(ctx, reason, messageFmt, normalMsg)
+	Warn(ctx, reason, messageFmt, warningMsg)
 
 	close(er.Events)
 

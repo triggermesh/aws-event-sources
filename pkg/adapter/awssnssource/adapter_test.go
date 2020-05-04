@@ -18,17 +18,17 @@ package awssnssource
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
-	"github.com/stretchr/testify/assert"
 
 	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
 	loggingtesting "knative.dev/pkg/logging/testing"
@@ -36,25 +36,30 @@ import (
 
 type mockedSNSClient struct {
 	snsiface.SNSAPI
-	createTopicOutput      sns.CreateTopicOutput
+
+	confirmSubsOutput *sns.ConfirmSubscriptionOutput
+	confirmSubsError  error
+
+	createTopicOutput      *sns.CreateTopicOutput
 	createTopicOutputError error
 
-	subscribeOutput      sns.SubscribeOutput
+	subscribeOutput      *sns.SubscribeOutput
 	subscribeOutputError error
 }
 
-func (m mockedSNSClient) CreateTopic(in *sns.CreateTopicInput) (*sns.CreateTopicOutput, error) {
-	return &m.createTopicOutput, m.createTopicOutputError
+func (m mockedSNSClient) CreateTopic(_ *sns.CreateTopicInput) (*sns.CreateTopicOutput, error) {
+	return m.createTopicOutput, m.createTopicOutputError
 }
 
-func (m mockedSNSClient) Subscribe(in *sns.SubscribeInput) (*sns.SubscribeOutput, error) {
-	return &m.subscribeOutput, m.subscribeOutputError
+func (m mockedSNSClient) Subscribe(_ *sns.SubscribeInput) (*sns.SubscribeOutput, error) {
+	return m.subscribeOutput, m.subscribeOutputError
+}
+
+func (m mockedSNSClient) ConfirmSubscription(_ *sns.ConfirmSubscriptionInput) (*sns.ConfirmSubscriptionOutput, error) {
+	return m.confirmSubsOutput, m.confirmSubsError
 }
 
 func TestHandleNotification(t *testing.T) {
-	subscribeURL, closeServer := mockServer()
-	defer closeServer()
-
 	ceClient := adaptertest.NewTestClient()
 
 	a := &adapter{
@@ -62,11 +67,14 @@ func TestHandleNotification(t *testing.T) {
 		ceClient: ceClient,
 	}
 
+	a.snsClient = mockedSNSClient{
+		confirmSubsOutput: &sns.ConfirmSubscriptionOutput{SubscriptionArn: aws.String("fooArn")},
+	}
+
 	data, err := ioutil.ReadFile("testSNSConfirmSubscriptionEvent.json")
 	if err != nil {
 		t.Fatalf("Failed to read test file: %v", err)
 	}
-	data = setSubscribeURL(t, data, subscribeURL)
 
 	req, err := http.NewRequest("POST", "/", bytes.NewReader(data))
 	if err != nil {
@@ -102,7 +110,7 @@ func TestAttempSubscription(t *testing.T) {
 	}
 
 	a.snsClient = mockedSNSClient{
-		createTopicOutput:      sns.CreateTopicOutput{},
+		createTopicOutput:      &sns.CreateTopicOutput{},
 		createTopicOutputError: errors.New("fake error"),
 	}
 
@@ -110,8 +118,8 @@ func TestAttempSubscription(t *testing.T) {
 	assert.Error(t, err)
 
 	a.snsClient = mockedSNSClient{
-		createTopicOutput:    sns.CreateTopicOutput{TopicArn: aws.String("fooArn")},
-		subscribeOutput:      sns.SubscribeOutput{},
+		createTopicOutput:    &sns.CreateTopicOutput{TopicArn: aws.String("fooArn")},
+		subscribeOutput:      &sns.SubscribeOutput{},
 		subscribeOutputError: errors.New("fake error"),
 	}
 
@@ -119,8 +127,8 @@ func TestAttempSubscription(t *testing.T) {
 	assert.Error(t, err)
 
 	a.snsClient = mockedSNSClient{
-		createTopicOutput:    sns.CreateTopicOutput{TopicArn: aws.String("fooArn")},
-		subscribeOutput:      sns.SubscribeOutput{},
+		createTopicOutput:    &sns.CreateTopicOutput{TopicArn: aws.String("fooArn")},
+		subscribeOutput:      &sns.SubscribeOutput{},
 		subscribeOutputError: nil,
 	}
 
@@ -140,32 +148,5 @@ func TestHealth(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-}
-
-// mockServer starts a HTTP server and returns its URL together with a function
-// to close it.
-func mockServer() (string /*url*/, func() /*close*/) {
-	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-
-	return s.URL, s.Close
-}
-
-func setSubscribeURL(t *testing.T, data []byte, url string) []byte {
-	structured := make(map[string]string)
-
-	err := json.Unmarshal(data, &structured)
-	if err != nil {
-		t.Fatalf("Failed to deserialize data: %v", err)
-	}
-
-	structured["SubscribeURL"] = url
-
-	data, err = json.Marshal(structured)
-	if err != nil {
-		t.Fatalf("Failed to serialize data: %v", err)
-	}
-
-	return data
+	assert.Equal(t, "OK\n", rr.Body.String())
 }

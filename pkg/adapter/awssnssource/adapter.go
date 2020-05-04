@@ -60,13 +60,13 @@ type adapter struct {
 	awsRegion string
 }
 
+// NewEnvConfig returns an accessor for the source's adapter envConfig.
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
 	return &envConfig{}
 }
 
-func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
-	ceClient cloudevents.Client) pkgadapter.Adapter {
-
+// NewAdapter returns a constructor for the source's adapter.
+func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClient cloudevents.Client) pkgadapter.Adapter {
 	logger := logging.FromContext(ctx)
 
 	env := envAcc.(*envConfig)
@@ -118,14 +118,14 @@ func (a *adapter) attempSubscription(period time.Duration) error {
 	}
 
 	sink := os.Getenv("K_SINK")
-	sinkUrl, err := url.Parse(sink)
+	sinkURL, err := url.Parse(sink)
 	if err != nil {
 		return err
 	}
 
 	_, err = a.snsClient.Subscribe(&sns.SubscribeInput{
 		Endpoint: &sink,
-		Protocol: &sinkUrl.Scheme,
+		Protocol: &sinkURL.Scheme,
 		TopicArn: topic.TopicArn,
 	})
 	if err != nil {
@@ -137,51 +137,63 @@ func (a *adapter) attempSubscription(period time.Duration) error {
 }
 
 // handleNotification implements the receive interface for SNS.
-func (a *adapter) handleNotification(_ http.ResponseWriter, r *http.Request) {
-	// Fish out notification body
-	var notification interface{}
+func (a *adapter) handleNotification(rw http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		a.logger.Error("Failed to parse notification: ", err)
+		a.logger.Errorw("Failed to read request body", zap.Error(err))
+		http.Error(rw, fmt.Sprint("Failed to read request body: ", err), http.StatusInternalServerError)
+		return
 	}
-	err = json.Unmarshal(body, &notification)
-	if err != nil {
-		a.logger.Error("Failed to parse notification: ", err)
+
+	data := make(map[string]interface{})
+	if err := json.Unmarshal(body, &data); err != nil {
+		a.logger.Errorw("Failed to parse notification", zap.Error(err))
+		http.Error(rw, fmt.Sprint("Failed to parse notification: ", err), http.StatusBadRequest)
+		return
 	}
-	a.logger.Info(string(body))
-	data := notification.(map[string]interface{})
 
-	// If the message is about our subscription, curl the confirmation endpoint.
-	if data["Type"].(string) == "SubscriptionConfirmation" {
+	a.logger.Debug("Request body: ", string(body))
 
-		subcribeURL := data["SubscribeURL"].(string)
-		_, err := http.Get(subcribeURL)
+	switch data["Type"].(string) {
+	// If the message is about our subscription, call the confirmation endpoint.
+	// payload: https://docs.aws.amazon.com/sns/latest/dg/sns-message-and-json-formats.html#http-subscription-confirmation-json
+	case "SubscriptionConfirmation":
+		resp, err := a.snsClient.ConfirmSubscription(&sns.ConfirmSubscriptionInput{
+			TopicArn: aws.String(data["TopicArn"].(string)),
+			Token:    aws.String(data["Token"].(string)),
+		})
 		if err != nil {
-			a.logger.Fatalw("Unable to confirm SNS subscription", "error", err)
+			a.logger.Errorw("Unable to confirm SNS subscription", zap.Error(err))
+			http.Error(rw, fmt.Sprint("Unable to confirm SNS subscription: ", err), http.StatusInternalServerError)
+			return
 		}
-		a.logger.Info("Successfully confirmed SNS subscription")
 
-		// If it's a legit notification, push the event
-	} else if data["Type"].(string) == "Notification" {
+		a.logger.Debug("Successfully confirmed SNS subscription ", *resp.SubscriptionArn)
 
-		eventTime, _ := time.Parse(time.RFC3339, data["Timestamp"].(string))
+	// If the message is a notification, push the event
+	// payload: https://docs.aws.amazon.com/sns/latest/dg/sns-message-and-json-formats.html#http-notification-json
+	case "Notification":
+		eventTime, err := time.Parse(time.RFC3339, data["Timestamp"].(string))
+		if err != nil {
+			a.logger.Errorw("Failed to parse notification timestamp", zap.Error(err))
+			http.Error(rw, fmt.Sprint("Failed to parse notification timestamp: ", err), http.StatusBadRequest)
+			return
+		}
 
 		record := &SNSEventRecord{
-			EventVersion:         "1.0",
-			EventSubscriptionArn: "",
-			EventSource:          "aws:sns",
+			EventVersion: "1.0",
+			EventSource:  "aws:sns",
 			SNS: SNSEntity{
-				Signature:         data["Signature"].(string),
-				MessageID:         data["MessageId"].(string),
-				Type:              data["Type"].(string),
-				TopicArn:          data["TopicArn"].(string),
-				MessageAttributes: data["MessageAttributes"].(map[string]interface{}),
-				SignatureVersion:  data["SignatureVersion"].(string),
-				Timestamp:         eventTime,
-				SigningCertURL:    data["SigningCertURL"].(string),
-				Message:           data["Message"].(string),
-				UnsubscribeURL:    data["UnsubscribeURL"].(string),
-				Subject:           data["Subject"].(string),
+				Message:          data["Message"].(string),
+				MessageID:        data["MessageId"].(string),
+				Signature:        data["Signature"].(string),
+				SignatureVersion: data["SignatureVersion"].(string),
+				SigningCertURL:   data["SigningCertURL"].(string),
+				Subject:          data["Subject"].(string),
+				Timestamp:        eventTime,
+				TopicArn:         data["TopicArn"].(string),
+				Type:             data["Type"].(string),
+				UnsubscribeURL:   data["UnsubscribeURL"].(string),
 			},
 		}
 
@@ -190,16 +202,21 @@ func (a *adapter) handleNotification(_ http.ResponseWriter, r *http.Request) {
 		event.SetSubject(data["Subject"].(string))
 		event.SetSource(v1alpha1.AWSSNSEventSource(a.awsRegion, a.topic))
 		event.SetID(data["MessageId"].(string))
-		event.SetData(cloudevents.ApplicationJSON, record)
+		if err := event.SetData(cloudevents.ApplicationJSON, record); err != nil {
+			a.logger.Errorw("Failed to set event data", zap.Error(err))
+			http.Error(rw, fmt.Sprint("Failed to set event data: ", err), http.StatusInternalServerError)
+			return
+		}
 
 		if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
-			a.logger.Errorw("Failed to send CloudEvent", "error", err)
+			a.logger.Errorw("Failed to send CloudEvent", "error", result)
+			http.Error(rw, fmt.Sprint("Failed to send CloudEvent: ", result), http.StatusInternalServerError)
 		}
 	}
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte("OK"))
+	fmt.Fprintln(w, "OK")
 }

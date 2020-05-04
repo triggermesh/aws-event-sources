@@ -20,10 +20,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	"github.com/stretchr/testify/assert"
 
 	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
 	loggingtesting "knative.dev/pkg/logging/testing"
@@ -41,7 +42,7 @@ type mockedDeleteMsgs struct {
 	err  error
 }
 
-type mockedGetQueueUrl struct {
+type mockedGetQueueURL struct {
 	sqsiface.SQSAPI
 	Resp sqs.GetQueueUrlOutput
 	err  error
@@ -55,7 +56,7 @@ func (m mockedDeleteMsgs) DeleteMessage(in *sqs.DeleteMessageInput) (*sqs.Delete
 	return &m.Resp, m.err
 }
 
-func (m mockedGetQueueUrl) GetQueueUrl(*sqs.GetQueueUrlInput) (*sqs.GetQueueUrlOutput, error) {
+func (m mockedGetQueueURL) GetQueueUrl(*sqs.GetQueueUrlInput) (*sqs.GetQueueUrlOutput, error) { //nolint:golint,stylecheck
 	return &m.Resp, m.err
 }
 
@@ -80,7 +81,7 @@ func TestQueueLookup(t *testing.T) {
 	for _, c := range cases {
 		a := &adapter{
 			logger:    loggingtesting.TestLogger(t),
-			sqsClient: mockedGetQueueUrl{Resp: c.Resp, err: c.err},
+			sqsClient: mockedGetQueueURL{Resp: c.Resp, err: c.err},
 		}
 
 		url, err := a.queueLookup("testQueue")
@@ -110,7 +111,7 @@ func TestGetMessages(t *testing.T) {
 		},
 		{ // Case 2, not messages returned
 			Resp:     sqs.ReceiveMessageOutput{},
-			err:      errors.New("No messages found"),
+			err:      errors.New("no message found"),
 			Expected: []sqs.Message{},
 		},
 	}

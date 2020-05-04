@@ -34,8 +34,8 @@ func (s *AWSCognitoSource) GetUntypedSpec() interface{} {
 
 // AWSCognitoEventSource returns a representation of the source suitable for
 // usage as a CloudEvent source.
-func AWSCognitoEventSource(identityPoolId string) string {
-	return fmt.Sprintf("aws:cognito:identitypool/%s", identityPoolId)
+func AWSCognitoEventSource(identityPoolID string) string {
+	return fmt.Sprintf("aws:cognito:identitypool/%s", identityPoolID)
 }
 
 // Supported event types

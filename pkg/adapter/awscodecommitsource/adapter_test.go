@@ -20,10 +20,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codecommit/codecommitiface"
-	"github.com/stretchr/testify/assert"
 
 	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
 	loggingtesting "knative.dev/pkg/logging/testing"
@@ -176,7 +177,6 @@ func TestProcessCommits(t *testing.T) {
 
 		lastCommit = "foo"
 	}
-
 }
 
 func TestProcessPullRequest(t *testing.T) {

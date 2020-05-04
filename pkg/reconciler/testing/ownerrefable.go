@@ -25,8 +25,8 @@ import (
 )
 
 // NewOwnerRefable returns a OwnerRefable with the given attributes.
-func NewOwnerRefable(name string, gvk schema.GroupVersionKind, uid types.UID) *fakeOwnerRefable {
-	return &fakeOwnerRefable{
+func NewOwnerRefable(name string, gvk schema.GroupVersionKind, uid types.UID) *FakeOwnerRefable {
+	return &FakeOwnerRefable{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 			UID:  uid,
@@ -36,8 +36,8 @@ func NewOwnerRefable(name string, gvk schema.GroupVersionKind, uid types.UID) *f
 }
 
 // DummyOwnerRefable returns a OwnerRefable with dummy attributes.
-func DummyOwnerRefable() *fakeOwnerRefable {
-	return &fakeOwnerRefable{
+func DummyOwnerRefable() *FakeOwnerRefable {
+	return &FakeOwnerRefable{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "fake",
 			UID:  types.UID("00000000-0000-0000-0000-000000000000"),
@@ -50,13 +50,15 @@ func DummyOwnerRefable() *fakeOwnerRefable {
 	}
 }
 
-var _ kmeta.OwnerRefable = (*fakeOwnerRefable)(nil)
+var _ kmeta.OwnerRefable = (*FakeOwnerRefable)(nil)
 
-type fakeOwnerRefable struct {
+// FakeOwnerRefable implements OwnerRefable.
+type FakeOwnerRefable struct {
 	metav1.ObjectMeta
 	schema.GroupVersionKind
 }
 
-func (o *fakeOwnerRefable) GetGroupVersionKind() schema.GroupVersionKind {
+// GetGroupVersionKind returns the GroupVersionKind from the object.
+func (o *FakeOwnerRefable) GetGroupVersionKind() schema.GroupVersionKind {
 	return o.GroupVersionKind
 }

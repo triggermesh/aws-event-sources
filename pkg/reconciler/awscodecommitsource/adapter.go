@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	"knative.dev/pkg/apis"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/metrics"
@@ -41,12 +42,12 @@ import (
 const adapterName = "awscodecommitsource"
 
 const (
-	repoEnvVar               = "REPO"
-	branchEnvVar             = "BRANCH"
-	awsRegionEnvVar          = "AWS_REGION"
-	eventTypesEnvVar         = "EVENT_TYPES"
-	awsAccessKeyIdEnvVar     = "AWS_ACCESS_KEY_ID"
-	awsSecretAccessKeyEnvVar = "AWS_SECRET_ACCESS_KEY"
+	envRepo            = "REPO"
+	envBranch          = "BRANCH"
+	envRegion          = "AWS_REGION"
+	envEventTypes      = "EVENT_TYPES"
+	envAccessKeyID     = "AWS_ACCESS_KEY_ID"
+	envSecretAccessKey = "AWS_SECRET_ACCESS_KEY" //nolint:gosec
 )
 
 // adapterConfig contains properties used to configure the source's adapter.
@@ -72,13 +73,13 @@ func (r *Reconciler) reconcileAdapter(ctx context.Context) error {
 	sinkURI, err := r.sinkResolver.URIFromDestinationV1(o.Spec.Sink, o)
 	if err != nil {
 		o.Status.MarkNoSink()
-		event.EventWarn(ctx, common.ReasonBadSinkURI, "Could not resolve sink URI: %s", err)
+		event.Warn(ctx, common.ReasonBadSinkURI, "Could not resolve sink URI: %s", err)
 		// skip adapter reconciliation if the sink URI can't be resolved.
 		return nil
 	}
 	o.Status.MarkSink(sinkURI)
 
-	desiredAdapter := makeAdapterDeployment(ctx, sinkURI.String(), r.adapterCfg)
+	desiredAdapter := makeAdapterDeployment(ctx, sinkURI, r.adapterCfg)
 
 	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
 	if err != nil {
@@ -108,7 +109,7 @@ func (r *Reconciler) getOrCreateAdapter(ctx context.Context, desiredAdapter *app
 			return nil, reconciler.NewEvent(corev1.EventTypeWarning, common.ReasonFailedAdapterCreate,
 				"Failed to create adapter Deployment %q: %s", desiredAdapter.Name, err)
 		}
-		event.Event(ctx, common.ReasonAdapterCreate, "Created adapter Deployment %q", adapter.Name)
+		event.Normal(ctx, common.ReasonAdapterCreate, "Created adapter Deployment %q", adapter.Name)
 
 	case err != nil:
 		return nil, fmt.Errorf("failed to get adapter Deployment from cache: %w", err)
@@ -138,15 +139,20 @@ func (r *Reconciler) syncAdapterDeployment(ctx context.Context,
 		return nil, reconciler.NewEvent(corev1.EventTypeWarning, common.ReasonFailedAdapterUpdate,
 			"Failed to update adapter Deployment %q: %s", desiredAdapter.Name, err)
 	}
-	event.Event(ctx, common.ReasonAdapterUpdate, "Updated adapter Deployment %q", adapter.Name)
+	event.Normal(ctx, common.ReasonAdapterUpdate, "Updated adapter Deployment %q", adapter.Name)
 
 	return adapter, nil
 }
 
 // makeAdapterDeployment returns a Deployment object for the source's adapter.
-func makeAdapterDeployment(ctx context.Context, sinkURI string, adapterCfg *adapterConfig) *appsv1.Deployment {
+func makeAdapterDeployment(ctx context.Context, sinkURI *apis.URL, adapterCfg *adapterConfig) *appsv1.Deployment {
 	o := object.FromContext(ctx).(*v1alpha1.AWSCodeCommitSource)
 	name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), o.Name)
+
+	var sinkURIStr string
+	if sinkURI != nil {
+		sinkURIStr = sinkURI.String()
+	}
 
 	return resource.NewDeployment(o.Namespace, name,
 		resource.Controller(o),
@@ -167,17 +173,17 @@ func makeAdapterDeployment(ctx context.Context, sinkURI string, adapterCfg *adap
 
 		resource.EnvVar(common.NameEnvVar, o.Name),
 		resource.EnvVar(common.NamespaceEnvVar, o.Namespace),
-		resource.EnvVar(common.SinkEnvVar, sinkURI),
+		resource.EnvVar(common.SinkEnvVar, sinkURIStr),
 		resource.EnvVar(common.LoggingConfigEnvVar, adapterCfg.LoggingCfg),
 		resource.EnvVar(common.MetricsConfigEnvVar, adapterCfg.MetricsCfg),
-		resource.EnvVar(repoEnvVar, o.Spec.Repository),
-		resource.EnvVar(branchEnvVar, o.Spec.Branch),
-		resource.EnvVar(awsRegionEnvVar, o.Spec.Region),
-		resource.EnvVar(eventTypesEnvVar, strings.Join(o.Spec.EventTypes, ",")),
-		resource.EnvVarFromSecret(awsAccessKeyIdEnvVar,
+		resource.EnvVar(envRepo, o.Spec.Repository),
+		resource.EnvVar(envBranch, o.Spec.Branch),
+		resource.EnvVar(envRegion, o.Spec.Region),
+		resource.EnvVar(envEventTypes, strings.Join(o.Spec.EventTypes, ",")),
+		resource.EnvVarFromSecret(envAccessKeyID,
 			o.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
 			o.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
-		resource.EnvVarFromSecret(awsSecretAccessKeyEnvVar,
+		resource.EnvVarFromSecret(envSecretAccessKey,
 			o.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
 			o.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
 	)

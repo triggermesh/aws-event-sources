@@ -56,13 +56,13 @@ type adapter struct {
 	awsRegion string
 }
 
+// NewEnvConfig returns an accessor for the source's adapter envConfig.
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
 	return &envConfig{}
 }
 
-func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
-	ceClient cloudevents.Client) pkgadapter.Adapter {
-
+// NewAdapter returns a constructor for the source's adapter.
+func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClient cloudevents.Client) pkgadapter.Adapter {
 	logger := logging.FromContext(ctx)
 
 	env := envAcc.(*envConfig)
@@ -87,14 +87,14 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 	streams, err := a.getStreams()
 	if err != nil {
-		a.logger.Errorw("Failed to get Streams", "error", err)
+		a.logger.Errorw("Failed to get Streams", zap.Error(err))
 	}
 
 	a.logger.Debugf("Streams: %v", streams)
 
 	streamsDescriptions, err := a.getStreamsDescriptions(streams)
 	if err != nil {
-		a.logger.Errorw("Failed to get Streams descriptions", "error", err)
+		a.logger.Errorw("Failed to get Streams descriptions", zap.Error(err))
 	}
 
 	a.logger.Debugf("Streams descriptions: %v", streamsDescriptions)
@@ -108,14 +108,19 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 	for {
 		shardIterators, err := a.getShardIterators(streamsDescriptions)
 		if err != nil {
-			a.logger.Errorw("Failed to get shard iterators", "error", err)
+			a.logger.Errorw("Failed to get shard iterators", zap.Error(err))
 		}
 
 		var wg sync.WaitGroup
 		wg.Add(len(shardIterators))
 
 		for _, shardIterator := range shardIterators {
-			go a.processLatestRecords(shardIterator)
+			go func() {
+				if err := a.processLatestRecords(shardIterator); err != nil {
+					a.logger.Errorw("Error while processing records for shard iterator "+
+						*shardIterator, zap.Error(err))
+				}
+			}()
 			wg.Done()
 		}
 		wg.Wait()
@@ -151,7 +156,6 @@ func (a *adapter) getStreamsDescriptions(streams []*dynamodbstreams.Stream) ([]*
 	streamsDescriptions := []*dynamodbstreams.StreamDescription{}
 
 	for _, stream := range streams {
-
 		describeStreamOutput, err := a.dyndbClient.DescribeStream(&dynamodbstreams.DescribeStreamInput{
 			StreamArn: stream.StreamArn,
 		})
@@ -162,6 +166,7 @@ func (a *adapter) getStreamsDescriptions(streams []*dynamodbstreams.Stream) ([]*
 
 		streamsDescriptions = append(streamsDescriptions, describeStreamOutput.StreamDescription)
 	}
+
 	return streamsDescriptions, nil
 }
 
@@ -203,9 +208,8 @@ func (a *adapter) processLatestRecords(shardIterator *string) error {
 
 	for _, record := range getRecordsOutput.Records {
 		go func(record *dynamodbstreams.Record) {
-			err := a.sendDynamoDBEvent(record)
-			if err != nil {
-				a.logger.Errorw("Failed to send Cloud Event", "error", err)
+			if err := a.sendDynamoDBEvent(record); err != nil {
+				a.logger.Errorw("Failed to send CloudEvent", zap.Error(err))
 			}
 		}(record)
 		wg.Done()
@@ -234,7 +238,9 @@ func (a *adapter) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 	event.SetSubject(a.table)
 	event.SetSource(v1alpha1.AWSDynamoDBEventSource(a.awsRegion, a.table))
 	event.SetID(*record.EventID)
-	event.SetData(cloudevents.ApplicationJSON, data)
+	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+		return fmt.Errorf("failed to set event data: %w", err)
+	}
 
 	if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
 		return result

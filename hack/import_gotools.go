@@ -18,9 +18,9 @@ limitations under the License.
 
 package hack
 
-// These imports ensure external tools are included in Go modules.
-// See https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
 import (
+	// These imports ensure external tools are included in Go modules.
+	// See https://github.com/golang/go/wiki/Modules#how-can-i-track-tool-dependencies-for-a-module
 	_ "k8s.io/code-generator/cmd/client-gen"
 	_ "k8s.io/code-generator/cmd/deepcopy-gen"
 	_ "k8s.io/code-generator/cmd/informer-gen"

@@ -92,8 +92,8 @@ func TestDeploymentEqual(t *testing.T) {
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			desired := tc.prep()
-			switch tc.expect {
+			desired := tc.prep() //nolint:scopelint
+			switch tc.expect {   //nolint:scopelint
 			case true:
 				assert.True(t, deploymentEqual(desired, current))
 			case false:
@@ -103,7 +103,7 @@ func TestDeploymentEqual(t *testing.T) {
 	}
 }
 
-func loadFixture(t *testing.T, file string, obj runtime.Object) error {
+func loadFixture(t *testing.T, file string, obj runtime.Object) {
 	t.Helper()
 
 	data, err := ioutil.ReadFile(file)
@@ -114,6 +114,4 @@ func loadFixture(t *testing.T, file string, obj runtime.Object) error {
 	if err := json.Unmarshal(data, obj); err != nil {
 		t.Fatalf("Error deserializing fixture object: %s", err)
 	}
-
-	return nil
 }

@@ -18,6 +18,7 @@ package awscognitosource
 
 import (
 	"context"
+	"fmt"
 
 	"go.uber.org/zap"
 
@@ -40,7 +41,7 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	IdentityPoolId string `envconfig:"IDENTITY_POOL_ID" required:"true"`
+	IdentityPoolID string `envconfig:"IDENTITY_POOL_ID" required:"true"`
 	AWSRegion      string `envconfig:"AWS_REGION" required:"true"`
 }
 
@@ -52,17 +53,17 @@ type adapter struct {
 	cgnSyncClient     cognitosynciface.CognitoSyncAPI
 	ceClient          cloudevents.Client
 
-	identityPoolId string
+	identityPoolID string
 	awsRegion      string
 }
 
+// NewEnvConfig returns an accessor for the source's adapter envConfig.
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
 	return &envConfig{}
 }
 
-func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
-	ceClient cloudevents.Client) pkgadapter.Adapter {
-
+// NewAdapter returns a constructor for the source's adapter.
+func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClient cloudevents.Client) pkgadapter.Adapter {
 	logger := logging.FromContext(ctx)
 
 	env := envAcc.(*envConfig)
@@ -77,14 +78,14 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
 		cgnSyncClient:     cognitosync.New(sess),
 		ceClient:          ceClient,
 
-		identityPoolId: env.IdentityPoolId,
+		identityPoolID: env.IdentityPoolID,
 		awsRegion:      env.AWSRegion,
 	}
 }
 
 // Start implements adapter.Adapter.
 func (a *adapter) Start(stopCh <-chan struct{}) error {
-	a.logger.Infof("Listening to AWS Cognito stream for Identity: %s", a.identityPoolId)
+	a.logger.Infof("Listening to AWS Cognito stream for Identity: %s", a.identityPoolID)
 
 	for {
 		identities, err := a.getIdentities()
@@ -117,7 +118,7 @@ func (a *adapter) getIdentities() ([]*cognitoidentity.IdentityDescription, error
 
 	listIdentitiesInput := cognitoidentity.ListIdentitiesInput{
 		MaxResults:     aws.Int64(1),
-		IdentityPoolId: &a.identityPoolId,
+		IdentityPoolId: &a.identityPoolID,
 	}
 
 	for {
@@ -132,7 +133,6 @@ func (a *adapter) getIdentities() ([]*cognitoidentity.IdentityDescription, error
 		if listIdentitiesOutput.NextToken == nil {
 			break
 		}
-
 	}
 
 	return identities, nil
@@ -143,7 +143,7 @@ func (a *adapter) getDatasets(identities []*cognitoidentity.IdentityDescription)
 
 	for _, identity := range identities {
 		listDatasetsInput := cognitosync.ListDatasetsInput{
-			IdentityPoolId: &a.identityPoolId,
+			IdentityPoolId: &a.identityPoolID,
 			IdentityId:     identity.IdentityId,
 		}
 
@@ -171,7 +171,7 @@ func (a *adapter) getRecords(dataset *cognitosync.Dataset) ([]*cognitosync.Recor
 	input := cognitosync.ListRecordsInput{
 		DatasetName:    dataset.DatasetName,
 		IdentityId:     dataset.IdentityId,
-		IdentityPoolId: &a.identityPoolId,
+		IdentityPoolId: &a.identityPoolID,
 	}
 
 	for {
@@ -204,16 +204,18 @@ func (a *adapter) sendCognitoEvent(dataset *cognitosync.Dataset, records []*cogn
 		NumRecords:       dataset.NumRecords,
 		EventType:        aws.String("SyncTrigger"),
 		Region:           &a.awsRegion,
-		IdentityPoolID:   &a.identityPoolId,
+		IdentityPoolID:   &a.identityPoolID,
 		DatasetRecords:   records,
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
 	event.SetType(v1alpha1.AWSCognitoEventType(v1alpha1.AWSCognitoGenericEventType))
-	event.SetSubject(a.identityPoolId)
-	event.SetSource(v1alpha1.AWSCognitoEventSource(a.identityPoolId))
+	event.SetSubject(a.identityPoolID)
+	event.SetSource(v1alpha1.AWSCognitoEventSource(a.identityPoolID))
 	event.SetID(*dataset.IdentityId)
-	event.SetData(cloudevents.ApplicationJSON, data)
+	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+		return fmt.Errorf("failed to set event data: %w", err)
+	}
 
 	if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
 		return result

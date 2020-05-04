@@ -52,7 +52,7 @@ type AWSCognitoSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
 	// ID number of the identity pool.
-	IdentityPoolId string `json:"identityPoolId"`
+	IdentityPoolID string `json:"identityPoolID"`
 
 	// Credentials to interact with the AWS Cognito API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
