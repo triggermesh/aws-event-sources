@@ -16,8 +16,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: aws-event-sources-controller
-  labels:
-    eventing.knative.dev/release: devel
 rules:
 
 # Record Kubernetes events

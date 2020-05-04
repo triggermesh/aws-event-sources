@@ -17,8 +17,6 @@ kind: Deployment
 metadata:
   name: &app aws-event-sources-controller
   namespace: knative-eventing
-  labels:
-    eventing.knative.dev/release: devel
 
 spec:
   replicas: 1
@@ -30,7 +28,6 @@ spec:
     metadata:
       labels:
         app: *app
-        eventing.knative.dev/release: devel
 
     spec:
       serviceAccountName: *app
