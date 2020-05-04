@@ -17,7 +17,6 @@ kind: CustomResourceDefinition
 metadata:
   name: awssnssources.sources.triggermesh.io
   labels:
-    eventing.knative.dev/release: devel
     eventing.knative.dev/source: 'true'
     duck.knative.dev/source: 'true'
     knative.dev/crd-install: 'true'
@@ -49,10 +48,118 @@ spec:
         properties:
           spec:
             type: object
-            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              topic:
+                type: string
+              region:
+                type: string
+                pattern: '^[a-z]{2}(-gov)?-[a-z]+-\d$'
+              credentials:
+                type: object
+                properties:
+                  accessKeyID:
+                    type: object
+                    properties:
+                      value:
+                        type: string
+                      valueFromSecret:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          key:
+                            type: string
+                    oneOf:
+                    - required: ['value']
+                    - required: ['valueFromSecret']
+                  secretAccessKey:
+                    type: object
+                    properties:
+                      value:
+                        type: string
+                        format: password
+                      valueFromSecret:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          key:
+                            type: string
+                    oneOf:
+                    - required: ['value']
+                    - required: ['valueFromSecret']
+              sink:
+                type: object
+                properties:
+                  ref:
+                    type: object
+                    properties:
+                      apiVersion:
+                        type: string
+                      kind:
+                        type: string
+                      namespace:
+                        type: string
+                      name:
+                        type: string
+                    required:
+                    - apiVersion
+                    - kind
+                    - name
+                  uri:
+                    type: string
+                    format: uri
+                oneOf:
+                - required: ['ref']
+                - required: ['uri']
+            required:
+            - topic
+            - region
+            - sink
           status:
             type: object
-            x-kubernetes-preserve-unknown-fields: true
+            properties:
+              sinkUri:
+                type: string
+                format: uri
+              ceAttributes:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    source:
+                      type: string
+                  required:
+                  - type
+                  - source
+              observedGeneration:
+                type: integer
+                format: int64
+              conditions:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                    status:
+                      type: string
+                      enum: ['True', 'False', Unknown]
+                    severity:
+                      type: string
+                      enum: [Error, Warning, Info]
+                    reason:
+                      type: string
+                    message:
+                      type: string
+                    lastTransitionTime:
+                      type: string
+                      format: date-time
+                  required:
+                  - type
+                  - status
     additionalPrinterColumns:
     - name: Ready
       type: string
