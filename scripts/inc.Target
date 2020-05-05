@@ -1,5 +1,5 @@
 
-.PHONY: help mod-download build install release test coverage lint vet fmt fmt-test image clean
+.PHONY: help mod-download build install release test coverage lint fmt fmt-test image clean
 
 all: build
 
@@ -32,11 +32,8 @@ test: ## Run unit tests
 coverage: ## Generate code coverage
 	$(GOTOOL) cover -html=c.out -o $(OUTPUT_DIR)$(PACKAGE)-coverage.html
 
-lint: ## Link source files
+lint: ## Lint source files
 	$(GOLINT) $(GOPKGS)
-
-vet: ## Vet source files
-	$(GO) vet $(GOPKGS)
 
 fmt: ## Format source files
 	$(GOFMT) -s -w $(shell $(GO) list -f '{{$$d := .Dir}}{{range .GoFiles}}{{$$d}}/{{.}} {{end}} {{$$d := .Dir}}{{range .TestGoFiles}}{{$$d}}/{{.}} {{end}}' $(GOPKGS))

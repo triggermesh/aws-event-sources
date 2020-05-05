@@ -23,10 +23,7 @@ coverage: ## Generate code coverage
 	$(GOTOOL) cover -html=c.out -o $(OUTPUT_DIR)$(PACKAGE)-coverage.html
 
 lint:
-	$(GOLINT) -set_exit_status $(GOPKGS)
-
-vet:
-	$(GO) vet $(GOPKGS)
+	$(GOLINT) $(GOPKGS)
 
 fmt:
 	$(GOFMT) -s -w $(shell $(GO) list -f '{{$$d := .Dir}}{{range .GoFiles}}{{$$d}}/{{.}} {{end}} {{$$d := .Dir}}{{range .TestGoFiles}}{{$$d}}/{{.}} {{end}}' $(GOPKGS))

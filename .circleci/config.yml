@@ -43,13 +43,18 @@ jobs:
       - attach_workspace:
           at: ~/
       - run:
-          name: Validating code formatting
+          name: Run fmt-test
           command: make fmt-test
       - run:
-          name: Vetting code
-          command: make vet
+          name: Installing golangci-lint
+          command:  go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.26.0
+          environment:
+            GO111MODULE: 'on'
       - run:
-          name: Running go unit tests
+          name: Run lint
+          command: make lint
+      - run:
+          name: Run test
           command: mkdir -p ${OUTPUT_DIR} && make test
           environment:
             OUTPUT_DIR: /tmp/test-results/

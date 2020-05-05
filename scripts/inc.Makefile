@@ -11,7 +11,7 @@ IMAGE      ?= $(IMAGE_REPO)/$(PACKAGE)
 
 GO         ?= go
 GOFMT      ?= gofmt
-GOLINT     ?= golint
+GOLINT     ?= golangci-lint run
 GOTOOL     ?= go tool
 GOTEST     ?= gotestsum --junitfile $(OUTPUT_DIR)$(PACKAGE)-unit-tests.xml --format pkgname-and-test-fails --
 
