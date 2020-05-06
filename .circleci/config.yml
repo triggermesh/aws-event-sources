@@ -47,7 +47,7 @@ jobs:
           command: make fmt-test
       - run:
           name: Installing golangci-lint
-          command:  go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.26.0
+          command: go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.26.0
           environment:
             GO111MODULE: 'on'
       - run:

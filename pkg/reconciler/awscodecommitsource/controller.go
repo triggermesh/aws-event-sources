@@ -65,7 +65,7 @@ func NewController(
 	sourceInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
 
 	deploymentInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: controller.FilterGroupVersionKind((&v1alpha1.AWSCodeCommitSource{}).GetGroupVersionKind()),
+		FilterFunc: controller.FilterControllerGVK((&v1alpha1.AWSCodeCommitSource{}).GetGroupVersionKind()),
 		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
 	})
 
