@@ -47,9 +47,11 @@ jobs:
           command: make fmt-test
       - run:
           name: Installing golangci-lint
-          command: go get github.com/golangci/golangci-lint/cmd/golangci-lint@v1.26.0
+          command: >
+            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
+            | sh -s -- -b ${HOME}/.local/bin ${GOLANGCILINT_VERSION}
           environment:
-            GO111MODULE: 'on'
+            GOLANGCILINT_VERSION: v1.26.0
       - run:
           name: Run lint
           command: make lint
