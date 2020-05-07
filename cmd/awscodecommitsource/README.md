@@ -36,8 +36,8 @@ The _AWS CodeCommit event source_ can be deployed to Kubernetes in different man
 >   --from-literal=aws_secret_access_key=<my_secret_key>
 > ```
 >
-> Alternatively, credentials can be used as literal strings instead of references by replacing `valueFrom` attributes
-> with `value`.
+> Alternatively, credentials can be used as literal strings instead of references to Kubernetes Secrets by replacing
+> `valueFrom` attributes with `value` inside API objects' manifests.
 
 ### As a AWSCodeCommitSource object
 
@@ -78,10 +78,9 @@ Running the event source on your local machine can be convenient for development
 Ensure the following environment variables are exported to your current shell's environment:
 
 ```sh
-export REPO=<my_codecommit_repo>
+export ARN=<arn_of_my_codecommit_repo>
 export BRANCH=<my_git_branch>
 export EVENT_TYPES=push,pull_request
-export AWS_REGION=<my_repo_region>
 export AWS_ACCESS_KEY_ID=<my_key_id>
 export AWS_SECRET_ACCESS_KEY=<my_secret_key>
 export NAME=my-awscodecommitsource
@@ -102,10 +101,9 @@ Using one of TriggerMesh's release images:
 
 ```console
 $ docker run --rm \
-  -e REPO=<my_codecommit_repo> \
+  -e ARN=<arn_of_my_codecommit_repo> \
   -e BRANCH=<my_git_branch> \
   -e EVENT_TYPES=push,pull_request \
-  -e AWS_REGION=<my_repo_region> \
   -e AWS_ACCESS_KEY_ID=<my_key_id> \
   -e AWS_SECRET_ACCESS_KEY=<my_secret_key> \
   -e NAME=my-awscodecommitsource \

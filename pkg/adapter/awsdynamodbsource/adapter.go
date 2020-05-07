@@ -24,15 +24,18 @@ import (
 
 	"go.uber.org/zap"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
 
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
@@ -41,8 +44,7 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	Table     string `envconfig:"TABLE" required:"true"`
-	AWSRegion string `envconfig:"AWS_REGION" required:"true"`
+	ARN string `envconfig:"ARN" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -52,8 +54,8 @@ type adapter struct {
 	dyndbClient dynamodbstreamsiface.DynamoDBStreamsAPI
 	ceClient    cloudevents.Client
 
-	table     string
-	awsRegion string
+	arn   arn.ARN
+	table string
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -67,17 +69,21 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	env := envAcc.(*envConfig)
 
-	// create DynamoDB client
-	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
+	arn := common.MustParseARN(env.ARN)
+
+	cfg := session.Must(session.NewSession(aws.NewConfig().
+		WithRegion(arn.Region).
+		WithMaxRetries(5),
+	))
 
 	return &adapter{
 		logger: logger,
 
-		dyndbClient: dynamodbstreams.New(sess),
+		dyndbClient: dynamodbstreams.New(cfg),
 		ceClient:    ceClient,
 
-		table:     env.Table,
-		awsRegion: env.AWSRegion,
+		arn:   arn,
+		table: common.MustParseDynamoDBResource(arn.Resource),
 	}
 }
 
@@ -234,9 +240,9 @@ func (a *adapter) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSDynamoDBEventType(strings.ToLower(*record.EventName)))
-	event.SetSubject(a.table)
-	event.SetSource(v1alpha1.AWSDynamoDBEventSource(a.awsRegion, a.table))
+	event.SetType(v1alpha1.AWSEventType(a.arn.Service, strings.ToLower(*record.EventName)))
+	event.SetSubject(asEventSubject(record))
+	event.SetSource(a.arn.String())
 	event.SetID(*record.EventID)
 	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
@@ -246,4 +252,31 @@ func (a *adapter) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 		return result
 	}
 	return nil
+}
+
+// asEventSubject returns an event subject corresponding to the given record.
+func asEventSubject(record *dynamodbstreams.Record) string {
+	if record == nil || record.Dynamodb == nil || record.Dynamodb.Keys == nil {
+		return ""
+	}
+
+	subject := strBuilderPool.Get().(*strings.Builder)
+	defer strBuilderPool.Put(subject)
+
+	i := 0
+	for k := range record.Dynamodb.Keys {
+		subject.WriteString(k)
+		i++
+		if i < len(record.Dynamodb.Keys) {
+			subject.WriteByte(',')
+		}
+	}
+
+	return subject.String()
+}
+
+var strBuilderPool = sync.Pool{
+	New: func() interface{} {
+		return &strings.Builder{}
+	},
 }

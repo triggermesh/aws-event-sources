@@ -17,17 +17,19 @@ limitations under the License.
 package awssnssource
 
 import (
-	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
 // createCloudEventAttributes returns the CloudEvent types supported by the
 // source.
-func createCloudEventAttributes(srcSpec *v1alpha1.AWSSNSSourceSpec) []duckv1.CloudEventAttributes {
+func createCloudEventAttributes(arn arn.ARN) []duckv1.CloudEventAttributes {
 	return []duckv1.CloudEventAttributes{
 		{
-			Type:   v1alpha1.AWSSNSEventType(v1alpha1.AWSKinesisGenericEventType),
-			Source: v1alpha1.AWSSNSEventSource(srcSpec.Region, srcSpec.Topic),
+			Type:   v1alpha1.AWSEventType(arn.Service, v1alpha1.AWSSNSGenericEventType),
+			Source: arn.String(),
 		},
 	}
 }

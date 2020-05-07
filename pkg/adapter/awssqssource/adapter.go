@@ -23,15 +23,18 @@ import (
 
 	"go.uber.org/zap"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
 
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
@@ -40,8 +43,7 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	Queue     string `envconfig:"QUEUE" required:"true"`
-	AWSRegion string `envconfig:"AWS_REGION" required:"true"`
+	ARN string `envconfig:"ARN" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -51,8 +53,7 @@ type adapter struct {
 	sqsClient sqsiface.SQSAPI
 	ceClient  cloudevents.Client
 
-	queue     string
-	awsRegion string
+	arn arn.ARN
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -66,17 +67,20 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	env := envAcc.(*envConfig)
 
-	// create SQS client
-	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
+	arn := common.MustParseARN(env.ARN)
+
+	cfg := session.Must(session.NewSession(aws.NewConfig().
+		WithRegion(arn.Region).
+		WithMaxRetries(5),
+	))
 
 	return &adapter{
 		logger: logger,
 
-		sqsClient: sqs.New(sess),
+		sqsClient: sqs.New(cfg),
 		ceClient:  ceClient,
 
-		queue:     env.Queue,
-		awsRegion: env.AWSRegion,
+		arn: arn,
 	}
 }
 
@@ -84,9 +88,9 @@ const waitTimeoutSec = 20
 
 // Start implements adapter.Adapter.
 func (a *adapter) Start(stopCh <-chan struct{}) error {
-	url, err := a.queueLookup(a.queue)
+	url, err := a.queueLookup(a.arn.Resource)
 	if err != nil {
-		a.logger.Fatalw("Unable to find URL of SQS queue "+a.queue, zap.Error(err))
+		a.logger.Fatalw("Unable to find URL of SQS queue "+a.arn.Resource, zap.Error(err))
 	}
 
 	queueURL := *url.QueueUrl
@@ -169,13 +173,13 @@ func (a *adapter) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
 		Md5OfBody:         msg.MD5OfBody,
 		EventSource:       aws.String("aws:sqs"),
 		EventSourceARN:    queueARN,
-		AwsRegion:         &a.awsRegion,
+		AwsRegion:         &a.arn.Region,
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSSQSEventType(v1alpha1.AWSSQSGenericEventType))
-	event.SetSource(v1alpha1.AWSSQSEventSource(a.awsRegion, a.queue))
+	event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSSQSGenericEventType))
 	event.SetSubject(*msg.MessageId)
+	event.SetSource(a.arn.String())
 	event.SetID(*msg.MessageId)
 	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)

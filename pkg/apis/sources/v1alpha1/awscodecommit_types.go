@@ -51,14 +51,13 @@ var (
 type AWSCodeCommitSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// Name of the repository.
-	Repository string `json:"repository"`
+	// Repository ARN
+	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awscodecommit.html#awscodecommit-resources-for-iam-policies
+	ARN string `json:"arn"`
 	// Name of the Git branch this source observes.
 	Branch string `json:"branch"`
-	// Name of the AWS region where the repository is located.
-	Region string `json:"region"`
-
 	// List of event types that should be processed by the source.
+	// Valid values: [push, pull_request]
 	EventTypes []string `json:"eventTypes"`
 
 	// Credentials to interact with the AWS CodeCommit API.

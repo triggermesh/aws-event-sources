@@ -14,22 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awsiotsource
+package testing
 
-import (
-	"github.com/aws/aws-sdk-go/aws/arn"
-	duckv1 "knative.dev/pkg/apis/duck/v1"
+import "github.com/aws/aws-sdk-go/aws/arn"
 
-	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-)
-
-// createCloudEventAttributes returns the CloudEvent types supported by the
-// source.
-func createCloudEventAttributes(arn arn.ARN) []duckv1.CloudEventAttributes {
-	return []duckv1.CloudEventAttributes{
-		{
-			Type:   v1alpha1.AWSEventType(arn.Service, v1alpha1.AWSIoTGenericEventType),
-			Source: arn.String(),
-		},
+// NewARN returns a ARN with the given attributes.
+func NewARN(service, resource string) arn.ARN {
+	return arn.ARN{
+		Partition: "aws",
+		Service:   service,
+		Region:    "us-test-0",
+		AccountID: "1234567890",
+		Resource:  resource,
 	}
 }

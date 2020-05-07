@@ -54,11 +54,8 @@ spec:
         env:
 
         # DynamoDB table
-        - name: TABLE
-          value: triggermeshtest
-
-        - name: AWS_REGION
-          value: us-west-2
+        - name: ARN
+          value: arn:aws:dynamodb:us-west-2:123456789012:table/triggermeshtest
 
         # AWS credentials
         - name: AWS_ACCESS_KEY_ID

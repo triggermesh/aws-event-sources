@@ -36,8 +36,8 @@ The _AWS Cognito event source_ can be deployed to Kubernetes in different manner
 >   --from-literal=aws_secret_access_key=<my_secret_key>
 > ```
 >
-> Alternatively, credentials can be used as literal strings instead of references by replacing `valueFrom` attributes
-> with `value`.
+> Alternatively, credentials can be used as literal strings instead of references to Kubernetes Secrets by replacing
+> `valueFrom` attributes with `value` inside API objects' manifests.
 
 ### As a AWSCognitoSource object
 
@@ -78,7 +78,7 @@ Running the event source on your local machine can be convenient for development
 Ensure the following environment variables are exported to your current shell's environment:
 
 ```sh
-export IDENTITY_POOL_ID=<my_identity_pool_id>
+export ARN=<arn_of_my_identity_pool>
 export AWS_ACCESS_KEY_ID=<my_key_id>
 export AWS_SECRET_ACCESS_KEY=<my_secret_key>
 export NAME=my-awscognitosource
@@ -99,7 +99,7 @@ Using one of TriggerMesh's release images:
 
 ```console
 $ docker run --rm \
-  -e IDENTITY_POOL_ID=<my_identity_pool_id> \
+  -e ARN=<arn_of_my_identity_pool> \
   -e AWS_ACCESS_KEY_ID=<my_key_id> \
   -e AWS_SECRET_ACCESS_KEY=<my_secret_key> \
   -e NAME=my-awscognitosource \

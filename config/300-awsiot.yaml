@@ -52,8 +52,9 @@ spec:
               endpoint:
                 type: string
                 format: hostname
-              topic:
+              arn:
                 type: string
+                pattern: '^arn:aws(-cn|-us-gov)?:iot:[a-z]{2}(-gov)?-[a-z]+-\d:\d{12}:topic\/.+$'
               rootCA:
                 type: string
               rootCAPath:
@@ -92,7 +93,7 @@ spec:
                 - required: ['uri']
             required:
             - endpoint
-            - topic
+            - arn
             - rootCA
             - certificate
             - privateKey

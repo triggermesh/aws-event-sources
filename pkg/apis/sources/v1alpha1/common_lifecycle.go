@@ -23,6 +23,12 @@ import (
 	"knative.dev/pkg/apis"
 )
 
+// AWSEventType returns an event type in a format suitable for usage as a
+// CloudEvent type attribute.
+func AWSEventType(awsService, eventType string) string {
+	return "com.amazon." + awsService + "." + eventType
+}
+
 // awsEventSourceConditionSet is a common set of conditions for AWS event
 // sources objects.
 var awsEventSourceConditionSet = apis.NewLivingConditionSet(

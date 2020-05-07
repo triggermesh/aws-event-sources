@@ -51,8 +51,9 @@ var (
 type AWSCognitoSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// ID number of the identity pool.
-	IdentityPoolID string `json:"identityPoolID"`
+	// Identity Pool ARN
+	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazoncognitoidentity.html#amazoncognitoidentity-resources-for-iam-policies
+	ARN string `json:"arn"`
 
 	// Credentials to interact with the AWS Cognito API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

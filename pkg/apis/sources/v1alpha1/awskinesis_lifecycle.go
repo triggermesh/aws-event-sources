@@ -16,11 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	"fmt"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
-)
+import "k8s.io/apimachinery/pkg/runtime/schema"
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
 func (s *AWSKinesisSource) GetGroupVersionKind() schema.GroupVersionKind {
@@ -32,19 +28,7 @@ func (s *AWSKinesisSource) GetUntypedSpec() interface{} {
 	return s.Spec
 }
 
-// AWSKinesisEventSource returns a representation of the source suitable for
-// usage as a CloudEvent source.
-func AWSKinesisEventSource(region, stream string) string {
-	return fmt.Sprintf("aws:kinesis:%s:stream/%s", region, stream)
-}
-
 // Supported event types
 const (
 	AWSKinesisGenericEventType = "stream_record"
 )
-
-// AWSKinesisEventType returns the given event type in a format suitable for
-// usage as a CloudEvent type.
-func AWSKinesisEventType(eventType string) string {
-	return fmt.Sprintf("com.amazon.kinesis.%s", eventType)
-}

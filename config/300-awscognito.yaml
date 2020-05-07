@@ -49,9 +49,9 @@ spec:
           spec:
             type: object
             properties:
-              identityPoolID:
+              arn:
                 type: string
-                pattern: '^[a-z]{2}(-gov)?-[a-z]+-\d:[a-z0-9-]+$'
+                pattern: '^arn:aws(-cn|-us-gov)?:cognito-identity:[a-z]{2}(-gov)?-[a-z]+-\d:\d{12}:identitypool\/.+$'
               credentials:
                 type: object
                 properties:
@@ -111,7 +111,7 @@ spec:
                 - required: ['ref']
                 - required: ['uri']
             required:
-            - identityPoolID
+            - arn
             - sink
           status:
             type: object

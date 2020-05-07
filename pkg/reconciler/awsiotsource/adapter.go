@@ -19,6 +19,9 @@ package awsiotsource
 import (
 	"context"
 	"fmt"
+	"strings"
+
+	"github.com/aws/aws-sdk-go/aws/arn"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -63,7 +66,7 @@ type adapterConfig struct {
 }
 
 // reconcileAdapter reconciles the state of the source's adapter.
-func (r *Reconciler) reconcileAdapter(ctx context.Context) error {
+func (r *Reconciler) reconcileAdapter(ctx context.Context, arn arn.ARN) error {
 	o := object.FromContext(ctx).(*v1alpha1.AWSIoTSource)
 
 	sinkRef := &o.Spec.Sink.Ref
@@ -80,7 +83,7 @@ func (r *Reconciler) reconcileAdapter(ctx context.Context) error {
 	}
 	o.Status.MarkSink(sinkURI)
 
-	desiredAdapter := makeAdapterDeployment(ctx, sinkURI, r.adapterCfg)
+	desiredAdapter := makeAdapterDeployment(ctx, arn, sinkURI, r.adapterCfg)
 
 	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
 	if err != nil {
@@ -146,7 +149,9 @@ func (r *Reconciler) syncAdapterDeployment(ctx context.Context,
 }
 
 // makeAdapterDeployment returns a Deployment object for the source's adapter.
-func makeAdapterDeployment(ctx context.Context, sinkURI *apis.URL, adapterCfg *adapterConfig) *appsv1.Deployment {
+func makeAdapterDeployment(ctx context.Context, arn arn.ARN,
+	sinkURI *apis.URL, adapterCfg *adapterConfig) *appsv1.Deployment {
+
 	o := object.FromContext(ctx).(*v1alpha1.AWSIoTSource)
 	name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), o.Name)
 
@@ -172,13 +177,13 @@ func makeAdapterDeployment(ctx context.Context, sinkURI *apis.URL, adapterCfg *a
 
 		resource.Image(adapterCfg.Image),
 
-		resource.EnvVar(common.NameEnvVar, o.Name),
-		resource.EnvVar(common.NamespaceEnvVar, o.Namespace),
-		resource.EnvVar(common.SinkEnvVar, sinkURIStr),
-		resource.EnvVar(common.LoggingConfigEnvVar, adapterCfg.LoggingCfg),
-		resource.EnvVar(common.MetricsConfigEnvVar, adapterCfg.MetricsCfg),
+		resource.EnvVar(common.EnvName, o.Name),
+		resource.EnvVar(common.EnvNamespace, o.Namespace),
+		resource.EnvVar(common.EnvSink, sinkURIStr),
+		resource.EnvVar(common.EnvLoggingConfig, adapterCfg.LoggingCfg),
+		resource.EnvVar(common.EnvMetricsConfig, adapterCfg.MetricsCfg),
 		resource.EnvVar(envEndpoint, o.Spec.Endpoint),
-		resource.EnvVar(envTopic, o.Spec.Topic),
+		resource.EnvVar(envTopic, strings.TrimPrefix(arn.Resource, "topic/")),
 		resource.EnvVarFromSecret(envRootCA,
 			o.Spec.RootCA.ValueFromSecret.Name,
 			o.Spec.RootCA.ValueFromSecret.Key),

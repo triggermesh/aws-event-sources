@@ -21,6 +21,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/service/codecommit"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,14 +58,14 @@ const (
 
 	tImg = "registry/image:tag"
 
-	tRepo   = "triggermeshtest"
-	tBranch = "test"
-	tRegion = "us-test-0"
-
 	tMetricsDomain = "testing"
+
+	tBranch = "test"
 )
 
 var tEventTypes = []string{"pull-request", "push"}
+
+var tARN = NewARN(codecommit.ServiceName, "triggermeshtest")
 
 var tSinkURI = &apis.URL{
 	Scheme: "http",
@@ -292,9 +294,8 @@ func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSCodeCommitSour
 			UID:       tUID,
 		},
 		Spec: v1alpha1.AWSCodeCommitSourceSpec{
-			Repository: tRepo,
+			ARN:        tARN.String(),
 			Branch:     tBranch,
-			Region:     tRegion,
 			EventTypes: tEventTypes,
 			Credentials: v1alpha1.AWSSecurityCredentials{
 				AccessKeyID: v1alpha1.ValueFromField{
@@ -317,7 +318,7 @@ func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSCodeCommitSour
 	}
 
 	if len(skipCEAtrributes) == 0 {
-		o.Status.CloudEventAttributes = createCloudEventAttributes(&o.Spec)
+		o.Status.CloudEventAttributes = createCloudEventAttributes(tARN, tEventTypes)
 	}
 
 	o.Status.InitializeConditions()
@@ -420,42 +421,39 @@ func newAdapterDeployment() *appsv1.Deployment {
 						Image: tImg,
 						Env: []corev1.EnvVar{
 							{
-								Name:  common.NameEnvVar,
+								Name:  common.EnvName,
 								Value: tName,
 							}, {
-								Name:  common.NamespaceEnvVar,
+								Name:  common.EnvNamespace,
 								Value: tNs,
 							}, {
-								Name:  common.SinkEnvVar,
+								Name:  common.EnvSink,
 								Value: tSinkURI.String(),
 							}, {
-								Name:  common.LoggingConfigEnvVar,
+								Name:  common.EnvLoggingConfig,
 								Value: `{"zap-logger-config":"{\"level\": \"info\"}"}`,
 							}, {
-								Name: common.MetricsConfigEnvVar,
+								Name: common.EnvMetricsConfig,
 								Value: `{"Domain":"` + tMetricsDomain + `",` +
 									`"Component":"` + adapterName + `",` +
 									`"PrometheusPort":0,` +
 									`"ConfigMap":{"metrics.backend":"prometheus"}}`,
 							}, {
-								Name:  envRepo,
-								Value: tRepo,
+								Name:  common.EnvARN,
+								Value: tARN.String(),
 							}, {
 								Name:  envBranch,
 								Value: tBranch,
 							}, {
-								Name:  envRegion,
-								Value: tRegion,
-							}, {
 								Name:  envEventTypes,
 								Value: strings.Join(tEventTypes, ","),
 							}, {
-								Name: envAccessKeyID,
+								Name: common.EnvAccessKeyID,
 								ValueFrom: &corev1.EnvVarSource{
 									SecretKeyRef: tAccessKeyIDSelector,
 								},
 							}, {
-								Name: envSecretAccessKey,
+								Name: common.EnvSecretAccessKey,
 								ValueFrom: &corev1.EnvVarSource{
 									SecretKeyRef: tSecretAccessKeySelector,
 								},

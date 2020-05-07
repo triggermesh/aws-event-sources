@@ -19,8 +19,7 @@ kind: AWSSQSSource
 metadata:
   name: sample
 spec:
-  queue: triggermeshtest
-  region: us-west-2
+  arn: arn:aws:sqs:us-west-2:123456789012:triggermeshtest
 
   credentials:
     accessKeyID:

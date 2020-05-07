@@ -21,14 +21,19 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/aws/aws-sdk-go/aws/arn"
+
+	corev1 "k8s.io/api/core/v1"
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
 	appslistersv1 "k8s.io/client-go/listers/apps/v1"
 
+	"knative.dev/pkg/controller"
 	"knative.dev/pkg/reconciler"
 	"knative.dev/pkg/resolver"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awssqssource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/object"
 )
 
@@ -57,15 +62,22 @@ var _ reconcilerv1alpha1.Interface = (*Reconciler)(nil)
 
 // ReconcileKind implements Interface.ReconcileKind.
 func (r *Reconciler) ReconcileKind(ctx context.Context, o *v1alpha1.AWSSQSSource) reconciler.Event {
+	o.Status.InitializeConditions()
+	o.Status.ObservedGeneration = o.Generation
+
+	arn, err := arn.Parse(o.Spec.ARN)
+	if err != nil {
+		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning,
+			common.ReasonInvalidSpec, "failed to parse ARN: %s", err))
+	}
+
+	o.Status.CloudEventAttributes = createCloudEventAttributes(arn)
+
 	// inject object into context for usage in event recorder and
 	// reconciliation logic
 	ctx = object.With(ctx, o)
 
-	o.Status.InitializeConditions()
-	o.Status.ObservedGeneration = o.Generation
-	o.Status.CloudEventAttributes = createCloudEventAttributes(&o.Spec)
-
-	return r.reconcileAdapter(ctx)
+	return r.reconcileAdapter(ctx, arn)
 }
 
 // Optionally, use FinalizeKind to add finalizers. FinalizeKind will be called

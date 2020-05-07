@@ -19,9 +19,8 @@ kind: AWSCodeCommitSource
 metadata:
   name: sample
 spec:
-  repository: triggermeshtest
+  arn: arn:aws:codecommit:us-west-2:123456789012:triggermeshtest
   branch: master
-  region: us-west-2
 
   eventTypes:
     - push

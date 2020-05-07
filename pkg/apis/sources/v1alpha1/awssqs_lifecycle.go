@@ -16,11 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	"fmt"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
-)
+import "k8s.io/apimachinery/pkg/runtime/schema"
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
 func (s *AWSSQSSource) GetGroupVersionKind() schema.GroupVersionKind {
@@ -32,19 +28,7 @@ func (s *AWSSQSSource) GetUntypedSpec() interface{} {
 	return s.Spec
 }
 
-// AWSSQSEventSource returns a representation of the source suitable for
-// usage as a CloudEvent source.
-func AWSSQSEventSource(region, queue string) string {
-	return fmt.Sprintf("aws:sqs:%s:queue/%s", region, queue)
-}
-
 // Supported event types
 const (
 	AWSSQSGenericEventType = "message"
 )
-
-// AWSSQSEventType returns the given event type in a format suitable for
-// usage as a CloudEvent type.
-func AWSSQSEventType(eventType string) string {
-	return fmt.Sprintf("com.amazon.sqs.%s", eventType)
-}

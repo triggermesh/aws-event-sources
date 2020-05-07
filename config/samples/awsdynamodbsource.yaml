@@ -19,8 +19,7 @@ kind: AWSDynamoDBSource
 metadata:
   name: sample
 spec:
-  table: triggermeshtest
-  region: us-west-2
+  arn: arn:aws:dynamodb:us-west-2:123456789012:table/triggermeshtest
 
   credentials:
     accessKeyID:

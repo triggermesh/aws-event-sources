@@ -23,15 +23,18 @@ import (
 
 	"go.uber.org/zap"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/codecommit"
 	"github.com/aws/aws-sdk-go/service/codecommit/codecommitiface"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
 
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
@@ -51,10 +54,9 @@ const (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	Repo          string `envconfig:"REPO" required:"true"`
-	RepoBranch    string `envconfig:"BRANCH" required:"true"`
+	ARN           string `envconfig:"ARN" required:"true"`
+	Branch        string `envconfig:"BRANCH" required:"true"`
 	GitEventTypes string `envconfig:"EVENT_TYPES" required:"true"`
-	AWSRegion     string `envconfig:"AWS_REGION" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -64,10 +66,9 @@ type adapter struct {
 	ccClient codecommitiface.CodeCommitAPI
 	ceClient cloudevents.Client
 
-	repo       string
-	repoBranch string
-	gitEvents  string
-	awsRegion  string
+	arn       arn.ARN
+	branch    string
+	gitEvents string
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -81,19 +82,22 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	env := envAcc.(*envConfig)
 
-	// create CodeCommit client
-	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
+	arn := common.MustParseARN(env.ARN)
+
+	cfg := session.Must(session.NewSession(aws.NewConfig().
+		WithRegion(arn.Region).
+		WithMaxRetries(5),
+	))
 
 	return &adapter{
 		logger: logger,
 
-		ccClient: codecommit.New(sess),
+		ccClient: codecommit.New(cfg),
 		ceClient: ceClient,
 
-		repo:       env.Repo,
-		repoBranch: env.RepoBranch,
-		gitEvents:  env.GitEventTypes,
-		awsRegion:  env.AWSRegion,
+		arn:       arn,
+		branch:    env.Branch,
+		gitEvents: env.GitEventTypes,
 	}
 }
 
@@ -103,8 +107,8 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 		a.logger.Info("Push events enabled")
 
 		branchInfo, err := a.ccClient.GetBranch(&codecommit.GetBranchInput{
-			RepositoryName: &a.repo,
-			BranchName:     &a.repoBranch,
+			RepositoryName: &a.arn.Resource,
+			BranchName:     &a.branch,
 		})
 		if err != nil {
 			a.logger.Fatalw("Failed to retrieve branch info", "error", err)
@@ -118,7 +122,7 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 		// get pull request IDs
 		pullRequestsOutput, err := a.ccClient.ListPullRequests(&codecommit.ListPullRequestsInput{
-			RepositoryName: &a.repo,
+			RepositoryName: &a.arn.Resource,
 		})
 		if err != nil {
 			a.logger.Fatalw("Failed to retrieve list of pull requests", "error", err)
@@ -166,8 +170,8 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 func (a *adapter) processCommits() error {
 	branchInfo, err := a.ccClient.GetBranch(&codecommit.GetBranchInput{
-		BranchName:     &a.repoBranch,
-		RepositoryName: &a.repo,
+		BranchName:     &a.branch,
+		RepositoryName: &a.arn.Resource,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get branch info: %w", err)
@@ -175,7 +179,7 @@ func (a *adapter) processCommits() error {
 
 	commitOutput, err := a.ccClient.GetCommit(&codecommit.GetCommitInput{
 		CommitId:       branchInfo.Branch.CommitId,
-		RepositoryName: &a.repo,
+		RepositoryName: &a.arn.Resource,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to get commit info: %w", err)
@@ -199,7 +203,7 @@ func (a *adapter) preparePullRequests() ([]*codecommit.PullRequest, error) {
 	pullRequests := []*codecommit.PullRequest{}
 
 	input := codecommit.ListPullRequestsInput{
-		RepositoryName: &a.repo,
+		RepositoryName: &a.arn.Resource,
 	}
 
 	for {
@@ -241,16 +245,16 @@ func (a *adapter) sendPushEvent(commit *codecommit.Commit) error {
 
 	data := &PushEvent{
 		Commit:           commit,
-		CommitRepository: &a.repo,
-		CommitBranch:     &a.repoBranch,
+		CommitRepository: &a.arn.Resource,
+		CommitBranch:     &a.branch,
 		EventSource:      aws.String("aws:codecommit"),
-		AwsRegion:        &a.awsRegion,
+		AwsRegion:        &a.arn.Region,
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSCodeCommitEventType(pushEventType))
-	event.SetSubject(fmt.Sprintf("%s/%s", a.repo, a.repoBranch))
-	event.SetSource(v1alpha1.AWSCodeCommitEventSource(a.awsRegion, a.repo))
+	event.SetType(v1alpha1.AWSEventType(a.arn.Service, pushEventType))
+	event.SetSubject(fmt.Sprintf("%s/%s", a.arn.Resource, a.branch))
+	event.SetSource(a.arn.String())
 	event.SetID(*commit.CommitId)
 	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
@@ -267,16 +271,16 @@ func (a *adapter) sendPREvent(pullRequest *codecommit.PullRequest) error {
 
 	data := &PullRequestEvent{
 		PullRequest: pullRequest,
-		Repository:  &a.repo,
-		Branch:      &a.repoBranch,
+		Repository:  &a.arn.Resource,
+		Branch:      &a.branch,
 		EventSource: aws.String("aws:codecommit"),
-		AwsRegion:   &a.awsRegion,
+		AwsRegion:   &a.arn.Region,
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSCodeCommitEventType(prEventType))
-	event.SetSubject(fmt.Sprintf("%s/%s", a.repo, a.repoBranch))
-	event.SetSource(v1alpha1.AWSCodeCommitEventSource(a.awsRegion, a.repo))
+	event.SetType(v1alpha1.AWSEventType(a.arn.Service, prEventType))
+	event.SetSubject(a.branch)
+	event.SetSource(a.arn.String())
 	event.SetID(*pullRequest.PullRequestId)
 	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)

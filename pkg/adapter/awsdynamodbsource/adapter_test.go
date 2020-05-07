@@ -23,6 +23,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
 
@@ -199,6 +200,9 @@ func TestSendCloudevent(t *testing.T) {
 		EventID:     aws.String("1"),
 		EventName:   aws.String("some event"),
 		EventSource: aws.String("some source"),
+		Dynamodb: &dynamodbstreams.StreamRecord{
+			Keys: map[string]*dynamodb.AttributeValue{"key1": nil, "key2": nil},
+		},
 	}
 
 	err := a.sendDynamoDBEvent(&record)
@@ -207,7 +211,9 @@ func TestSendCloudevent(t *testing.T) {
 	gotEvents := ceClient.Sent()
 	assert.Len(t, gotEvents, 1, "Expected 1 event, got %d", len(gotEvents))
 
-	wantData := `{"AwsRegion":null,"Dynamodb":null,"EventID":"1","EventName":"some event","EventSource":"some source","EventVersion":null,"UserIdentity":null}`
+	wantData := `{"AwsRegion":null,"Dynamodb":{"ApproximateCreationDateTime":null,"Keys":{"key1":null,"key2":null},"NewImage":null,"OldImage":null,"SequenceNumber":null,"SizeBytes":null,"StreamViewType":null},"EventID":"1","EventName":"some event","EventSource":"some source","EventVersion":null,"UserIdentity":null}`
 	gotData := string(gotEvents[0].Data())
 	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
+
+	assert.Equal(t, "key1,key2", gotEvents[0].Subject())
 }

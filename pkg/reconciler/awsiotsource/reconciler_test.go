@@ -20,6 +20,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/iot"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,18 +59,18 @@ const (
 	tImg = "registry/image:tag"
 
 	tMetricsDomain = "testing"
+
+	tEndpoint = "http://testendpoint:8000"
+	tTopic    = "topictest"
+	tFoo      = "foo"
 )
 
-var (
-	tFoo = "foo"
-
-	tFooRef = &corev1.SecretKeySelector{
-		LocalObjectReference: corev1.LocalObjectReference{
-			Name: "test-secret",
-		},
-		Key: "key",
-	}
-)
+var tFooRef = &corev1.SecretKeySelector{
+	LocalObjectReference: corev1.LocalObjectReference{
+		Name: "test-secret",
+	},
+	Key: "key",
+}
 
 var tSinkURI = &apis.URL{
 	Scheme: "http",
@@ -274,6 +277,8 @@ const noCEAttributes = iota
 
 // newEventSource returns a test source object with pre-filled attributes.
 func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSIoTSource {
+	arn := NewARN(iot.ServiceName, "topic/"+tTopic)
+
 	o := &v1alpha1.AWSIoTSource{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: tNs,
@@ -281,20 +286,20 @@ func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSIoTSource {
 			UID:       tUID,
 		},
 		Spec: v1alpha1.AWSIoTSourceSpec{
-			Endpoint: tFoo,
-			Topic:    tFoo,
+			Endpoint: tEndpoint,
+			ARN:      arn.String(),
 			Certificate: v1alpha1.ValueFromField{
 				ValueFromSecret: tFooRef,
 			},
-			CertificatePath: &tFoo,
+			CertificatePath: aws.String(tFoo),
 			PrivateKey: v1alpha1.ValueFromField{
 				ValueFromSecret: tFooRef,
 			},
-			PrivateKeyPath: &tFoo,
+			PrivateKeyPath: aws.String(tFoo),
 			RootCA: v1alpha1.ValueFromField{
 				ValueFromSecret: tFooRef,
 			},
-			RootCAPath: &tFoo,
+			RootCAPath: aws.String(tFoo),
 		},
 	}
 
@@ -308,7 +313,7 @@ func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSIoTSource {
 	}
 
 	if len(skipCEAtrributes) == 0 {
-		o.Status.CloudEventAttributes = createCloudEventAttributes(&o.Spec)
+		o.Status.CloudEventAttributes = createCloudEventAttributes(arn)
 	}
 
 	o.Status.InitializeConditions()
@@ -411,29 +416,29 @@ func newAdapterDeployment() *appsv1.Deployment {
 						Image: tImg,
 						Env: []corev1.EnvVar{
 							{
-								Name:  common.NameEnvVar,
+								Name:  common.EnvName,
 								Value: tName,
 							}, {
-								Name:  common.NamespaceEnvVar,
+								Name:  common.EnvNamespace,
 								Value: tNs,
 							}, {
-								Name:  common.SinkEnvVar,
+								Name:  common.EnvSink,
 								Value: tSinkURI.String(),
 							}, {
-								Name:  common.LoggingConfigEnvVar,
+								Name:  common.EnvLoggingConfig,
 								Value: `{"zap-logger-config":"{\"level\": \"info\"}"}`,
 							}, {
-								Name: common.MetricsConfigEnvVar,
+								Name: common.EnvMetricsConfig,
 								Value: `{"Domain":"` + tMetricsDomain + `",` +
 									`"Component":"` + adapterName + `",` +
 									`"PrometheusPort":0,` +
 									`"ConfigMap":{"metrics.backend":"prometheus"}}`,
 							}, {
 								Name:  envEndpoint,
-								Value: tFoo,
+								Value: tEndpoint,
 							}, {
 								Name:  envTopic,
-								Value: tFoo,
+								Value: tTopic,
 							}, {
 								Name: envRootCA,
 								ValueFrom: &corev1.EnvVarSource{

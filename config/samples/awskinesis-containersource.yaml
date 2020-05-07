@@ -28,11 +28,8 @@ spec:
         env:
 
         # Kinesis stream
-        - name: STREAM
-          value: triggermeshtest
-
-        - name: AWS_REGION
-          value: us-west-2
+        - name: ARN
+          value: arn:aws:kinesis:us-west-2:123456789012:stream/triggermeshtest
 
         # AWS credentials
         - name: AWS_ACCESS_KEY_ID

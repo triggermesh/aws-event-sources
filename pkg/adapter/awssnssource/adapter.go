@@ -28,15 +28,18 @@ import (
 
 	"go.uber.org/zap"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
 
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
@@ -45,8 +48,7 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	Topic     string `envconfig:"TOPIC" required:"true"`
-	AWSRegion string `envconfig:"AWS_REGION" required:"true"`
+	ARN string `envconfig:"ARN" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -56,8 +58,7 @@ type adapter struct {
 	snsClient snsiface.SNSAPI
 	ceClient  cloudevents.Client
 
-	topic     string
-	awsRegion string
+	arn arn.ARN
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -71,17 +72,20 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	env := envAcc.(*envConfig)
 
-	// create SNS client
-	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
+	arn := common.MustParseARN(env.ARN)
+
+	cfg := session.Must(session.NewSession(aws.NewConfig().
+		WithRegion(arn.Region).
+		WithMaxRetries(5),
+	))
 
 	return &adapter{
 		logger: logger,
 
-		snsClient: sns.New(sess),
+		snsClient: sns.New(cfg),
 		ceClient:  ceClient,
 
-		topic:     env.Topic,
-		awsRegion: env.AWSRegion,
+		arn: arn,
 	}
 }
 
@@ -112,7 +116,7 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 func (a *adapter) attempSubscription(period time.Duration) error {
 	time.Sleep(period)
 
-	topic, err := a.snsClient.CreateTopic(&sns.CreateTopicInput{Name: &a.topic})
+	topic, err := a.snsClient.CreateTopic(&sns.CreateTopicInput{Name: &a.arn.Resource})
 	if err != nil {
 		return err
 	}
@@ -198,9 +202,9 @@ func (a *adapter) handleNotification(rw http.ResponseWriter, r *http.Request) {
 		}
 
 		event := cloudevents.NewEvent(cloudevents.VersionV1)
-		event.SetType(v1alpha1.AWSSNSEventType(v1alpha1.AWSSNSGenericEventType))
+		event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSSNSGenericEventType))
 		event.SetSubject(data["Subject"].(string))
-		event.SetSource(v1alpha1.AWSSNSEventSource(a.awsRegion, a.topic))
+		event.SetSource(a.arn.String())
 		event.SetID(data["MessageId"].(string))
 		if err := event.SetData(cloudevents.ApplicationJSON, record); err != nil {
 			a.logger.Errorw("Failed to set event data", zap.Error(err))

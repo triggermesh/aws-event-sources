@@ -16,11 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	"fmt"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
-)
+import "k8s.io/apimachinery/pkg/runtime/schema"
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
 func (s *AWSSNSSource) GetGroupVersionKind() schema.GroupVersionKind {
@@ -32,19 +28,7 @@ func (s *AWSSNSSource) GetUntypedSpec() interface{} {
 	return s.Spec
 }
 
-// AWSSNSEventSource returns a representation of the source suitable for
-// usage as a CloudEvent source.
-func AWSSNSEventSource(region, topic string) string {
-	return fmt.Sprintf("%s:topic/%s", region, topic)
-}
-
 // Supported event types
 const (
 	AWSSNSGenericEventType = "notification"
 )
-
-// AWSSNSEventType returns the given event type in a format suitable for
-// usage as a CloudEvent type.
-func AWSSNSEventType(eventType string) string {
-	return fmt.Sprintf("com.amazon.sns.%s", eventType)
-}

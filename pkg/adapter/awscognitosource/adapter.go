@@ -22,17 +22,20 @@ import (
 
 	"go.uber.org/zap"
 
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 	"github.com/aws/aws-sdk-go/service/cognitoidentity/cognitoidentityiface"
 	"github.com/aws/aws-sdk-go/service/cognitosync"
 	"github.com/aws/aws-sdk-go/service/cognitosync/cognitosynciface"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
 
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
@@ -41,8 +44,7 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	IdentityPoolID string `envconfig:"IDENTITY_POOL_ID" required:"true"`
-	AWSRegion      string `envconfig:"AWS_REGION" required:"true"`
+	ARN string `envconfig:"ARN" required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -53,8 +55,8 @@ type adapter struct {
 	cgnSyncClient     cognitosynciface.CognitoSyncAPI
 	ceClient          cloudevents.Client
 
+	arn            arn.ARN
 	identityPoolID string
-	awsRegion      string
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -68,18 +70,22 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	env := envAcc.(*envConfig)
 
-	// create Cognito clients
-	sess := session.Must(session.NewSession(aws.NewConfig().WithMaxRetries(5)))
+	arn := common.MustParseARN(env.ARN)
+
+	cfg := session.Must(session.NewSession(aws.NewConfig().
+		WithRegion(arn.Region).
+		WithMaxRetries(5),
+	))
 
 	return &adapter{
 		logger: logger,
 
-		cgnIdentityClient: cognitoidentity.New(sess),
-		cgnSyncClient:     cognitosync.New(sess),
+		cgnIdentityClient: cognitoidentity.New(cfg),
+		cgnSyncClient:     cognitosync.New(cfg),
 		ceClient:          ceClient,
 
-		identityPoolID: env.IdentityPoolID,
-		awsRegion:      env.AWSRegion,
+		arn:            arn,
+		identityPoolID: common.MustParseCognitoResource(arn.Resource),
 	}
 }
 
@@ -203,15 +209,15 @@ func (a *adapter) sendCognitoEvent(dataset *cognitosync.Dataset, records []*cogn
 		LastModifiedDate: dataset.LastModifiedDate,
 		NumRecords:       dataset.NumRecords,
 		EventType:        aws.String("SyncTrigger"),
-		Region:           &a.awsRegion,
+		Region:           &a.arn.Region,
 		IdentityPoolID:   &a.identityPoolID,
 		DatasetRecords:   records,
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSCognitoEventType(v1alpha1.AWSCognitoGenericEventType))
-	event.SetSubject(a.identityPoolID)
-	event.SetSource(v1alpha1.AWSCognitoEventSource(a.identityPoolID))
+	event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSCognitoGenericEventType))
+	event.SetSubject(*dataset.DatasetName)
+	event.SetSource(a.arn.String())
 	event.SetID(*dataset.IdentityId)
 	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)

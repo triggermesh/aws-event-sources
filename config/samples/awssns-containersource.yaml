@@ -28,11 +28,8 @@ spec:
         env:
 
         # SNS topic
-        - name: TOPIC
-          value: triggermeshtest
-
-        - name: AWS_REGION
-          value: us-west-2
+        - name: ARN
+          value: arn:aws:sns:us-west-2:123456789012:triggermeshtest
 
         # AWS credentials
         - name: AWS_ACCESS_KEY_ID

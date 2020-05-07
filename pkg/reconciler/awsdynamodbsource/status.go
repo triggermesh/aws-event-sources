@@ -17,19 +17,21 @@ limitations under the License.
 package awsdynamodbsource
 
 import (
-	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
 // createCloudEventAttributes returns the CloudEvent types supported by the
 // source.
-func createCloudEventAttributes(srcSpec *v1alpha1.AWSDynamoDBSourceSpec) []duckv1.CloudEventAttributes {
+func createCloudEventAttributes(arn arn.ARN) []duckv1.CloudEventAttributes {
 	types := v1alpha1.AWSDynamoDBEventTypes()
 	ceAttributes := make([]duckv1.CloudEventAttributes, len(types))
 	for i, typ := range types {
 		ceAttributes[i] = duckv1.CloudEventAttributes{
-			Type:   v1alpha1.AWSDynamoDBEventType(typ),
-			Source: v1alpha1.AWSDynamoDBEventSource(srcSpec.Region, srcSpec.Table),
+			Type:   v1alpha1.AWSEventType(arn.Service, typ),
+			Source: arn.String(),
 		}
 	}
 	return ceAttributes

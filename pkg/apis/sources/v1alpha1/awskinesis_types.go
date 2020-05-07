@@ -51,10 +51,9 @@ var (
 type AWSKinesisSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// Name of the AWS Kinesis data stream.
-	Stream string `json:"stream"`
-	// Name of the AWS region where the AWS Kinesis data stream is located.
-	Region string `json:"region"`
+	// Stream ARN
+	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonkinesis.html#amazonkinesis-resources-for-iam-policies
+	ARN string `json:"arn"`
 
 	// Credentials to interact with the AWS Kinesis API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

@@ -54,17 +54,14 @@ spec:
         env:
 
         # CodeCommit repository
-        - name: REPO
-          value: triggermeshtest
+        - name: ARN
+          value: arn:aws:codecommit:us-west-2:123456789012:triggermeshtest
 
         - name: BRANCH
           value: master
 
         - name: EVENT_TYPES
           value: push,pull_request
-
-        - name: AWS_REGION
-          value: us-west-2
 
         # AWS credentials
         - name: AWS_ACCESS_KEY_ID

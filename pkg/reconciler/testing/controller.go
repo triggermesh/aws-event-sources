@@ -92,16 +92,17 @@ func TestControllerConstructorFailures(t *testing.T, ctor injection.ControllerCo
 	}
 
 	for n, tc := range testCases {
+		//nolint:scopelint
 		t.Run(n, func(t *testing.T) {
 			ctx, _ := rt.SetupFakeContext(t)
 			cmw := &configmap.StaticWatcher{}
 
-			undo := tc.initFn(&cmw) //nolint:scopelint
+			undo := tc.initFn(&cmw)
 			if undo != nil {
 				defer undo()
 			}
 
-			tc.assertFn(t, func() { //nolint:scopelint
+			tc.assertFn(t, func() {
 				_ = ctor(ctx, cmw)
 			})
 		})

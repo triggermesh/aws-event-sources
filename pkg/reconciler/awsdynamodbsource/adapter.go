@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/aws/aws-sdk-go/aws/arn"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -40,13 +42,6 @@ import (
 
 const adapterName = "awsdynamodbsource"
 
-const (
-	envTable           = "TABLE"
-	envRegion          = "AWS_REGION"
-	envAccessKeyID     = "AWS_ACCESS_KEY_ID"
-	envSecretAccessKey = "AWS_SECRET_ACCESS_KEY" //nolint:gosec
-)
-
 // adapterConfig contains properties used to configure the source's adapter.
 // These are automatically populated by envconfig.
 type adapterConfig struct {
@@ -59,7 +54,7 @@ type adapterConfig struct {
 }
 
 // reconcileAdapter reconciles the state of the source's adapter.
-func (r *Reconciler) reconcileAdapter(ctx context.Context) error {
+func (r *Reconciler) reconcileAdapter(ctx context.Context, arn arn.ARN) error {
 	o := object.FromContext(ctx).(*v1alpha1.AWSDynamoDBSource)
 
 	sinkRef := &o.Spec.Sink.Ref
@@ -76,7 +71,7 @@ func (r *Reconciler) reconcileAdapter(ctx context.Context) error {
 	}
 	o.Status.MarkSink(sinkURI)
 
-	desiredAdapter := makeAdapterDeployment(ctx, sinkURI, r.adapterCfg)
+	desiredAdapter := makeAdapterDeployment(ctx, arn, sinkURI, r.adapterCfg)
 
 	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
 	if err != nil {
@@ -142,7 +137,9 @@ func (r *Reconciler) syncAdapterDeployment(ctx context.Context,
 }
 
 // makeAdapterDeployment returns a Deployment object for the source's adapter.
-func makeAdapterDeployment(ctx context.Context, sinkURI *apis.URL, adapterCfg *adapterConfig) *appsv1.Deployment {
+func makeAdapterDeployment(ctx context.Context, arn arn.ARN,
+	sinkURI *apis.URL, adapterCfg *adapterConfig) *appsv1.Deployment {
+
 	o := object.FromContext(ctx).(*v1alpha1.AWSDynamoDBSource)
 	name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), o.Name)
 
@@ -168,17 +165,16 @@ func makeAdapterDeployment(ctx context.Context, sinkURI *apis.URL, adapterCfg *a
 
 		resource.Image(adapterCfg.Image),
 
-		resource.EnvVar(common.NameEnvVar, o.Name),
-		resource.EnvVar(common.NamespaceEnvVar, o.Namespace),
-		resource.EnvVar(common.SinkEnvVar, sinkURIStr),
-		resource.EnvVar(common.LoggingConfigEnvVar, adapterCfg.LoggingCfg),
-		resource.EnvVar(common.MetricsConfigEnvVar, adapterCfg.MetricsCfg),
-		resource.EnvVar(envTable, o.Spec.Table),
-		resource.EnvVar(envRegion, o.Spec.Region),
-		resource.EnvVarFromSecret(envAccessKeyID,
+		resource.EnvVar(common.EnvName, o.Name),
+		resource.EnvVar(common.EnvNamespace, o.Namespace),
+		resource.EnvVar(common.EnvSink, sinkURIStr),
+		resource.EnvVar(common.EnvLoggingConfig, adapterCfg.LoggingCfg),
+		resource.EnvVar(common.EnvMetricsConfig, adapterCfg.MetricsCfg),
+		resource.EnvVar(common.EnvARN, arn.String()),
+		resource.EnvVarFromSecret(common.EnvAccessKeyID,
 			o.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
 			o.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
-		resource.EnvVarFromSecret(envSecretAccessKey,
+		resource.EnvVarFromSecret(common.EnvSecretAccessKey,
 			o.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
 			o.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
 	)

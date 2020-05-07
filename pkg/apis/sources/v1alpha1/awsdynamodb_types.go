@@ -51,11 +51,9 @@ var (
 type AWSDynamoDBSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// Name of the DynamoDB table
-	Table string `json:"table"`
-
-	// Name of the AWS region where the DynamoDB table is located.
-	Region string `json:"region"`
+	// Table ARN
+	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondynamodb.html#amazondynamodb-resources-for-iam-policies
+	ARN string `json:"arn"`
 
 	// Credentials to interact with the AWS Cognito API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

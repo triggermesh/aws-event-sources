@@ -54,8 +54,8 @@ spec:
         env:
 
         # Cognito identity pool
-        - name: IDENTITY_POOL_ID
-          value: us-west-2:2f266209-2504-4f0c-9c8b-1e37c4344917
+        - name: ARN
+          value: arn:aws:cognito-identity:us-west-2:123456789012:identitypool/triggermeshtest
 
         # AWS credentials
         - name: AWS_ACCESS_KEY_ID

@@ -51,10 +51,9 @@ var (
 type AWSSNSSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// Name of the AWS SNS topic.
-	Topic string `json:"topic"`
-	// Name of the AWS region where the AWS SNS topic is located.
-	Region string `json:"region"`
+	// Topic ARN
+	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonsns.html#amazonsns-resources-for-iam-policies
+	ARN string `json:"arn"`
 
 	// Credentials to interact with the AWS SNS API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

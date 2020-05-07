@@ -28,11 +28,8 @@ spec:
         env:
 
         # SQS queue
-        - name: QUEUE
-          value: triggermeshtest
-
-        - name: AWS_REGION
-          value: us-west-2
+        - name: ARN
+          value: arn:aws:sqs:us-west-2:123456789012:triggermeshtest
 
         # AWS credentials
         - name: AWS_ACCESS_KEY_ID

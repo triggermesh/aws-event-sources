@@ -51,10 +51,9 @@ var (
 type AWSSQSSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// Name of the AWS SQS queue.
-	Queue string `json:"queue"`
-	// Name of the AWS region where the AWS SQS queue is located.
-	Region string `json:"region"`
+	// Queue ARN
+	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonsqs.html#amazonsqs-resources-for-iam-policies
+	ARN string `json:"arn"`
 
 	// Credentials to interact with the AWS SQS API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

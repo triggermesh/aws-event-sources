@@ -48,8 +48,8 @@ The _AWS SNS event source_ can be deployed to Kubernetes in different manners:
 >   --from-literal=aws_secret_access_key=<my_secret_key>
 > ```
 >
-> Alternatively, credentials can be used as literal strings instead of references by replacing `valueFrom` attributes
-> with `value`.
+> Alternatively, credentials can be used as literal strings instead of references to Kubernetes Secrets by replacing
+> `valueFrom` attributes with `value` inside API objects' manifests.
 
 ### As a AWSSNSSource object
 
@@ -89,8 +89,7 @@ Running the event source on your local machine can be convenient for development
 Ensure the following environment variables are exported to your current shell's environment:
 
 ```sh
-export TOPIC=<my_sns_topic>
-export AWS_REGION=<my_topic_region>
+export ARN=<arn_of_my_sns_topic>
 export AWS_ACCESS_KEY_ID=<my_key_id>
 export AWS_SECRET_ACCESS_KEY=<my_secret_key>
 export NAME=my-awssnssource
@@ -111,8 +110,7 @@ Using one of TriggerMesh's release images:
 
 ```console
 $ docker run --rm \
-  -e TOPIC=<my_sns_topic> \
-  -e AWS_REGION=<my_topic_region> \
+  -e ARN=<arn_of_my_sns_topic> \
   -e AWS_ACCESS_KEY_ID=<my_key_id> \
   -e AWS_SECRET_ACCESS_KEY=<my_secret_key> \
   -e NAME=my-awssnssource \

@@ -17,18 +17,20 @@ limitations under the License.
 package awscodecommitsource
 
 import (
-	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
 // createCloudEventAttributes returns the CloudEvent types supported by the
 // source.
-func createCloudEventAttributes(srcSpec *v1alpha1.AWSCodeCommitSourceSpec) []duckv1.CloudEventAttributes {
-	ceAttributes := make([]duckv1.CloudEventAttributes, len(srcSpec.EventTypes))
-	for i, typ := range srcSpec.EventTypes {
+func createCloudEventAttributes(arn arn.ARN, eventTypes []string) []duckv1.CloudEventAttributes {
+	ceAttributes := make([]duckv1.CloudEventAttributes, len(eventTypes))
+	for i, typ := range eventTypes {
 		ceAttributes[i] = duckv1.CloudEventAttributes{
-			Type:   v1alpha1.AWSCodeCommitEventType(typ),
-			Source: v1alpha1.AWSCodeCommitEventSource(srcSpec.Region, srcSpec.Repository),
+			Type:   v1alpha1.AWSEventType(arn.Service, typ),
+			Source: arn.String(),
 		}
 	}
 	return ceAttributes

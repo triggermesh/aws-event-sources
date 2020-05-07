@@ -91,9 +91,10 @@ func TestDeploymentEqual(t *testing.T) {
 	}
 
 	for name, tc := range testCases {
+		//nolint:scopelint
 		t.Run(name, func(t *testing.T) {
-			desired := tc.prep() //nolint:scopelint
-			switch tc.expect {   //nolint:scopelint
+			desired := tc.prep()
+			switch tc.expect {
 			case true:
 				assert.True(t, deploymentEqual(desired, current))
 			case false:

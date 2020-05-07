@@ -50,13 +50,11 @@ spec:
           spec:
             type: object
             properties:
-              repository:
+              arn:
                 type: string
+                pattern: '^arn:aws(-cn|-us-gov)?:codecommit:[a-z]{2}(-gov)?-[a-z]+-\d:\d{12}:.+$'
               branch:
                 type: string
-              region:
-                type: string
-                pattern: '^[a-z]{2}(-gov)?-[a-z]+-\d$'
               eventTypes:
                 type: array
                 items:
@@ -121,9 +119,8 @@ spec:
                 - required: ['ref']
                 - required: ['uri']
             required:
-            - repository
+            - arn
             - branch
-            - region
             - eventTypes
             - sink
           status:

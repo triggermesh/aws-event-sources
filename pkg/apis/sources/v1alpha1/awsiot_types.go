@@ -53,8 +53,9 @@ type AWSIoTSourceSpec struct {
 
 	// Host name of the endpoint the client connects to
 	Endpoint string `json:"endpoint"`
-	// Topic messages get published to
-	Topic string `json:"topic"`
+	// Topic ARN
+	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awsiot.html#awsiot-resources-for-iam-policies
+	ARN string `json:"arn"`
 
 	// Contents of the root CA
 	RootCA ValueFromField `json:"rootCA"`

@@ -16,11 +16,7 @@ limitations under the License.
 
 package v1alpha1
 
-import (
-	"fmt"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
-)
+import "k8s.io/apimachinery/pkg/runtime/schema"
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
 func (s *AWSCodeCommitSource) GetGroupVersionKind() schema.GroupVersionKind {
@@ -30,16 +26,4 @@ func (s *AWSCodeCommitSource) GetGroupVersionKind() schema.GroupVersionKind {
 // GetUntypedSpec implements apis.HasSpec.
 func (s *AWSCodeCommitSource) GetUntypedSpec() interface{} {
 	return s.Spec
-}
-
-// AWSCodeCommitEventSource returns a representation of the source suitable for
-// usage as a CloudEvent source.
-func AWSCodeCommitEventSource(region, repo string) string {
-	return fmt.Sprintf("https://git-codecommit.%s.amazonaws.com/v1/repos/%s", region, repo)
-}
-
-// AWSCodeCommitEventType returns the given event type in a format suitable for
-// usage as a CloudEvent type.
-func AWSCodeCommitEventType(eventType string) string {
-	return fmt.Sprintf("com.amazon.codecommit.%s", eventType)
 }

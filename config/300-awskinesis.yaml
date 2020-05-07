@@ -49,11 +49,9 @@ spec:
           spec:
             type: object
             properties:
-              stream:
+              arn:
                 type: string
-              region:
-                type: string
-                pattern: '^[a-z]{2}(-gov)?-[a-z]+-\d$'
+                pattern: '^arn:aws(-cn|-us-gov)?:kinesis:[a-z]{2}(-gov)?-[a-z]+-\d:\d{12}:stream\/.+$'
               credentials:
                 type: object
                 properties:
@@ -113,8 +111,7 @@ spec:
                 - required: ['ref']
                 - required: ['uri']
             required:
-            - stream
-            - region
+            - arn
             - sink
           status:
             type: object
