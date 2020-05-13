@@ -55,10 +55,10 @@ $ ko apply --local -f config/
 deployment.apps/aws-event-sources-controller created
 ```
 
-The controller will be deployed inside the `knative-eventing` namespace.
+The controller will be deployed to the `triggermesh` namespace.
 
 ```console
-$ kn knative-eventing get deployment/aws-event-sources-controller
+$ kubectl -n triggermesh get deployment/aws-event-sources-controller
 NAME                           READY   UP-TO-DATE   AVAILABLE   AGE
 aws-event-sources-controller   1/1     1            1           1m
 ```

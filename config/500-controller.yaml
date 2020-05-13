@@ -16,7 +16,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: &app aws-event-sources-controller
-  namespace: knative-eventing
+  namespace: triggermesh
 
 spec:
   replicas: 1
