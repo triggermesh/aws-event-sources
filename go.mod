@@ -13,7 +13,7 @@ replace (
 
 require (
 	github.com/aws/aws-sdk-go v1.30.21
-	github.com/cloudevents/sdk-go/v2 v2.0.0-RC2
+	github.com/cloudevents/sdk-go/v2 v2.0.0-RC3
 	github.com/google/go-cmp v0.4.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
@@ -23,8 +23,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.18.0 // indirect
 	k8s.io/apimachinery v0.18.0
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
-	k8s.io/code-generator v0.18.0
 	k8s.io/utils v0.0.0-20200327001022-6496210b90e8 // indirect
-	knative.dev/eventing v0.14.1-0.20200506063944-e9eb527e1295
-	knative.dev/pkg v0.0.0-20200506001744-478962f05e2b
+	knative.dev/eventing v0.14.1-0.20200512233457-09a6267a48c8
+	knative.dev/pkg v0.0.0-20200509234445-b52862b1b3ea
 )

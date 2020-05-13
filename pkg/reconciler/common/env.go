@@ -18,11 +18,9 @@ package common
 
 // Common environment variables propagated to adapters.
 const (
-	EnvName          = "NAME"
-	EnvNamespace     = "NAMESPACE"
-	EnvSink          = "K_SINK"
-	EnvLoggingConfig = "K_LOGGING_CONFIG"
-	EnvMetricsConfig = "K_METRICS_CONFIG"
+	EnvName      = "NAME"
+	EnvNamespace = "NAMESPACE"
+	EnvSink      = "K_SINK"
 
 	EnvARN             = "ARN"
 	EnvAccessKeyID     = "AWS_ACCESS_KEY_ID"

@@ -31,14 +31,13 @@ import (
 
 	"knative.dev/eventing/pkg/apis/eventing"
 	eventingv1beta1 "knative.dev/eventing/pkg/apis/eventing/v1beta1"
+	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	fakek8sinjectionclient "knative.dev/pkg/client/injection/kube/client/fake"
-	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/logging"
-	"knative.dev/pkg/metrics"
 	rt "knative.dev/pkg/reconciler/testing"
 	"knative.dev/pkg/resolver"
 
@@ -56,8 +55,6 @@ const (
 	tUID  = types.UID("00000000-0000-0000-0000-000000000000")
 
 	tImg = "registry/image:tag"
-
-	tMetricsDomain = "testing"
 )
 
 var tARN = NewARN(sns.ServiceName, "triggermeshtest")
@@ -240,8 +237,8 @@ var reconcilerCtor Ctor = func(t *testing.T, ctx context.Context, ls *Listers) c
 	logger := logging.FromContext(ctx)
 
 	adapterCfg := &adapterConfig{
-		Image: tImg,
-		// LoggingCfg and MetricsCfg get auto-populated by cmw.Watch
+		Image:   tImg,
+		configs: &source.EmptyVarsGenerator{},
 	}
 
 	r := &Reconciler{
@@ -251,23 +248,6 @@ var reconcilerCtor Ctor = func(t *testing.T, ctx context.Context, ls *Listers) c
 		deploymentLister: ls.GetDeploymentLister().Deployments,
 		deploymentClient: fakek8sinjectionclient.Get(ctx).AppsV1().Deployments,
 	}
-
-	// updateAdapterMetricsConfig panics when METRICS_DOMAIN is unset
-	defer SetEnvVar(t, metrics.DomainEnv, tMetricsDomain)()
-
-	metricsData := map[string]string{
-		"metrics.backend": "prometheus",
-	}
-	loggingData := map[string]string{
-		"zap-logger-config": `{"level": "info"}`,
-	}
-	cmw := configmap.NewStaticWatcher(
-		NewConfigMap(logging.ConfigMapName(), loggingData),
-		NewConfigMap(metrics.ConfigMapName(), metricsData),
-	)
-
-	cmw.Watch(metrics.ConfigMapName(), r.updateAdapterMetricsConfig)
-	cmw.Watch(logging.ConfigMapName(), r.updateAdapterLoggingConfig)
 
 	return reconcilerv1alpha1.NewReconciler(ctx, logger,
 		fakeinjectionclient.Get(ctx), ls.GetAWSSNSSourceLister(),
@@ -423,15 +403,6 @@ func newAdapterDeployment() *appsv1.Deployment {
 								Name:  common.EnvSink,
 								Value: tSinkURI.String(),
 							}, {
-								Name:  common.EnvLoggingConfig,
-								Value: `{"zap-logger-config":"{\"level\": \"info\"}"}`,
-							}, {
-								Name: common.EnvMetricsConfig,
-								Value: `{"Domain":"` + tMetricsDomain + `",` +
-									`"Component":"` + adapterName + `",` +
-									`"PrometheusPort":0,` +
-									`"ConfigMap":{"metrics.backend":"prometheus"}}`,
-							}, {
 								Name:  common.EnvARN,
 								Value: tARN.String(),
 							}, {
@@ -444,6 +415,12 @@ func newAdapterDeployment() *appsv1.Deployment {
 								ValueFrom: &corev1.EnvVarSource{
 									SecretKeyRef: tSecretAccessKeySelector,
 								},
+							}, {
+								Name: source.EnvLoggingCfg,
+							}, {
+								Name: source.EnvMetricsCfg,
+							}, {
+								Name: source.EnvTracingCfg,
 							},
 						},
 					}},

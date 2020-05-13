@@ -17,10 +17,14 @@ limitations under the License.
 package resource
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"knative.dev/pkg/kmeta"
 
 	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
@@ -32,6 +36,18 @@ const (
 
 	tImg = "registry/image:tag"
 )
+
+func makeEnvVars(count int, name, val string) []corev1.EnvVar {
+	envVars := make([]corev1.EnvVar, count)
+	for i := 1; i <= count; i++ {
+		iStr := strconv.Itoa(i)
+		envVars[i-1] = corev1.EnvVar{
+			Name:  name + iStr,
+			Value: val + iStr,
+		}
+	}
+	return envVars
+}
 
 func TestMetaObjectOptions(t *testing.T) {
 	objMeta := NewDeployment(tNs, tName,

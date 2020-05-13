@@ -27,10 +27,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 
+	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/kmeta"
-	"knative.dev/pkg/logging"
-	"knative.dev/pkg/metrics"
 	"knative.dev/pkg/reconciler"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -53,10 +52,8 @@ const (
 type adapterConfig struct {
 	// Container image
 	Image string `default:"gcr.io/triggermesh/awscodecommitsource"`
-	// Logging configuration, serialized as JSON.
-	LoggingCfg string `ignored:"true"`
-	// Metrics (observability) configuration, serialized as JSON.
-	MetricsCfg string `ignored:"true"`
+	// Configuration accessor for logging/metrics/tracing
+	configs source.ConfigAccessor
 }
 
 // reconcileAdapter reconciles the state of the source's adapter.
@@ -174,8 +171,6 @@ func makeAdapterDeployment(ctx context.Context, arn arn.ARN,
 		resource.EnvVar(common.EnvName, o.Name),
 		resource.EnvVar(common.EnvNamespace, o.Namespace),
 		resource.EnvVar(common.EnvSink, sinkURIStr),
-		resource.EnvVar(common.EnvLoggingConfig, adapterCfg.LoggingCfg),
-		resource.EnvVar(common.EnvMetricsConfig, adapterCfg.MetricsCfg),
 		resource.EnvVar(common.EnvARN, arn.String()),
 		resource.EnvVar(envBranch, o.Spec.Branch),
 		resource.EnvVar(envEventTypes, strings.Join(o.Spec.EventTypes, ",")),
@@ -185,52 +180,6 @@ func makeAdapterDeployment(ctx context.Context, arn arn.ARN,
 		resource.EnvVarFromSecret(common.EnvSecretAccessKey,
 			o.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
 			o.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
+		resource.EnvVars(adapterCfg.configs.ToEnvVars()...),
 	)
-}
-
-// updateAdapterLoggingConfig serializes the logging config from a ConfigMap to
-// JSON and updates the existing config stored in the Reconciler.
-func (r *Reconciler) updateAdapterLoggingConfig(cfg *corev1.ConfigMap) {
-	delete(cfg.Data, "_example")
-
-	logCfg, err := logging.NewConfigFromConfigMap(cfg)
-	if err != nil {
-		r.logger.Warnw("Failed to create adapter logging config from ConfigMap",
-			"configmap", cfg.Name, "error", err)
-		return
-	}
-
-	logCfgJSON, err := logging.LoggingConfigToJson(logCfg)
-	if err != nil {
-		r.logger.Warnw("Failed to serialize adapter logging config to JSON",
-			"configmap", cfg.Name, "error", err)
-		return
-	}
-
-	r.adapterCfg.LoggingCfg = logCfgJSON
-
-	r.logger.Infow("Updated adapter logging config from ConfigMap", "configmap", cfg.Name)
-}
-
-// updateAdapterMetricsConfig serializes the metrics config from a ConfigMap to
-// JSON and updates the existing config stored in the Reconciler.
-func (r *Reconciler) updateAdapterMetricsConfig(cfg *corev1.ConfigMap) {
-	delete(cfg.Data, "_example")
-
-	metricsCfg := &metrics.ExporterOptions{
-		Domain:    metrics.Domain(),
-		Component: adapterName,
-		ConfigMap: cfg.Data,
-	}
-
-	metricsCfgJSON, err := metrics.MetricsOptionsToJson(metricsCfg)
-	if err != nil {
-		r.logger.Warnw("Failed to serialize adapter metrics config to JSON",
-			"configmap", cfg.Name, "error", err)
-		return
-	}
-
-	r.adapterCfg.MetricsCfg = metricsCfgJSON
-
-	r.logger.Infow("Updated adapter metrics config from ConfigMap", "configmap", cfg.Name)
 }

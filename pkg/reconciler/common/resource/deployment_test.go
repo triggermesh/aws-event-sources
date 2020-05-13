@@ -39,6 +39,7 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 		Port("health", 8081),
 		Label("test.label/1", "val1"),
 		Probe("/health", "health"),
+		EnvVars(makeEnvVars(2, "MULTI_ENV", "val")...),
 		EnvVar("TEST_ENV2", "val2"),
 		Label("test.label/2", "val2"),
 	)
@@ -82,6 +83,12 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 						Env: []corev1.EnvVar{{
 							Name:  "TEST_ENV1",
 							Value: "val1",
+						}, {
+							Name:  "MULTI_ENV1",
+							Value: "val1",
+						}, {
+							Name:  "MULTI_ENV2",
+							Value: "val2",
 						}, {
 							Name:  "TEST_ENV2",
 							Value: "val2",

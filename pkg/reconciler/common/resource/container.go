@@ -77,6 +77,14 @@ func EnvVar(name, val string) ObjectOption {
 	}
 }
 
+// EnvVars sets the value of multiple environment variables.
+func EnvVars(evs ...corev1.EnvVar) ObjectOption {
+	return func(object interface{}) {
+		objEnvVars := envVarsFrom(object)
+		*objEnvVars = append(*objEnvVars, evs...)
+	}
+}
+
 // EnvVarFromSecret sets the value of a Container's environment variable to a
 // reference to a Kubernetes Secret.
 func EnvVarFromSecret(name, secretName, secretKey string) ObjectOption {

@@ -31,6 +31,7 @@ func TestNewContainer(t *testing.T) {
 		Image(tImg),
 		EnvVar("TEST_ENV1", "val1"),
 		Port("health", 8081),
+		EnvVars(makeEnvVars(2, "MULTI_ENV", "val")...),
 		EnvVar("TEST_ENV2", "val2"),
 		Probe("/health", "health"),
 		EnvVarFromSecret("TEST_ENV3", "test-secret", "someKey"),
@@ -49,6 +50,12 @@ func TestNewContainer(t *testing.T) {
 		Env: []corev1.EnvVar{{
 			Name:  "TEST_ENV1",
 			Value: "val1",
+		}, {
+			Name:  "MULTI_ENV1",
+			Value: "val1",
+		}, {
+			Name:  "MULTI_ENV2",
+			Value: "val2",
 		}, {
 			Name:  "TEST_ENV2",
 			Value: "val2",

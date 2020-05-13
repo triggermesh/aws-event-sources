@@ -23,12 +23,12 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
+	"knative.dev/eventing/pkg/reconciler/source"
 	k8sclient "knative.dev/pkg/client/injection/kube/client"
 	deploymentinformerv1 "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
-	"knative.dev/pkg/metrics"
 	"knative.dev/pkg/resolver"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -44,7 +44,9 @@ func NewController(
 
 	// Calling envconfig.Process() with a prefix appends that prefix
 	// (uppercased) to the Go field name, e.g. MYSOURCE_IMAGE.
-	adapterCfg := &adapterConfig{}
+	adapterCfg := &adapterConfig{
+		configs: source.WatchConfigurations(ctx, adapterName, cmw, source.WithLogging, source.WithMetrics),
+	}
 	envconfig.MustProcess(adapterName, adapterCfg)
 
 	logger := logging.FromContext(ctx)
@@ -60,6 +62,8 @@ func NewController(
 	}
 	impl := reconcilerv1alpha1.NewImpl(ctx, r)
 
+	r.sinkResolver = resolver.NewURIResolver(ctx, impl.EnqueueKey)
+
 	logger.Info("Setting up event handlers.")
 
 	sourceInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
@@ -68,11 +72,6 @@ func NewController(
 		FilterFunc: controller.FilterControllerGVK((&v1alpha1.AWSSQSSource{}).GetGroupVersionKind()),
 		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
 	})
-
-	r.sinkResolver = resolver.NewURIResolver(ctx, impl.EnqueueKey)
-
-	cmw.Watch(logging.ConfigMapName(), r.updateAdapterLoggingConfig)
-	cmw.Watch(metrics.ConfigMapName(), r.updateAdapterMetricsConfig)
 
 	return impl
 }
