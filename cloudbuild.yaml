@@ -2,6 +2,16 @@ steps:
 
 - name: 'gcr.io/kaniko-project/executor:latest'
   args:
+  - --dockerfile=cmd/aws-event-sources-controller/Dockerfile
+  - --destination=gcr.io/$PROJECT_ID/aws-event-sources-controller:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/aws-event-sources-controller/cache
+  - --cache=${_KANIKO_USE_BUILD_CACHE}
+  - --no-push=${_KANIKO_NO_PUSH}
+  - ${_KANIKO_EXTRA_ARGS}
+  waitFor: ['-']
+
+- name: 'gcr.io/kaniko-project/executor:latest'
+  args:
   - --dockerfile=cmd/awscodecommitsource/Dockerfile
   - --destination=gcr.io/$PROJECT_ID/awscodecommitsource:${_KANIKO_IMAGE_TAG}
   - --cache-repo=gcr.io/$PROJECT_ID/awscodecommitsource/cache
