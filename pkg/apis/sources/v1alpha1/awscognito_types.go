@@ -45,6 +45,7 @@ var (
 	_ apis.Validatable   = (*AWSCognitoSource)(nil)
 	_ apis.Defaultable   = (*AWSCognitoSource)(nil)
 	_ apis.HasSpec       = (*AWSCognitoSource)(nil)
+	_ AWSEventSource     = (*AWSCognitoSource)(nil)
 )
 
 // AWSCognitoSourceSpec defines the desired state of the event source.

@@ -17,9 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"fmt"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
@@ -32,10 +31,19 @@ func (s *AWSDynamoDBSource) GetUntypedSpec() interface{} {
 	return s.Spec
 }
 
-// AWSDynamoDBEventSource returns a representation of the source suitable for
-// usage as a CloudEvent source.
-func AWSDynamoDBEventSource(region, table string) string {
-	return fmt.Sprintf("aws:dynamodb:%s:table/%s", region, table)
+// GetSink implements AWSEventSource.
+func (s *AWSDynamoDBSource) GetSink() *duckv1.Destination {
+	return &s.Spec.Sink
+}
+
+// GetARN implements AWSEventSource.
+func (s *AWSDynamoDBSource) GetARN() string {
+	return s.Spec.ARN
+}
+
+// GetStatus implements AWSEventSource.
+func (s *AWSDynamoDBSource) GetStatus() *AWSEventSourceStatus {
+	return &s.Status
 }
 
 // Supported event types
@@ -45,18 +53,11 @@ const (
 	AWSDynamoDBRemoveEventType = "remove"
 )
 
-// AWSDynamoDBEventTypes returns the list of event types supported by the event
-// source.
+// AWSDynamoDBEventTypes returns the list of event types supported by the event source.
 func AWSDynamoDBEventTypes() []string {
 	return []string{
 		AWSDynamoDBAddEventType,
 		AWSDynamoDBModifyEventType,
 		AWSDynamoDBRemoveEventType,
 	}
-}
-
-// AWSDynamoDBEventType returns the given event type in a format suitable for
-// usage as a CloudEvent type.
-func AWSDynamoDBEventType(eventType string) string {
-	return fmt.Sprintf("com.amazon.dynamodb.%s", eventType)
 }

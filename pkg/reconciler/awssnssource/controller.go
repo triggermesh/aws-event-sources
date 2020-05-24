@@ -21,19 +21,14 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
-	"k8s.io/client-go/tools/cache"
-
 	"knative.dev/eventing/pkg/reconciler/source"
-	k8sclient "knative.dev/pkg/client/injection/kube/client"
-	deploymentinformerv1 "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
-	"knative.dev/pkg/logging"
-	"knative.dev/pkg/resolver"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	informerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awssnssource"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awssnssource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 )
 
 // NewController creates a Reconciler for the event source and returns the result of NewImpl.
@@ -49,29 +44,19 @@ func NewController(
 	}
 	envconfig.MustProcess(adapterName, adapterCfg)
 
-	logger := logging.FromContext(ctx)
-
-	sourceInformer := informerv1alpha1.Get(ctx)
-	deploymentInformer := deploymentinformerv1.Get(ctx)
-
 	r := &Reconciler{
-		logger:           logger,
-		adapterCfg:       adapterCfg,
-		deploymentClient: k8sclient.Get(ctx).AppsV1().Deployments,
-		deploymentLister: deploymentInformer.Lister().Deployments,
+		adapterCfg: adapterCfg,
 	}
 	impl := reconcilerv1alpha1.NewImpl(ctx, r)
 
-	r.sinkResolver = resolver.NewURIResolver(ctx, impl.EnqueueKey)
+	r.base = common.NewGenericDeploymentReconciler(
+		ctx,
+		(&v1alpha1.AWSSNSSource{}).GetGroupVersionKind(),
+		impl.EnqueueKey,
+		impl.EnqueueControllerOf,
+	)
 
-	logger.Info("Setting up event handlers.")
-
-	sourceInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
-
-	deploymentInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-		FilterFunc: controller.FilterControllerGVK((&v1alpha1.AWSSNSSource{}).GetGroupVersionKind()),
-		Handler:    controller.HandleAll(impl.EnqueueControllerOf),
-	})
+	informerv1alpha1.Get(ctx).Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
 
 	return impl
 }

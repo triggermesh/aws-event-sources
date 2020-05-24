@@ -52,7 +52,7 @@ func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context,
 		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning,
 			ReasonInvalidSpec, "Failed to parse ARN: %s", err))
 	}
-	src.GetStatus().CloudEventAttributes = createCloudEventAttributes(arn, eventTypes)
+	src.GetStatus().CloudEventAttributes = CreateCloudEventAttributes(arn, eventTypes)
 
 	sinkURI, err := r.resolveSinkURL(ctx)
 	if err != nil {

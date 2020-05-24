@@ -16,7 +16,10 @@ limitations under the License.
 
 package v1alpha1
 
-import "k8s.io/apimachinery/pkg/runtime/schema"
+import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
+)
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
 func (s *AWSCodeCommitSource) GetGroupVersionKind() schema.GroupVersionKind {
@@ -26,4 +29,19 @@ func (s *AWSCodeCommitSource) GetGroupVersionKind() schema.GroupVersionKind {
 // GetUntypedSpec implements apis.HasSpec.
 func (s *AWSCodeCommitSource) GetUntypedSpec() interface{} {
 	return s.Spec
+}
+
+// GetSink implements AWSEventSource.
+func (s *AWSCodeCommitSource) GetSink() *duckv1.Destination {
+	return &s.Spec.Sink
+}
+
+// GetARN implements AWSEventSource.
+func (s *AWSCodeCommitSource) GetARN() string {
+	return s.Spec.ARN
+}
+
+// GetStatus implements AWSEventSource.
+func (s *AWSCodeCommitSource) GetStatus() *AWSEventSourceStatus {
+	return &s.Status
 }

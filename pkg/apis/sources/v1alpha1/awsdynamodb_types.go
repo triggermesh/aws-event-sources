@@ -45,6 +45,7 @@ var (
 	_ apis.Validatable   = (*AWSDynamoDBSource)(nil)
 	_ apis.Defaultable   = (*AWSDynamoDBSource)(nil)
 	_ apis.HasSpec       = (*AWSDynamoDBSource)(nil)
+	_ AWSEventSource     = (*AWSDynamoDBSource)(nil)
 )
 
 // AWSDynamoDBSourceSpec defines the desired state of the event source.

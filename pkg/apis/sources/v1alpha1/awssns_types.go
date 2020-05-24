@@ -45,6 +45,7 @@ var (
 	_ apis.Validatable   = (*AWSSNSSource)(nil)
 	_ apis.Defaultable   = (*AWSSNSSource)(nil)
 	_ apis.HasSpec       = (*AWSSNSSource)(nil)
+	_ AWSEventSource     = (*AWSSNSSource)(nil)
 )
 
 // AWSSNSSourceSpec defines the desired state of the event source.

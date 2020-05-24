@@ -45,6 +45,7 @@ var (
 	_ apis.Validatable   = (*AWSKinesisSource)(nil)
 	_ apis.Defaultable   = (*AWSKinesisSource)(nil)
 	_ apis.HasSpec       = (*AWSKinesisSource)(nil)
+	_ AWSEventSource     = (*AWSKinesisSource)(nil)
 )
 
 // AWSKinesisSourceSpec defines the desired state of the event source.

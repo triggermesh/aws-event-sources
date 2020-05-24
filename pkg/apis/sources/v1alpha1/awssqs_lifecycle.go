@@ -16,7 +16,10 @@ limitations under the License.
 
 package v1alpha1
 
-import "k8s.io/apimachinery/pkg/runtime/schema"
+import (
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
+)
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
 func (s *AWSSQSSource) GetGroupVersionKind() schema.GroupVersionKind {
@@ -28,7 +31,29 @@ func (s *AWSSQSSource) GetUntypedSpec() interface{} {
 	return s.Spec
 }
 
+// GetSink implements AWSEventSource.
+func (s *AWSSQSSource) GetSink() *duckv1.Destination {
+	return &s.Spec.Sink
+}
+
+// GetARN implements AWSEventSource.
+func (s *AWSSQSSource) GetARN() string {
+	return s.Spec.ARN
+}
+
+// GetStatus implements AWSEventSource.
+func (s *AWSSQSSource) GetStatus() *AWSEventSourceStatus {
+	return &s.Status
+}
+
 // Supported event types
 const (
 	AWSSQSGenericEventType = "message"
 )
+
+// AWSSQSEventTypes returns the list of event types supported by the event source.
+func AWSSQSEventTypes() []string {
+	return []string{
+		AWSSQSGenericEventType,
+	}
+}

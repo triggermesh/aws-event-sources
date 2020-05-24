@@ -19,70 +19,29 @@ package awsdynamodbsource
 import (
 	"context"
 
-	"go.uber.org/zap"
-
-	"github.com/aws/aws-sdk-go/aws/arn"
-
-	corev1 "k8s.io/api/core/v1"
-	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
-	appslistersv1 "k8s.io/client-go/listers/apps/v1"
-
-	"knative.dev/pkg/controller"
 	"knative.dev/pkg/reconciler"
-	"knative.dev/pkg/resolver"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awsdynamodbsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
-	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/object"
 )
 
 // Reconciler implements controller.Reconciler for the event source type.
 type Reconciler struct {
-	logger *zap.SugaredLogger
-
-	// URI resolver for sinks
-	sinkResolver *resolver.URIResolver
-
-	// adapter properties
+	base       common.GenericDeploymentReconciler
 	adapterCfg *adapterConfig
-
-	// API clients
-	deploymentClient func(namespace string) appsclientv1.DeploymentInterface
-
-	// objects listers
-	deploymentLister func(namespace string) appslistersv1.DeploymentNamespaceLister
 }
 
 // Check that our Reconciler implements Interface
 var _ reconcilerv1alpha1.Interface = (*Reconciler)(nil)
 
-// Optionally check that our Reconciler implements Finalizer
-//var _ reconcilerv1alpha1.Finalizer = (*Reconciler)(nil)
-
 // ReconcileKind implements Interface.ReconcileKind.
-func (r *Reconciler) ReconcileKind(ctx context.Context, o *v1alpha1.AWSDynamoDBSource) reconciler.Event {
-	o.Status.InitializeConditions()
-	o.Status.ObservedGeneration = o.Generation
+func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSDynamoDBSource) reconciler.Event {
+	// inject source into context for usage in reconciliation logic
+	ctx = v1alpha1.WithSource(ctx, src)
 
-	arn, err := arn.Parse(o.Spec.ARN)
-	if err != nil {
-		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning,
-			common.ReasonInvalidSpec, "failed to parse ARN: %s", err))
-	}
-
-	o.Status.CloudEventAttributes = createCloudEventAttributes(arn)
-
-	// inject object into context for usage in event recorder and
-	// reconciliation logic
-	ctx = object.With(ctx, o)
-
-	return r.reconcileAdapter(ctx, arn)
+	return r.base.ReconcileSource(ctx,
+		v1alpha1.AWSDynamoDBEventTypes(),
+		adapterDeploymentBuilder(src, r.adapterCfg),
+	)
 }
-
-// Optionally, use FinalizeKind to add finalizers. FinalizeKind will be called
-// when the resource is deleted.
-//func (r *Reconciler) FinalizeKind(ctx context.Context, o *v1alpha1.AWSDynamoDBSource) reconciler.Event {
-//	// TODO: add custom finalization logic here.
-//	return nil
-//}

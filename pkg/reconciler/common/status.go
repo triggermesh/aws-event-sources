@@ -22,9 +22,9 @@ import (
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 )
 
-// createCloudEventAttributes returns CloudEvent attributes for the event types
+// CreateCloudEventAttributes returns CloudEvent attributes for the event types
 // supported by the source.
-func createCloudEventAttributes(arn arn.ARN, eventTypes []string) []duckv1.CloudEventAttributes {
+func CreateCloudEventAttributes(arn arn.ARN, eventTypes []string) []duckv1.CloudEventAttributes {
 	ceAttributes := make([]duckv1.CloudEventAttributes, len(eventTypes))
 
 	for i, typ := range eventTypes {

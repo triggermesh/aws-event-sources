@@ -45,6 +45,7 @@ var (
 	_ apis.Validatable   = (*AWSCodeCommitSource)(nil)
 	_ apis.Defaultable   = (*AWSCodeCommitSource)(nil)
 	_ apis.HasSpec       = (*AWSCodeCommitSource)(nil)
+	_ AWSEventSource     = (*AWSCodeCommitSource)(nil)
 )
 
 // AWSCodeCommitSourceSpec defines the desired state of the event source.

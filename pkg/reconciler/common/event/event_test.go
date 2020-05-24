@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/record"
@@ -28,7 +29,6 @@ import (
 	"knative.dev/pkg/controller"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/object"
 	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
 )
 
@@ -44,7 +44,7 @@ func TestEvents(t *testing.T) {
 	er := record.NewFakeRecorder(eventRecorderBufferSize)
 
 	ctx := controller.WithEventRecorder(context.TODO(), er)
-	ctx = object.With(ctx, &v1alpha1.AWSCodeCommitSource{})
+	ctx = v1alpha1.WithSource(ctx, &v1alpha1.AWSCodeCommitSource{})
 
 	Normal(ctx, reason, messageFmt, normalMsg)
 	Warn(ctx, reason, messageFmt, warningMsg)
@@ -57,7 +57,7 @@ func TestEvents(t *testing.T) {
 	for ev := range er.Events {
 		recordedEvent = append(recordedEvent, ev)
 	}
-	assert.Len(t, recordedEvent, expectEvents, "Expect %d events", expectEvents)
+	require.Len(t, recordedEvent, expectEvents, "Expect %d events", expectEvents)
 
 	expectNormalEventContent := Eventf(corev1.EventTypeNormal, reason, messageFmt, normalMsg)
 	expectWarningEventContent := Eventf(corev1.EventTypeWarning, reason, messageFmt, warningMsg)

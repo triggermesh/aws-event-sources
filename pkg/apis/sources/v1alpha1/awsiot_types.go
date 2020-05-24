@@ -45,6 +45,7 @@ var (
 	_ apis.Validatable   = (*AWSIoTSource)(nil)
 	_ apis.Defaultable   = (*AWSIoTSource)(nil)
 	_ apis.HasSpec       = (*AWSIoTSource)(nil)
+	_ AWSEventSource     = (*AWSIoTSource)(nil)
 )
 
 // AWSIoTSourceSpec defines the desired state of the event source.

@@ -165,6 +165,9 @@ func TestReconcile(t *testing.T) {
 				updateAdapterEvent(),
 			},
 		},
+
+		// Errors
+
 		{
 			Name: "Sink goes missing",
 			Key:  tKey,
@@ -178,10 +181,8 @@ func TestReconcile(t *testing.T) {
 			WantEvents: []string{
 				badSinkEvent(),
 			},
+			WantErr: true,
 		},
-
-		// Errors
-
 		{
 			Name: "Fail to create adapter deployment",
 			Key:  tKey,
@@ -201,6 +202,7 @@ func TestReconcile(t *testing.T) {
 			WantEvents: []string{
 				failCreateAdapterEvent(),
 			},
+			WantErr: true,
 		},
 		{
 			Name: "Fail to update adapter deployment",
@@ -222,6 +224,7 @@ func TestReconcile(t *testing.T) {
 			WantEvents: []string{
 				failUpdateAdapterEvent(),
 			},
+			WantErr: true,
 		},
 
 		// Edge cases
@@ -239,22 +242,23 @@ func TestReconcile(t *testing.T) {
 
 // reconcilerCtor returns a Ctor for a AWSCodeCommitSource Reconciler.
 var reconcilerCtor Ctor = func(t *testing.T, ctx context.Context, ls *Listers) controller.Reconciler {
-	logger := logging.FromContext(ctx)
-
 	adapterCfg := &adapterConfig{
 		Image:   tImg,
 		configs: &source.EmptyVarsGenerator{},
 	}
 
-	r := &Reconciler{
-		logger:           logger,
-		sinkResolver:     resolver.NewURIResolver(ctx, func(types.NamespacedName) {}),
-		adapterCfg:       adapterCfg,
-		deploymentLister: ls.GetDeploymentLister().Deployments,
-		deploymentClient: fakek8sinjectionclient.Get(ctx).AppsV1().Deployments,
+	base := common.GenericDeploymentReconciler{
+		SinkResolver: resolver.NewURIResolver(ctx, func(types.NamespacedName) {}),
+		Lister:       ls.GetDeploymentLister().Deployments,
+		Client:       fakek8sinjectionclient.Get(ctx).AppsV1().Deployments,
 	}
 
-	return reconcilerv1alpha1.NewReconciler(ctx, logger,
+	r := &Reconciler{
+		base:       base,
+		adapterCfg: adapterCfg,
+	}
+
+	return reconcilerv1alpha1.NewReconciler(ctx, logging.FromContext(ctx),
 		fakeinjectionclient.Get(ctx), ls.GetAWSCodeCommitSourceLister(),
 		controller.GetEventRecorder(ctx), r)
 }
@@ -298,7 +302,7 @@ func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSCodeCommitSour
 	}
 
 	if len(skipCEAtrributes) == 0 {
-		o.Status.CloudEventAttributes = createCloudEventAttributes(tARN, tEventTypes)
+		o.Status.CloudEventAttributes = common.CreateCloudEventAttributes(tARN, tEventTypes)
 	}
 
 	o.Status.InitializeConditions()
@@ -510,7 +514,9 @@ func failUpdateAdapterEvent() string {
 func badSinkEvent() string {
 	addrGVK := newAdressable().GetGroupVersionKind()
 
-	return Eventf(corev1.EventTypeWarning, common.ReasonBadSinkURI, "Could not resolve sink URI: "+
+	// FIXME: the event reason is "InternalError" instead of the expected common.ReasonBadSinkURI
+	// because controller.NewPermanentError does not use Go's error wrapping.
+	return Eventf(corev1.EventTypeWarning, "InternalError", "Could not resolve sink URI: "+
 		"failed to get ref &ObjectReference{Kind:%s,Namespace:%s,Name:%s,UID:,APIVersion:%s,ResourceVersion:,FieldPath:,}: "+
 		"%s %q not found",
 		addrGVK.Kind, tNs, tName, addrGVK.GroupVersion().String(),

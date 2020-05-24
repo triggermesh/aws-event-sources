@@ -45,6 +45,7 @@ var (
 	_ apis.Validatable   = (*AWSSQSSource)(nil)
 	_ apis.Defaultable   = (*AWSSQSSource)(nil)
 	_ apis.HasSpec       = (*AWSSQSSource)(nil)
+	_ AWSEventSource     = (*AWSSQSSource)(nil)
 )
 
 // AWSSQSSourceSpec defines the desired state of the event source.

@@ -23,7 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/controller"
 
-	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/object"
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
 // Normal records a normal event for an API object.
@@ -37,5 +37,5 @@ func Warn(ctx context.Context, reason, msgFmt string, args ...interface{}) {
 }
 
 func recordEvent(ctx context.Context, typ, reason, msgFmt string, args ...interface{}) {
-	controller.GetEventRecorder(ctx).Eventf(object.FromContext(ctx), typ, reason, msgFmt, args...)
+	controller.GetEventRecorder(ctx).Eventf(v1alpha1.SourceFromContext(ctx), typ, reason, msgFmt, args...)
 }
