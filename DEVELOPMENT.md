@@ -115,6 +115,9 @@ then:
 
 1. Add the reconciler's `NewController` method to the shared `main` inside `cmd/controller/main.go`.
 
+> :information_source: Please refer to [Knative Dependency Injection][depinject] for more information about generated
+> reconcilers.
+
 ### Adapter
 
 The adapter implements the business logic of the event source. It is decoupled from the reconciler, the contract between
@@ -123,3 +126,6 @@ the two is usually based on environment variables that can be used to inject par
 1. Create a `main` package for the source's adapter in `cmd/<RESOURCE>`.
 
 1. If specific libraries are needed for that adapter, write them under `pkg/adapter/<RESOURCE>`.
+
+
+[depinject]: https://github.com/knative/pkg/blob/release-0.15/injection/README.md
