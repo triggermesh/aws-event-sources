@@ -205,16 +205,25 @@ func TestSendCloudevent(t *testing.T) {
 		},
 	}
 
-	err := a.sendDynamoDBEvent(&record)
-	assert.NoError(t, err)
+	// send multiple events to ensure we re-use buffers from strBuilderPool
+	const sendEvents = 5
+
+	for i := 0; i < sendEvents; i++ {
+		err := a.sendDynamoDBEvent(&record)
+		assert.NoError(t, err)
+	}
 
 	gotEvents := ceClient.Sent()
-	assert.Len(t, gotEvents, 1, "Expected 1 event, got %d", len(gotEvents))
+	assert.Len(t, gotEvents, sendEvents, "Expect %d sent events", sendEvents)
 
 	wantData := `{"AwsRegion":null,"Dynamodb":{"ApproximateCreationDateTime":null,"Keys":{"key1":null,"key2":null},"NewImage":null,"OldImage":null,"SequenceNumber":null,"SizeBytes":null,"StreamViewType":null},"EventID":"1","EventName":"some event","EventSource":"some source","EventVersion":null,"UserIdentity":null}`
-	gotData := string(gotEvents[0].Data())
-	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
 
-	assert.Contains(t, []string{"key1,key2", "key2,key1"}, gotEvents[0].Subject(),
-		`Subject contains keys "key1,key2" in any order`)
+	for i := 0; i < sendEvents; i++ {
+		gotData := string(gotEvents[i].Data())
+		assert.EqualValues(t, wantData, gotData, "[%d] Compare sent data to expected", i)
+
+		subject := gotEvents[i].Subject()
+		assert.Contains(t, []string{"key1,key2", "key2,key1"}, subject,
+			`[%d] Subject contains keys "key1,key2" in any order`, i)
+	}
 }

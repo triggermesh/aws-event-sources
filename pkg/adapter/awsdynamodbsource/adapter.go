@@ -262,6 +262,7 @@ func asEventSubject(record *dynamodbstreams.Record) string {
 
 	subject := strBuilderPool.Get().(*strings.Builder)
 	defer strBuilderPool.Put(subject)
+	defer subject.Reset()
 
 	i := 0
 	for k := range record.Dynamodb.Keys {
