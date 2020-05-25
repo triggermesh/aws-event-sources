@@ -1,7 +1,6 @@
-KREPO           = aws-event-sources
-KREPO_DESC      = Triggermesh AWS event sources
+KREPO              = aws-event-sources
+KREPO_DESC         = Triggermesh AWS event sources
 COMMANDS           = aws-event-sources-controller awscodecommitsource awscognitosource awsdynamodbsource awskinesissource awssqssource
-IMAGES             = $(foreach cmd,$(COMMANDS),$(cmd).image)
 
 TARGETS           ?= linux/amd64
 
@@ -31,7 +30,7 @@ LDFLAGS            = -extldflags=-static -w -s
 HAS_GOTESTSUM     := $(shell command -v gotestsum;)
 HAS_GOLANGCI_LINT := $(shell command -v golangci-lint;)
 
-.PHONY: help mod-download build install release test coverage lint fmt fmt-test images clean
+.PHONY: help mod-download build install release test coverage lint fmt fmt-test images cloudbuild-test cloudbuild clean
 
 all: build
 
@@ -86,22 +85,22 @@ fmt: ## Format source files
 fmt-test: ## Check source formatting
 	@test -z $(shell $(GOFMT) -l $(shell $(GO) list -f '{{$$d := .Dir}}{{range .GoFiles}}{{$$d}}/{{.}} {{end}} {{$$d := .Dir}}{{range .TestGoFiles}}{{$$d}}/{{.}} {{end}}' $(GOPKGS)))
 
+IMAGES = $(foreach cmd,$(COMMANDS),$(cmd).image)
 images: $(IMAGES) ## Builds container images
-
 $(IMAGES): %.image:
 	$(DOCKER) build -t $(IMAGE_REPO)/$* -f ./cmd/$*/Dockerfile . ;
 
-cloudbuild-test: ## Test container image build with Google Cloud Build
+CLOUDBUILD_TEST = $(foreach cmd,$(COMMANDS),$(cmd).cloudbuild-test)
+cloudbuild-test: $(CLOUDBUILD_TEST) ## Test container image build with Google Cloud Build
+$(CLOUDBUILD_TEST): %.cloudbuild-test:
 # NOTE (antoineco): Cloud Build started failing recently with authentication errors when --no-push is specified.
 # Pushing images with the "_" tag is our hack to avoid those errors and ensure the build cache is always updated.
-	if [ -f cloudbuild.yaml ]; then \
-		gcloud builds submit $(BASE_DIR) --config cloudbuild.yaml --substitutions COMMIT_SHA=${IMAGE_SHA},_KANIKO_IMAGE_TAG=_ ; \
-	fi
+	gcloud builds submit $(BASE_DIR) --config cmd/$*/cloudbuild.yaml --substitutions COMMIT_SHA=${IMAGE_SHA},_KANIKO_IMAGE_TAG=_
 
-cloudbuild: ## Build and publish image to GCR
-	if [ -f cloudbuild.yaml ]; then \
-		gcloud builds submit $(BASE_DIR) --config cloudbuild.yaml --substitutions COMMIT_SHA=${IMAGE_SHA},_KANIKO_IMAGE_TAG=${IMAGE_TAG} ; \
-	fi
+CLOUDBUILD = $(foreach cmd,$(COMMANDS),$(cmd).cloudbuild)
+cloudbuild: $(CLOUDBUILD) ## Build and publish image to GCR
+$(CLOUDBUILD): %.cloudbuild:
+	gcloud builds submit $(BASE_DIR) --config cmd/$*/cloudbuild.yaml --substitutions COMMIT_SHA=${IMAGE_SHA},_KANIKO_IMAGE_TAG=${IMAGE_TAG}
 
 clean: ## Clean build artifacts
 	@for bin in $(COMMANDS) ; do \

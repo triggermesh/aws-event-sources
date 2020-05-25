@@ -32,8 +32,7 @@ jobs:
       - gcp-cli/initialize
       - run:
           name: Building docker image
-          command: |
-            gcloud builds submit --config cloudbuild.yaml --substitutions _KANIKO_NO_PUSH=true
+          command: make -j8 cloudbuild-test
 
   test:
     executor:
