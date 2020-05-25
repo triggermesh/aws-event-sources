@@ -215,5 +215,6 @@ func TestSendCloudevent(t *testing.T) {
 	gotData := string(gotEvents[0].Data())
 	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
 
-	assert.Equal(t, "key1,key2", gotEvents[0].Subject())
+	assert.Contains(t, []string{"key1,key2", "key2,key1"}, gotEvents[0].Subject(),
+		`Subject contains keys "key1,key2" in any order`)
 }
