@@ -1,4 +1,4 @@
-FROM golang:1.14-alpine AS builder
+FROM golang:1.14-stretch AS builder
 
 ENV CGO_ENABLED 0
 ENV GOOS linux
@@ -6,10 +6,15 @@ ENV GOARCH amd64
 
 WORKDIR /go/src/awssnssource
 
-RUN apk add --no-cache openssh-client ca-certificates
+COPY go.mod go.sum ./
+RUN go mod download
 
-COPY ./ .
-RUN go install -installsuffix cgo ./cmd/awssnssource
+COPY . .
+RUN BIN_OUTPUT_DIR=/bin make awssnssource && \
+    mkdir /kodata && \
+    mv .git/* /kodata/ && \
+    rm -rf ${GOPATH} && \
+    rm -rf ${HOME}/.cache
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
@@ -20,8 +25,12 @@ LABEL release "1"
 LABEL summary "The Triggermesh SNS Source"
 LABEL description "This is the Triggermesh Knative Event Source for AWS SNS"
 
-COPY licenses/ /licenses/
-COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=builder /go/bin/awssnssource /go/bin/awssnssource
+# Emulate ko builds
+# https://github.com/google/ko/blob/v0.5.0/README.md#including-static-assets
+ENV KO_DATA_PATH /kodata
 
-ENTRYPOINT ["/go/bin/awssnssource"]
+COPY --from=builder /kodata/ ${KO_DATA_PATH}/
+COPY --from=builder /bin/awssnssource /
+COPY licenses/ /licenses/
+
+ENTRYPOINT ["/awssnssource"]

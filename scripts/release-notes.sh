@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
-RELEASE=${GIT_TAG:-$1}
+RELEASE=${1:-${GIT_TAG}}
+RELEASE=${RELEASE:-${CIRCLE_TAG}}
 
 if [ -z "${RELEASE}" ]; then
 	echo "Usage:"
@@ -13,7 +14,10 @@ if ! git rev-list ${RELEASE} >/dev/null 2>&1; then
 	exit
 fi
 
-PREV_RELEASE=${PREV_RELEASE:-$(git describe --always --tags --abbrev=0 ${RELEASE}^)}
+KREPO="aws-event-sources"
+BASE_URL="https://github.com/triggermesh/${KREPO}/releases/download/${RELEASE}"
+PREV_RELEASE=${PREV_RELEASE:-$(git describe --tags --abbrev=0 ${RELEASE}^ 2>/dev/null)}
+PREV_RELEASE=${PREV_RELEASE:-$(git rev-list --max-parents=0 ${RELEASE}^ 2>/dev/null)}
 NOTABLE_CHANGES=$(git cat-file -p ${RELEASE} | sed '/-----BEGIN PGP SIGNATURE-----/,//d' | tail -n +6)
 CHANGELOG=$(git log --no-merges --pretty=format:'- [%h] %s (%aN)' ${PREV_RELEASE}..${RELEASE})
 if [ $? -ne 0 ]; then
@@ -21,18 +25,30 @@ if [ $? -ne 0 ]; then
 	exit 1
 fi
 
+COMMANDS=$(sed -n -e "s/^\(COMMANDS[[:space:]]*=[[:space:]]*\)\(.*\)$/\2/p" Makefile)
+PLATFORMS=$(sed -n -e "s/^\(TARGETS[[:space:]]*?=[[:space:]]*\)\(.*\)$/\2/p" Makefile)
+RELEASE_ASSETS_TABLE=$(
+  echo -n "|"; for command in ${COMMANDS}; do echo -n " ${command} |"; done ; echo
+  echo -n "|"; for command in ${COMMANDS}; do echo -n "--|"; done ; echo
+  echo -n "|"
+  for command in ${COMMANDS}; do
+    echo -n " ([container](https://gcr.io/triggermesh/${command}:${RELEASE}))"
+    for platform in ${PLATFORMS}; do
+      echo -n " ([${platform}](${BASE_URL}/${command}-${platform%/*}-${platform#*/}))"
+    done
+    echo -n " |"
+  done
+  echo
+)
+
 cat <<EOF
 ${NOTABLE_CHANGES}
 
 ## Installation
 
-Download Knative event sources for AWS ${RELEASE}
+Download Triggermesh Knative event sources for AWS ${RELEASE}
 
-- awscodecommitsource ([container](https://gcr.io/triggermesh/awscodecommitsource:${RELEASE})) ([linux/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awscodecommitsource-linux-amd64)) ([macos/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awscodecommitsource-darwin-amd64))
-- awscognitosource ([container](https://gcr.io/triggermesh/awscognitosource:${RELEASE})) ([linux/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awscognitosource-linux-amd64)) ([macos/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awscognitosource-darwin-amd64))
-- awsdynamodbsource ([container](https://gcr.io/triggermesh/awsdynamodbsource:${RELEASE})) ([linux/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awsdynamodbsource-linux-amd64)) ([macos/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awsdynamodbsource-darwin-amd64))
-- awskinesis ([container](https://gcr.io/triggermesh/awskinesis:${RELEASE})) ([linux/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awskinesis-linux-amd64)) ([macos/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awskinesis-darwin-amd64))
-- awssqssource ([container](https://gcr.io/triggermesh/awssqssource:${RELEASE})) ([linux/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awssqssource-linux-amd64)) ([macos/amd64](https://github.com/triggermesh/aws-event-sources/releases/download/${RELEASE}/awssqssource-darwin-amd64))
+${RELEASE_ASSETS_TABLE}
 
 ## Changelog
 

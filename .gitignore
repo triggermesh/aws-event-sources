@@ -1,18 +1,18 @@
 # Local configurations and secrets
-**/.env
-**/.aws
+/.env/
+/.local/
 
 # Continuous integration
-**/c.out
-**/*-coverage.html
-**/*-unit-tests.xml
 
 # Editors and IDEs
-/.idea/
-*~
-*.swp
 *.swo
+*.swp
+*~
+/*.sublime-project
+/*.sublime-workspace
+/.DS_Store
+/.idea/
+/.vscode/
 
 # Build artifacts
-**/*-linux-amd64
-**/*-darwin-amd64
+**/_output

@@ -1,31 +1,24 @@
 # Top level files and directories
 /.circleci/
 /.git/
-/config/
+/test/
 /hack/
-/images/
 /scripts/
+!/hack/inc.Codegen.mk
 /.dockerignore
+/.gcloudignore
+
+# Files copied to KO_DATA_PATH directory
+!/.git/HEAD
+!/.git/refs/
 
 # Patterns
-**/*.yaml
+**/config/
 **/*.md
-**/Makefile
-**/.gitignore
-**/kodata/
 **/*_test.go
-**/c.out
-**/*-coverage.html
-**/*-unit-tests.xml
+**/.gitignore
+**/cloudbuild.yaml
 **/Dockerfile
-**/*-linux-amd64
-**/*-darwin-amd64
 
 # Binaries
-/cmd/aws-event-sources-controller/aws-event-sources-controller
-/cmd/awscodecommitsource/awscodecommitsource
-/cmd/awscognitosource/awscognitosource
-/cmd/awsdynamodbsource/awsdynamodbsource
-/cmd/awskinesissource/awskinesissource
-/cmd/awssnssource/awssnssource
-/cmd/awssqssource/awssqssource
+**/_output/
