@@ -89,7 +89,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 // Start implements adapter.Adapter.
 func (a *adapter) Start(stopCh <-chan struct{}) error {
-	a.logger.Infof("Listening to AWS DynamoDB streams for table: %s", a.table)
+	a.logger.Info("Listening to AWS DynamoDB streams for table: " + a.table)
 
 	streams, err := a.getStreams()
 	if err != nil {
@@ -227,7 +227,7 @@ func (a *adapter) processLatestRecords(shardIterator *string) error {
 }
 
 func (a *adapter) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
-	a.logger.Infof("Processing record ID: %s", &record.EventID)
+	a.logger.Info("Processing record ID: " + *record.EventID)
 
 	data := &DynamoDBEvent{
 		AwsRegion:    record.AwsRegion,
