@@ -46,28 +46,20 @@ jobs:
           command: make fmt-test
       - run:
           name: Installing golangci-lint
-          command: >
-            curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh
-            | sh -s -- -b ${HOME}/.local/bin ${GOLANGCILINT_VERSION}
-          environment:
-            GOLANGCILINT_VERSION: v1.26.0
+          command: make install-golangci-lint
       - run:
           name: Run lint
           command: make lint
       - run:
-          name: Run test
-          command: mkdir -p ${OUTPUT_DIR} && make test
+          name: Run test/cover
+          command: make cover
           environment:
-            OUTPUT_DIR: /tmp/test-results/
+            TEST_OUTPUT_DIR: /tmp/test-results/
+            COVER_OUTPUT_DIR: /tmp/cover-results/
       - store_test_results:
           path: /tmp/test-results/
-      - run:
-          name: Generating coverage report
-          command: mkdir -p ${OUTPUT_DIR} && make coverage
-          environment:
-            OUTPUT_DIR: /tmp/artifacts/
       - store_artifacts:
-          path: /tmp/artifacts/
+          path: /tmp/cover-results/
 
   publish:
     executor:
@@ -78,7 +70,7 @@ jobs:
       - gcp-cli/initialize
       - run:
           name: Publishing docker image
-          command: gcloud builds submit --config cloudbuild.yaml --substitutions _KANIKO_IMAGE_TAG=${CIRCLE_TAG:-latest}
+          command: IMAGE_SHA=${CIRCLE_SHA1} IMAGE_TAG=${CIRCLE_TAG:-latest} make -j8 cloudbuild
 
   release:
     executor:
