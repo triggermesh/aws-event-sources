@@ -5,7 +5,7 @@ RELEASE=${RELEASE:-${CIRCLE_TAG}}
 
 if [ -z "${RELEASE}" ]; then
 	echo "Usage:"
-	echo "./scripts/release-notes.sh v0.1.0"
+	echo "release-notes.sh VERSION"
 	exit 1
 fi
 
