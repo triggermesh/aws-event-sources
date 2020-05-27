@@ -34,6 +34,12 @@ var (
 		Resource: "awscognitosources",
 	}
 
+	// AWSCognitoUserPoolSourceResource respresents an event source for AWS Cognito User Pool.
+	AWSCognitoSourceUserPoolResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awscognitouserpoolsources",
+	}
+
 	// AWSDynamoDBSourceResource respresents an event source for AWS DynamoDB.
 	AWSDynamoDBSourceResource = schema.GroupResource{
 		Group:    GroupName,

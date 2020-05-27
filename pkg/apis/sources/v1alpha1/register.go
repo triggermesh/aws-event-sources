@@ -38,6 +38,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&AWSCodeCommitSource{}, &AWSCodeCommitSourceList{},
 		&AWSCognitoSource{}, &AWSCognitoSourceList{},
+		&AWSCognitoUserPoolSource{}, &AWSCognitoUserPoolSourceList{},
 		&AWSDynamoDBSource{}, &AWSDynamoDBSourceList{},
 		&AWSIoTSource{}, &AWSIoTSourceList{},
 		&AWSKinesisSource{}, &AWSKinesisSourceList{},

@@ -53,6 +53,7 @@ rules:
   resources:
   - awscodecommitsources
   - awscognitosources
+  - awscognitouserpoolsources
   - awsdynamodbsources
   - awsiotsources
   - awskinesissources
@@ -68,6 +69,7 @@ rules:
   resources:
   - awscodecommitsources/status
   - awscognitosources/status
+  - awscognitouserpoolsources/status
   - awsdynamodbsources/status
   - awsiotsources/status
   - awskinesissources/status
@@ -133,6 +135,7 @@ rules:
   resources:
   - awscodecommitsources
   - awscognitosources
+  - awscognitouserpoolsources
   - awsdynamodbsources
   - awsiotsources
   - awskinesissources

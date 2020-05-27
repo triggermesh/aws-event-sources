@@ -36,6 +36,10 @@ func (c *FakeSourcesV1alpha1) AWSCognitoSources(namespace string) v1alpha1.AWSCo
 	return &FakeAWSCognitoSources{c, namespace}
 }
 
+func (c *FakeSourcesV1alpha1) AWSCognitoUserPoolSources(namespace string) v1alpha1.AWSCognitoUserPoolSourceInterface {
+	return &FakeAWSCognitoUserPoolSources{c, namespace}
+}
+
 func (c *FakeSourcesV1alpha1) AWSDynamoDBSources(namespace string) v1alpha1.AWSDynamoDBSourceInterface {
 	return &FakeAWSDynamoDBSources{c, namespace}
 }
