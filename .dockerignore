@@ -6,6 +6,7 @@
 !/hack/inc.Codegen.mk
 /.dockerignore
 /.gcloudignore
+/cloudbuild.yaml
 
 # Files copied to KO_DATA_PATH directory
 !/.git/HEAD
@@ -16,7 +17,6 @@
 **/*.md
 **/*_test.go
 **/.gitignore
-**/cloudbuild.yaml
 **/Dockerfile
 
 # Binaries
