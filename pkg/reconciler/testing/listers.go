@@ -95,6 +95,11 @@ func (l *Listers) GetAWSCognitoSourceLister() listersv1alpha1.AWSCognitoSourceLi
 	return listersv1alpha1.NewAWSCognitoSourceLister(l.IndexerFor(&v1alpha1.AWSCognitoSource{}))
 }
 
+// GetAWSCognitoUserPoolSourceLister returns a Lister for AWSCognitoUserPoolSource objects.
+func (l *Listers) GetAWSCognitoUserPoolSourceLister() listersv1alpha1.AWSCognitoUserPoolSourceLister {
+	return listersv1alpha1.NewAWSCognitoUserPoolSourceLister(l.IndexerFor(&v1alpha1.AWSCognitoUserPoolSource{}))
+}
+
 // GetAWSDynamoDBSourceLister returns a Lister for AWSDynamoDBSource objects.
 func (l *Listers) GetAWSDynamoDBSourceLister() listersv1alpha1.AWSDynamoDBSourceLister {
 	return listersv1alpha1.NewAWSDynamoDBSourceLister(l.IndexerFor(&v1alpha1.AWSDynamoDBSource{}))

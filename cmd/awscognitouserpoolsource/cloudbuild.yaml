@@ -1,0 +1,27 @@
+steps:
+
+- name: gcr.io/kaniko-project/executor:latest
+  args:
+  - --dockerfile=cmd/${_CMD}/Dockerfile
+  - --destination=gcr.io/$PROJECT_ID/${_CMD}:${COMMIT_SHA}
+  - --destination=gcr.io/$PROJECT_ID/${_CMD}:${_KANIKO_IMAGE_TAG}
+  - --cache-repo=gcr.io/$PROJECT_ID/${_CMD}/cache
+  - --cache=${_KANIKO_USE_BUILD_CACHE}
+  - --no-push=${_KANIKO_NO_PUSH}
+  - ${_KANIKO_EXTRA_ARGS}
+  waitFor: ['-']
+
+timeout: 600s
+
+substitutions:
+  _CMD: awscognitouserpoolsource
+  _KANIKO_IMAGE_TAG: latest
+  _KANIKO_NO_PUSH: 'false'
+  _KANIKO_USE_BUILD_CACHE: 'true'
+  _KANIKO_EXTRA_ARGS: ''
+
+options:
+  substitution_option: ALLOW_LOOSE
+
+tags:
+  - aws-event-sources

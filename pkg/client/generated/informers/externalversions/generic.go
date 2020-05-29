@@ -57,6 +57,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSCodeCommitSources().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("awscognitosources"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSCognitoSources().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("awscognitouserpoolsources"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSCognitoUserPoolSources().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("awsdynamodbsources"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSDynamoDBSources().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("awsiotsources"):

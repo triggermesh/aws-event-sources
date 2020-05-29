@@ -28,6 +28,7 @@ type SourcesV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	AWSCodeCommitSourcesGetter
 	AWSCognitoSourcesGetter
+	AWSCognitoUserPoolSourcesGetter
 	AWSDynamoDBSourcesGetter
 	AWSIoTSourcesGetter
 	AWSKinesisSourcesGetter
@@ -46,6 +47,10 @@ func (c *SourcesV1alpha1Client) AWSCodeCommitSources(namespace string) AWSCodeCo
 
 func (c *SourcesV1alpha1Client) AWSCognitoSources(namespace string) AWSCognitoSourceInterface {
 	return newAWSCognitoSources(c, namespace)
+}
+
+func (c *SourcesV1alpha1Client) AWSCognitoUserPoolSources(namespace string) AWSCognitoUserPoolSourceInterface {
+	return newAWSCognitoUserPoolSources(c, namespace)
 }
 
 func (c *SourcesV1alpha1Client) AWSDynamoDBSources(namespace string) AWSDynamoDBSourceInterface {

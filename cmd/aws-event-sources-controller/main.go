@@ -21,6 +21,7 @@ import (
 
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscodecommitsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitosource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitouserpoolsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsdynamodbsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsiotsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awskinesissource"
@@ -32,6 +33,7 @@ func main() {
 	sharedmain.Main("aws-event-sources-controller",
 		awscodecommitsource.NewController,
 		awscognitosource.NewController,
+		awscognitouserpoolsource.NewController,
 		awsdynamodbsource.NewController,
 		awsiotsource.NewController,
 		awskinesissource.NewController,
