@@ -14,11 +14,11 @@ steps:
 timeout: 600s
 
 substitutions:
-  _CMD: awskinesissource
+  _CMD:
   _KANIKO_IMAGE_TAG: latest
   _KANIKO_NO_PUSH: 'false'
   _KANIKO_USE_BUILD_CACHE: 'true'
-  _KANIKO_EXTRA_ARGS: ''
+  _KANIKO_EXTRA_ARGS:
 
 options:
   substitution_option: ALLOW_LOOSE
