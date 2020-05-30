@@ -52,8 +52,6 @@ func (m mockedGetShardIterator) GetShardIterator(in *kinesis.GetShardIteratorInp
 }
 
 func TestProcessInputs(t *testing.T) {
-	streamARN := aws.String("testARN")
-
 	now := time.Now()
 	records := []*kinesis.Record{
 		{
@@ -67,6 +65,7 @@ func TestProcessInputs(t *testing.T) {
 	a := &adapter{
 		logger:   loggingtesting.TestLogger(t),
 		ceClient: adaptertest.NewTestClient(),
+		stream:   "arn:aws:kinesis:us-east-1:123456789012:stream/foo",
 	}
 
 	a.knsClient = mockedGetRecords{
@@ -81,7 +80,7 @@ func TestProcessInputs(t *testing.T) {
 		{},
 	}
 
-	err := a.processInputs(inputs, []*string{aws.String("shardID")}, streamARN)
+	_, err := a.processInputs(inputs)
 	assert.NoError(t, err)
 
 	const errMsg = "fake error"
@@ -91,7 +90,7 @@ func TestProcessInputs(t *testing.T) {
 		err:  errors.New(errMsg),
 	}
 
-	err = a.processInputs(inputs, []*string{aws.String("shardID")}, streamARN)
+	_, err = a.processInputs(inputs)
 	assert.EqualError(t, err, errMsg)
 }
 
@@ -109,7 +108,7 @@ func TestGetRecordsInputs(t *testing.T) {
 		{ShardId: aws.String("1")},
 	}
 
-	inputs, _ := a.getRecordsInputs(shards)
+	inputs := a.getRecordsInputs(shards)
 	assert.Equal(t, 1, len(inputs))
 
 	a.knsClient = mockedGetShardIterator{
@@ -117,13 +116,11 @@ func TestGetRecordsInputs(t *testing.T) {
 		err:  errors.New("fake error"),
 	}
 
-	inputs, _ = a.getRecordsInputs(shards)
+	inputs = a.getRecordsInputs(shards)
 	assert.Equal(t, 0, len(inputs))
 }
 
 func TestSendCloudevent(t *testing.T) {
-	streamARN := aws.String("testARN")
-
 	ceClient := adaptertest.NewTestClient()
 
 	a := &adapter{
@@ -138,13 +135,14 @@ func TestSendCloudevent(t *testing.T) {
 		PartitionKey:   aws.String("key"),
 	}
 
-	err := a.sendKinesisRecord(&record, aws.String(""), streamARN)
+	err := a.sendKinesisRecord(&record)
 	assert.NoError(t, err)
 
 	gotEvents := ceClient.Sent()
 	assert.Len(t, gotEvents, 1, "Expected 1 event, got %d", len(gotEvents))
 
-	wantData := `{"eventID":null,"eventVersion":null,"kinesis":{"partitionKey":"key","data":"Zm9v","sequenceNumber":"1","kinesisSchemaVersion":"1.0"},"eventName":"aws:kinesis:record","eventSourceARN":"testARN","eventSource":"aws:kinesis","awsRegion":""}`
-	gotData := string(gotEvents[0].Data())
-	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
+	var gotData kinesis.Record
+	err = gotEvents[0].DataAs(&gotData)
+	assert.NoError(t, err)
+	assert.EqualValues(t, record, gotData, "Expected event %q, got %q", record, gotData)
 }

@@ -102,19 +102,32 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 	a.logger.Infof("Connected to Kinesis stream: %s", *streamARN)
 
 	// Obtain records inputs for different shards
-	inputs, shardIDs := a.getRecordsInputs(myStream.StreamDescription.Shards)
+	inputs := a.getRecordsInputs(myStream.StreamDescription.Shards)
 
-	for {
-		err := a.processInputs(inputs, shardIDs, streamARN)
+	backoff := common.NewBackoff()
+
+	err = backoff.Run(stopCh, func(ctx context.Context) (bool, error) {
+		resetBackoff := false
+		records, err := a.processInputs(inputs)
 		if err != nil {
-			a.logger.Errorw("Failed to process inputs", zap.Error(err))
+			a.logger.Errorw("There were errors during inputs processing", zap.Error(err))
 		}
-	}
+
+		for _, record := range records {
+			resetBackoff = true
+			err = a.sendKinesisRecord(record)
+			if err != nil {
+				a.logger.Errorw("Failed to send cloudevent", zap.Error(err))
+			}
+		}
+		return resetBackoff, nil
+	})
+
+	return err
 }
 
-func (a *adapter) getRecordsInputs(shards []*kinesis.Shard) ([]kinesis.GetRecordsInput, []*string) {
+func (a *adapter) getRecordsInputs(shards []*kinesis.Shard) []kinesis.GetRecordsInput {
 	inputs := []kinesis.GetRecordsInput{}
-	shardIDs := []*string{}
 
 	// Kinesis stream might have several shards and each of them had "LATEST" Iterator.
 	for _, shard := range shards {
@@ -136,33 +149,25 @@ func (a *adapter) getRecordsInputs(shards []*kinesis.Shard) ([]kinesis.GetRecord
 		}
 
 		inputs = append(inputs, input)
-		shardIDs = append(shardIDs, shard.ShardId)
 	}
 
-	return inputs, shardIDs
+	return inputs
 }
 
-func (a *adapter) processInputs(inputs []kinesis.GetRecordsInput, shardIDs []*string, streamARN *string) error {
+func (a *adapter) processInputs(inputs []kinesis.GetRecordsInput) ([]*kinesis.Record, error) {
 	var errs []error
+	records := []*kinesis.Record{}
 
 	for i, input := range inputs {
 		input := input
 
 		recordsOutput, err := a.knsClient.GetRecords(&input)
 		if err != nil {
-			a.logger.Errorw("Failed to get records", zap.Error(err))
 			errs = append(errs, err)
 			continue
 		}
 
-		shardID := shardIDs[i]
-
-		for _, record := range recordsOutput.Records {
-			if err := a.sendKinesisRecord(record, shardID, streamARN); err != nil {
-				a.logger.Errorw("Failed to send CloudEvent", zap.Error(err))
-				errs = append(errs, err)
-			}
-		}
+		records = append(records, recordsOutput.Records...)
 
 		// remove old input
 		inputs = append(inputs[:i], inputs[i+1:]...)
@@ -177,31 +182,18 @@ func (a *adapter) processInputs(inputs []kinesis.GetRecordsInput, shardIDs []*st
 		inputs = append(inputs, input)
 	}
 
-	return utilerrors.NewAggregate(errs)
+	return records, utilerrors.NewAggregate(errs)
 }
 
-func (a *adapter) sendKinesisRecord(record *kinesis.Record, shardID, streamARN *string) error {
+func (a *adapter) sendKinesisRecord(record *kinesis.Record) error {
 	a.logger.Infof("Processing record ID: %s", *record.SequenceNumber)
-
-	data := &Event{
-		EventName:      aws.String("aws:kinesis:record"),
-		EventSourceARN: streamARN,
-		EventSource:    aws.String("aws:kinesis"),
-		AWSRegion:      &a.arn.Region,
-		Kinesis: Kinesis{
-			PartitionKey:         record.PartitionKey,
-			Data:                 record.Data,
-			SequenceNumber:       record.SequenceNumber,
-			KinesisSchemaVersion: aws.String("1.0"),
-		},
-	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
 	event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSKinesisGenericEventType))
 	event.SetSubject(*record.PartitionKey)
 	event.SetSource(a.arn.String())
-	event.SetID(fmt.Sprintf("%s:%s", *shardID, *record.SequenceNumber))
-	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+	event.SetID(*record.SequenceNumber)
+	if err := event.SetData(cloudevents.ApplicationJSON, record); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
 	}
 

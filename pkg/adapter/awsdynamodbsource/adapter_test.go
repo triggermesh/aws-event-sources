@@ -169,7 +169,7 @@ func TestGetLatestRecords(t *testing.T) {
 		getRecordsOutputError: errors.New("fake getrecords error"),
 	}
 
-	err := a.processLatestRecords(shardIterator)
+	_, err := a.processLatestRecords(shardIterator)
 	assert.Error(t, err)
 
 	a.dyndbClient = mockedDynamoStreamsClient{
@@ -183,7 +183,7 @@ func TestGetLatestRecords(t *testing.T) {
 		getRecordsOutputError: nil,
 	}
 
-	err = a.processLatestRecords(shardIterator)
+	_, err = a.processLatestRecords(shardIterator)
 	assert.NoError(t, err)
 }
 

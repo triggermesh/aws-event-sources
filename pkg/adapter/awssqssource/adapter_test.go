@@ -122,7 +122,7 @@ func TestGetMessages(t *testing.T) {
 			sqsClient: mockedReceiveMsgs{Resp: c.Resp, err: c.err},
 		}
 
-		msgs, err := a.getMessages(queueURL, waitTimeoutSec)
+		msgs, err := a.getMessages(queueURL)
 		assert.Equal(t, c.err, err)
 		assert.Equal(t, len(c.Expected), len(msgs))
 	}
@@ -143,15 +143,16 @@ func TestPushMessage(t *testing.T) {
 		ceClient: ceClient,
 	}
 
-	err := a.sendSQSEvent(&msg, aws.String("testQueueARN"))
+	err := a.sendSQSEvent(&msg)
 	assert.NoError(t, err)
 
 	gotEvents := ceClient.Sent()
 	assert.Len(t, gotEvents, 1, "Expected 1 event, got %d", len(gotEvents))
 
-	wantData := `{"messageId":"foo","receiptHandle":null,"body":"bar","attributes":{"SentTimestamp":"1549540781"},"messageAttributes":null,"md5OfBody":null,"eventSource":"aws:sqs","eventSourceARN":"testQueueARN","awsRegion":""}`
-	gotData := string(gotEvents[0].Data())
-	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
+	var gotData sqs.Message
+	err = gotEvents[0].DataAs(&gotData)
+	assert.NoError(t, err)
+	assert.EqualValues(t, msg, gotData, "Expected event %q, got %q", msg, gotData)
 }
 
 func TestDeleteMessage(t *testing.T) {
