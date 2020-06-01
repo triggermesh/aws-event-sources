@@ -178,6 +178,10 @@ func TestGetLatestRecords(t *testing.T) {
 				EventID:     aws.String("1"),
 				EventName:   aws.String("some event"),
 				EventSource: aws.String("some source"),
+				Dynamodb: &dynamodbstreams.StreamRecord{
+					SequenceNumber: aws.String("123"),
+					Keys:           map[string]*dynamodb.AttributeValue{"key1": nil, "key2": nil},
+				},
 			}},
 		},
 		getRecordsOutputError: nil,
@@ -201,7 +205,8 @@ func TestSendCloudevent(t *testing.T) {
 		EventName:   aws.String("some event"),
 		EventSource: aws.String("some source"),
 		Dynamodb: &dynamodbstreams.StreamRecord{
-			Keys: map[string]*dynamodb.AttributeValue{"key1": nil, "key2": nil},
+			SequenceNumber: aws.String("123"),
+			Keys:           map[string]*dynamodb.AttributeValue{"key1": nil, "key2": nil},
 		},
 	}
 
@@ -216,14 +221,10 @@ func TestSendCloudevent(t *testing.T) {
 	gotEvents := ceClient.Sent()
 	assert.Len(t, gotEvents, sendEvents, "Expect %d sent events", sendEvents)
 
-	wantData := `{"AwsRegion":null,"Dynamodb":{"ApproximateCreationDateTime":null,"Keys":{"key1":null,"key2":null},"NewImage":null,"OldImage":null,"SequenceNumber":null,"SizeBytes":null,"StreamViewType":null},"EventID":"1","EventName":"some event","EventSource":"some source","EventVersion":null,"UserIdentity":null}`
+	wantData := `{"AwsRegion":null,"Dynamodb":{"ApproximateCreationDateTime":null,"Keys":{"key1":null,"key2":null},"NewImage":null,"OldImage":null,"SequenceNumber":"123","SizeBytes":null,"StreamViewType":null},"EventID":"1","EventName":"some event","EventSource":"some source","EventVersion":null,"UserIdentity":null}`
 
 	for i := 0; i < sendEvents; i++ {
 		gotData := string(gotEvents[i].Data())
 		assert.EqualValues(t, wantData, gotData, "[%d] Compare sent data to expected", i)
-
-		subject := gotEvents[i].Subject()
-		assert.Contains(t, []string{"key1,key2", "key2,key1"}, subject,
-			`[%d] Subject contains keys "key1,key2" in any order`, i)
 	}
 }
