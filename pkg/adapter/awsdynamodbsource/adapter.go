@@ -94,6 +94,13 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 	streams, err := a.getStreams()
 	if err != nil {
 		a.logger.Errorw("Failed to get Streams", zap.Error(err))
+		return err
+	}
+
+	if len(streams) == 0 {
+		err = fmt.Errorf("no streams associated with table %q", a.table)
+		a.logger.Error(err)
+		return err
 	}
 
 	a.logger.Debugf("Streams: %v", streams)
@@ -105,31 +112,18 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 	a.logger.Debugf("Streams descriptions: %v", streamsDescriptions)
 
-	for _, streamDescription := range streamsDescriptions {
-		if *streamDescription.StreamStatus != "ENABLED" {
-			a.logger.Infof("Stream for table %q is not enabled", *streamDescription.TableName)
-		}
-	}
-
 	for {
 		shardIterators, err := a.getShardIterators(streamsDescriptions)
 		if err != nil {
 			a.logger.Errorw("Failed to get shard iterators", zap.Error(err))
 		}
 
-		var wg sync.WaitGroup
-		wg.Add(len(shardIterators))
-
 		for _, shardIterator := range shardIterators {
-			go func() {
-				if err := a.processLatestRecords(shardIterator); err != nil {
-					a.logger.Errorw("Error while processing records for shard iterator "+
-						*shardIterator, zap.Error(err))
-				}
-			}()
-			wg.Done()
+			if err := a.processLatestRecords(shardIterator); err != nil {
+				a.logger.Errorw("Error while processing records for shard iterator "+
+					*shardIterator, zap.Error(err))
+			}
 		}
-		wg.Wait()
 	}
 }
 
@@ -183,7 +177,7 @@ func (a *adapter) getShardIterators(streamsDescriptions []*dynamodbstreams.Strea
 		for _, shard := range streamDescription.Shards {
 			getShardIteratorInput := dynamodbstreams.GetShardIteratorInput{
 				ShardId:           shard.ShardId,
-				ShardIteratorType: aws.String("LATEST"),
+				ShardIteratorType: aws.String(dynamodbstreams.ShardIteratorTypeLatest),
 				StreamArn:         streamDescription.StreamArn,
 			}
 
@@ -209,19 +203,11 @@ func (a *adapter) processLatestRecords(shardIterator *string) error {
 		return fmt.Errorf("failed to get records: %w", err)
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(len(getRecordsOutput.Records))
-
 	for _, record := range getRecordsOutput.Records {
-		go func(record *dynamodbstreams.Record) {
-			if err := a.sendDynamoDBEvent(record); err != nil {
-				a.logger.Errorw("Failed to send CloudEvent", zap.Error(err))
-			}
-		}(record)
-		wg.Done()
+		if err := a.sendDynamoDBEvent(record); err != nil {
+			a.logger.Errorw("Failed to send CloudEvent", zap.Error(err))
+		}
 	}
-
-	wg.Wait()
 
 	return nil
 }
@@ -229,22 +215,12 @@ func (a *adapter) processLatestRecords(shardIterator *string) error {
 func (a *adapter) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 	a.logger.Info("Processing record ID: " + *record.EventID)
 
-	data := &DynamoDBEvent{
-		AwsRegion:    record.AwsRegion,
-		Dynamodb:     record.Dynamodb,
-		EventID:      record.EventID,
-		EventName:    record.EventName,
-		EventSource:  record.EventSource,
-		EventVersion: record.EventVersion,
-		UserIdentity: record.UserIdentity,
-	}
-
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
 	event.SetType(v1alpha1.AWSEventType(a.arn.Service, strings.ToLower(*record.EventName)))
 	event.SetSubject(asEventSubject(record))
 	event.SetSource(a.arn.String())
 	event.SetID(*record.EventID)
-	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+	if err := event.SetData(cloudevents.ApplicationJSON, record); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
 	}
 
