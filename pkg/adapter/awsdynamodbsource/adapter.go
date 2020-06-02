@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
 	"go.uber.org/zap"
 
@@ -216,7 +217,7 @@ func (a *adapter) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
 	event.SetType(v1alpha1.AWSEventType(a.arn.Service, strings.ToLower(*record.EventName)))
-	event.SetSubject(*record.Dynamodb.SequenceNumber)
+	event.SetSubject(asEventSubject(record))
 	event.SetSource(a.arn.String())
 	event.SetID(*record.EventID)
 	if err := event.SetData(cloudevents.ApplicationJSON, record); err != nil {
@@ -227,4 +228,32 @@ func (a *adapter) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 		return result
 	}
 	return nil
+}
+
+// asEventSubject returns an event subject corresponding to the given record.
+func asEventSubject(record *dynamodbstreams.Record) string {
+	if record == nil || record.Dynamodb == nil || record.Dynamodb.Keys == nil {
+		return ""
+	}
+
+	subject := strBuilderPool.Get().(*strings.Builder)
+	defer strBuilderPool.Put(subject)
+	defer subject.Reset()
+
+	i := 0
+	for k := range record.Dynamodb.Keys {
+		subject.WriteString(k)
+		i++
+		if i < len(record.Dynamodb.Keys) {
+			subject.WriteByte(',')
+		}
+	}
+
+	return subject.String()
+}
+
+var strBuilderPool = sync.Pool{
+	New: func() interface{} {
+		return &strings.Builder{}
+	},
 }
