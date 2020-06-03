@@ -29,7 +29,7 @@ import (
 	"knative.dev/pkg/controller"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
+	eventtesting "github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event/testing"
 )
 
 func TestEvents(t *testing.T) {
@@ -59,8 +59,8 @@ func TestEvents(t *testing.T) {
 	}
 	require.Len(t, recordedEvent, expectEvents, "Expect %d events", expectEvents)
 
-	expectNormalEventContent := Eventf(corev1.EventTypeNormal, reason, messageFmt, normalMsg)
-	expectWarningEventContent := Eventf(corev1.EventTypeWarning, reason, messageFmt, warningMsg)
+	expectNormalEventContent := eventtesting.Eventf(corev1.EventTypeNormal, reason, messageFmt, normalMsg)
+	expectWarningEventContent := eventtesting.Eventf(corev1.EventTypeWarning, reason, messageFmt, warningMsg)
 
 	assert.Equalf(t, expectNormalEventContent, recordedEvent[0], "Expect message content to match input")
 	assert.Equalf(t, expectWarningEventContent, recordedEvent[1], "Expect message content to match input")

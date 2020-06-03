@@ -17,7 +17,6 @@ limitations under the License.
 package testing
 
 import (
-	"fmt"
 	"os"
 	"reflect"
 	"testing"
@@ -76,10 +75,4 @@ func NewConfigMap(name string, data map[string]string) *corev1.ConfigMap {
 		cmap.Data = data
 	}
 	return cmap
-}
-
-// Eventf returns the attributes of an API event in the format returned by
-// Kubernetes' FakeRecorder.
-func Eventf(eventtype, reason, messageFmt string, args ...interface{}) string {
-	return fmt.Sprintf(eventtype+" "+reason+" "+messageFmt, args...)
 }

@@ -39,9 +39,7 @@ import (
 type AdapterDeploymentBuilderFunc func(arn arn.ARN, sinkURI *apis.URL) *appsv1.Deployment
 
 // ReconcileSource reconciles an event source type.
-func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context,
-	eventTypes []string, adb AdapterDeploymentBuilderFunc) reconciler.Event {
-
+func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context, adb AdapterDeploymentBuilderFunc) reconciler.Event {
 	src := v1alpha1.SourceFromContext(ctx)
 
 	src.GetStatus().InitializeConditions()
@@ -52,7 +50,7 @@ func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context,
 		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning,
 			ReasonInvalidSpec, "Failed to parse ARN: %s", err))
 	}
-	src.GetStatus().CloudEventAttributes = CreateCloudEventAttributes(arn, eventTypes)
+	src.GetStatus().CloudEventAttributes = CreateCloudEventAttributes(arn, src.GetEventTypes())
 
 	sinkURI, err := r.resolveSinkURL(ctx)
 	if err != nil {
