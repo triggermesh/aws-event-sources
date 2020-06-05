@@ -51,8 +51,8 @@ const (
 	AWSSNSGenericEventType = "notification"
 )
 
-// AWSSNSEventTypes returns the list of event types supported by the event source.
-func AWSSNSEventTypes() []string {
+// GetEventTypes implements AWSEventSource.
+func (s *AWSSNSSource) GetEventTypes() []string {
 	return []string{
 		AWSSNSGenericEventType,
 	}

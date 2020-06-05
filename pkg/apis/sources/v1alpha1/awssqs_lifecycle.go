@@ -51,8 +51,8 @@ const (
 	AWSSQSGenericEventType = "message"
 )
 
-// AWSSQSEventTypes returns the list of event types supported by the event source.
-func AWSSQSEventTypes() []string {
+// GetEventTypes implements AWSEventSource.
+func (s *AWSSQSSource) GetEventTypes() []string {
 	return []string{
 		AWSSQSGenericEventType,
 	}

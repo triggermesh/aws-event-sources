@@ -40,8 +40,5 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSKinesis
 	// inject source into context for usage in reconciliation logic
 	ctx = v1alpha1.WithSource(ctx, src)
 
-	return r.base.ReconcileSource(ctx,
-		v1alpha1.AWSKinesisEventTypes(),
-		adapterDeploymentBuilder(src, r.adapterCfg),
-	)
+	return r.base.ReconcileSource(ctx, adapterDeploymentBuilder(src, r.adapterCfg))
 }

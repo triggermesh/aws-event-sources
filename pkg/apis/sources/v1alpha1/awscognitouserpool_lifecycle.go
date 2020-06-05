@@ -51,8 +51,8 @@ const (
 	AWSCognitoUserPoolGenericEventType = "sync_trigger"
 )
 
-// AWSCognitoUserPoolEventTypes returns the list of event types supported by the event source.
-func AWSCognitoUserPoolEventTypes() []string {
+// GetEventTypes implements AWSEventSource.
+func (s *AWSCognitoUserPoolSource) GetEventTypes() []string {
 	return []string{
 		AWSCognitoUserPoolGenericEventType,
 	}

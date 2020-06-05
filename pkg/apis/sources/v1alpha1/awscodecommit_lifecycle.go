@@ -45,3 +45,8 @@ func (s *AWSCodeCommitSource) GetARN() string {
 func (s *AWSCodeCommitSource) GetStatus() *AWSEventSourceStatus {
 	return &s.Status
 }
+
+// GetEventTypes implements AWSEventSource.
+func (s *AWSCodeCommitSource) GetEventTypes() []string {
+	return s.Spec.EventTypes
+}

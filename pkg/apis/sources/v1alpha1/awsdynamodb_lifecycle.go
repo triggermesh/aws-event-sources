@@ -53,8 +53,8 @@ const (
 	AWSDynamoDBRemoveEventType = "remove"
 )
 
-// AWSDynamoDBEventTypes returns the list of event types supported by the event source.
-func AWSDynamoDBEventTypes() []string {
+// GetEventTypes implements AWSEventSource.
+func (s *AWSDynamoDBSource) GetEventTypes() []string {
 	return []string{
 		AWSDynamoDBAddEventType,
 		AWSDynamoDBModifyEventType,

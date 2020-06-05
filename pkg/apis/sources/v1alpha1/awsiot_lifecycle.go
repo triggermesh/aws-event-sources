@@ -51,8 +51,8 @@ const (
 	AWSIoTGenericEventType = "greetings"
 )
 
-// AWSIoTEventTypes returns the list of event types supported by the event source.
-func AWSIoTEventTypes() []string {
+// GetEventTypes implements AWSEventSource.
+func (s *AWSIoTSource) GetEventTypes() []string {
 	return []string{
 		AWSIoTGenericEventType,
 	}

@@ -51,8 +51,8 @@ const (
 	AWSKinesisGenericEventType = "stream_record"
 )
 
-// AWSKinesisEventTypes returns the list of event types supported by the event source.
-func AWSKinesisEventTypes() []string {
+// GetEventTypes implements AWSEventSource.
+func (s *AWSKinesisSource) GetEventTypes() []string {
 	return []string{
 		AWSKinesisGenericEventType,
 	}

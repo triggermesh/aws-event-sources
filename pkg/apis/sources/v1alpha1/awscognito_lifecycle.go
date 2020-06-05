@@ -51,8 +51,8 @@ const (
 	AWSCognitoGenericEventType = "sync_trigger"
 )
 
-// AWSCognitoEventTypes returns the list of event types supported by the event source.
-func AWSCognitoEventTypes() []string {
+// GetEventTypes implements AWSEventSource.
+func (s *AWSCognitoSource) GetEventTypes() []string {
 	return []string{
 		AWSCognitoGenericEventType,
 	}
