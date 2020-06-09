@@ -26,4 +26,5 @@ require (
 	k8s.io/utils v0.0.0-20200327001022-6496210b90e8 // indirect
 	knative.dev/eventing v0.14.1-0.20200512233457-09a6267a48c8
 	knative.dev/pkg v0.0.0-20200519155757-14eb3ae3a5a7
+	knative.dev/serving v0.14.1
 )
