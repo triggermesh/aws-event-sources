@@ -121,4 +121,4 @@ $ docker run --rm \
 ```
 
 [doc-accesskey]: https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html#access-keys-and-secret-access-keys
-[doc-sns-topic]: https://docs.aws.amazon.com/sns/latest/dg/sns-getting-started.html
+[doc-sns]: https://docs.aws.amazon.com/sns/latest/dg/sns-getting-started.html
