@@ -49,7 +49,7 @@ func NewController(
 	}
 	impl := reconcilerv1alpha1.NewImpl(ctx, r)
 
-	r.base = common.NewGenericDeploymentReconciler(
+	r.base = common.NewGenericServiceReconciler(
 		ctx,
 		(&v1alpha1.AWSSNSSource{}).GetGroupVersionKind(),
 		impl.EnqueueKey,

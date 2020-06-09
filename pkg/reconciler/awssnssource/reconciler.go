@@ -28,7 +28,7 @@ import (
 
 // Reconciler implements controller.Reconciler for the event source type.
 type Reconciler struct {
-	base       common.GenericDeploymentReconciler
+	base       common.GenericServiceReconciler
 	adapterCfg *adapterConfig
 }
 
@@ -40,5 +40,5 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSSNSSour
 	// inject source into context for usage in reconciliation logic
 	ctx = v1alpha1.WithSource(ctx, src)
 
-	return r.base.ReconcileSource(ctx, adapterDeploymentBuilder(src, r.adapterCfg))
+	return r.base.ReconcileSource(ctx, adapterServiceBuilder(src, r.adapterCfg))
 }

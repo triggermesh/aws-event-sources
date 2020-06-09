@@ -21,6 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
+
+	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 )
 
 // Semantic can do semantic deep equality checks for Kubernetes API objects.
@@ -33,6 +35,7 @@ import (
 // DeepDerivative comparisons to work as expected.
 var Semantic = conversion.EqualitiesOrDie(
 	deploymentEqual,
+	knServiceEqual,
 )
 
 // eq is an instance of Equalities for internal deep derivative comparisons
@@ -72,6 +75,26 @@ func deploymentEqual(a, b *appsv1.Deployment) bool {
 	}
 
 	if !eq.DeepDerivative(&a.Spec, &b.Spec) {
+		return false
+	}
+
+	return true
+}
+
+// knServiceEqual returns whether two Knative Services are semantically equivalent.
+func knServiceEqual(a, b *servingv1.Service) bool {
+	if a == b {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+
+	if !eq.DeepDerivative(&a.ObjectMeta, &b.ObjectMeta) {
+		return false
+	}
+
+	if !eq.DeepDerivative(&a.Spec.Template, &b.Spec.Template) {
 		return false
 	}
 

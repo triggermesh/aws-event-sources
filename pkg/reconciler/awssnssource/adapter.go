@@ -21,11 +21,10 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 
-	appsv1 "k8s.io/api/apps/v1"
-
 	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/kmeta"
+	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
@@ -43,10 +42,10 @@ type adapterConfig struct {
 	configs source.ConfigAccessor
 }
 
-// adapterDeploymentBuilder returns an AdapterDeploymentBuilderFunc for the
+// adapterServiceBuilder returns an AdapterServiceBuilderFunc for the
 // given source object and adapter config.
-func adapterDeploymentBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) common.AdapterDeploymentBuilderFunc {
-	return func(arn arn.ARN, sinkURI *apis.URL) *appsv1.Deployment {
+func adapterServiceBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) common.AdapterServiceBuilderFunc {
+	return func(arn arn.ARN, sinkURI *apis.URL) *servingv1.Service {
 		name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), src.Name)
 
 		var sinkURIStr string
@@ -54,7 +53,7 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) co
 			sinkURIStr = sinkURI.String()
 		}
 
-		return resource.NewDeployment(src.Namespace, name,
+		return resource.NewKnService(src.Namespace, name,
 			resource.Controller(src),
 
 			resource.Label(common.AppNameLabel, adapterName),
@@ -63,13 +62,14 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) co
 			resource.Label(common.AppPartOfLabel, common.PartOf),
 			resource.Label(common.AppManagedByLabel, common.ManagedBy),
 
-			resource.Selector(common.AppNameLabel, adapterName),
-			resource.Selector(common.AppInstanceLabel, src.Name),
+			resource.PodLabel(common.AppNameLabel, adapterName),
+			resource.PodLabel(common.AppInstanceLabel, src.Name),
 			resource.PodLabel(common.AppComponentLabel, common.AdapterComponent),
 			resource.PodLabel(common.AppPartOfLabel, common.PartOf),
 			resource.PodLabel(common.AppManagedByLabel, common.ManagedBy),
 
 			resource.Image(cfg.Image),
+			resource.Port("", 8081),
 
 			resource.EnvVar(common.EnvName, src.Name),
 			resource.EnvVar(common.EnvNamespace, src.Namespace),
@@ -82,6 +82,8 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) co
 				src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
 				src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
+			// FIXME(antoineco): default metrics port 9090 overlaps with queue-proxy
+			resource.EnvVar(source.EnvMetricsCfg, ""),
 		)
 	}
 }

@@ -23,7 +23,8 @@ import (
 
 // AWSEventSourceStatus defines the observed state of an event source.
 type AWSEventSourceStatus struct {
-	duckv1.SourceStatus `json:",inline"`
+	duckv1.SourceStatus  `json:",inline"`
+	duckv1.AddressStatus `json:",inline"`
 }
 
 // AWSSecurityCredentials represents a set of AWS security credentials.

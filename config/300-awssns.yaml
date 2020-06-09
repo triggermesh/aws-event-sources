@@ -157,6 +157,11 @@ spec:
                   required:
                   - type
                   - status
+              address:
+                type: object
+                properties:
+                  url:
+                    type: string
     additionalPrinterColumns:
     - name: Ready
       type: string
@@ -164,6 +169,9 @@ spec:
     - name: Reason
       type: string
       jsonPath: .status.conditions[?(@.type=='Ready')].reason
+    - name: URL
+      type: string
+      jsonPath: .status.address.url
     - name: Sink
       type: string
       jsonPath: .status.sinkUri
