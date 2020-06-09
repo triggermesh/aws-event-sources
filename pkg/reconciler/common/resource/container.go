@@ -75,7 +75,7 @@ func Port(name string, port int32) ObjectOption {
 			})
 
 		case *servingv1.Service:
-			// Services can only define 1 port
+			// Knative Services can only define 1 port
 			*ports = []corev1.ContainerPort{{
 				Name:          name,
 				ContainerPort: port,

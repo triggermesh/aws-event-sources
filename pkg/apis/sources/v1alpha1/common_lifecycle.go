@@ -21,6 +21,8 @@ import (
 
 	"knative.dev/eventing/pkg/apis/duck"
 	"knative.dev/pkg/apis"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
+	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 )
 
 // AWSEventType returns an event type in a format suitable for usage as a
@@ -59,9 +61,22 @@ func (s *AWSEventSourceStatus) MarkNoSink() {
 		ReasonSinkNotFound, "The sink does not exist or its URI is not set")
 }
 
-// PropagateAvailability uses the readiness of the provided Deployment to
-// determine whether the Deployed condition should be marked as true or false.
-func (s *AWSEventSourceStatus) PropagateAvailability(d *appsv1.Deployment) {
+// PropagateAvailability uses the readiness of the provided Deployment or
+// Service to determine whether the Deployed condition should be marked as True
+// or False.
+func (s *AWSEventSourceStatus) PropagateAvailability(obj interface{}) {
+	switch o := obj.(type) {
+	case *appsv1.Deployment:
+		s.propagateDeploymentAvailability(o)
+	case *servingv1.Service:
+		s.propagateServiceAvailability(o)
+	}
+}
+
+func (s *AWSEventSourceStatus) propagateDeploymentAvailability(d *appsv1.Deployment) {
+	// Deployments are not addressable
+	s.Address = nil
+
 	if d == nil {
 		awsEventSourceConditionSet.Manage(s).MarkUnknown(ConditionDeployed, ReasonUnavailable,
 			"The status of the adapter Deployment can not be determined")
@@ -79,6 +94,32 @@ func (s *AWSEventSourceStatus) PropagateAvailability(d *appsv1.Deployment) {
 		if cond.Type == appsv1.DeploymentAvailable && cond.Message != "" {
 			msg += ": " + cond.Message
 		}
+	}
+
+	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionDeployed, ReasonUnavailable, msg)
+}
+
+func (s *AWSEventSourceStatus) propagateServiceAvailability(ksvc *servingv1.Service) {
+	if ksvc == nil {
+		awsEventSourceConditionSet.Manage(s).MarkUnknown(ConditionDeployed, ReasonUnavailable,
+			"The status of the adapter Service can not be determined")
+		return
+	}
+
+	if s.Address == nil {
+		s.Address = &duckv1.Addressable{}
+	}
+	s.Address.URL = ksvc.Status.URL
+
+	if ksvc.Status.IsReady() {
+		awsEventSourceConditionSet.Manage(s).MarkTrue(ConditionDeployed)
+		return
+	}
+
+	msg := "The adapter Service is unavailable"
+	readyCond := ksvc.Status.GetCondition(servingv1.ServiceConditionReady)
+	if readyCond != nil && readyCond.Message != "" {
+		msg += ": " + readyCond.Message
 	}
 
 	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionDeployed, ReasonUnavailable, msg)
