@@ -19,7 +19,6 @@ package awssqssource
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -84,56 +83,47 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	}
 }
 
-const waitTimeoutSec = 20
-
 // Start implements adapter.Adapter.
 func (a *adapter) Start(stopCh <-chan struct{}) error {
 	url, err := a.queueLookup(a.arn.Resource)
 	if err != nil {
-		a.logger.Fatalw("Unable to find URL of SQS queue "+a.arn.Resource, zap.Error(err))
+		a.logger.Errorw("Unable to find URL of SQS queue "+a.arn.Resource, zap.Error(err))
+		return err
 	}
 
 	queueURL := *url.QueueUrl
 	a.logger.Infof("Listening to SQS queue at URL: %s", queueURL)
 
-	// Look for new messages every 5 seconds
-	ticker := time.NewTicker(5 * time.Second)
-	for range ticker.C {
-		msgs, err := a.getMessages(queueURL, waitTimeoutSec)
+	backoff := common.NewBackoff()
+
+	err = backoff.Run(stopCh, func(ctx context.Context) (bool, error) {
+		resetBackoff := false
+		messages, err := a.getMessages(queueURL)
 		if err != nil {
 			a.logger.Errorw("Failed to get messages from SQS queue", "error", err)
-			continue
+			return resetBackoff, nil
 		}
 
-		// Only push if there are messages on the queue
-		if len(msgs) < 1 {
-			continue
+		for _, message := range messages {
+			err = a.sendSQSEvent(message)
+			if err != nil {
+				a.logger.Errorw("Failed to send event", "error", err)
+				continue
+			}
+
+			// Delete message from queue if we pushed successfully
+			err = a.deleteMessage(queueURL, message.ReceiptHandle)
+			if err != nil {
+				a.logger.Errorw("Failed to delete message from SQS queue", "error", err)
+				continue
+			}
+			resetBackoff = true
 		}
 
-		attributes, err := a.sqsClient.GetQueueAttributes(&sqs.GetQueueAttributesInput{
-			AttributeNames: []*string{aws.String("QueueArn")},
-			QueueUrl:       url.QueueUrl,
-		})
-		if err != nil {
-			a.logger.Errorw("Failed to get queue attributes", "error", err)
-			continue
-		}
+		return resetBackoff, nil
+	})
 
-		err = a.sendSQSEvent(msgs[0], attributes.Attributes["QueueArn"])
-		if err != nil {
-			a.logger.Errorw("Failed to send event", "error", err)
-			continue
-		}
-
-		// Delete message from queue if we pushed successfully
-		err = a.deleteMessage(queueURL, msgs[0].ReceiptHandle)
-		if err != nil {
-			a.logger.Errorw("Failed to delete message from SQS queue", "error", err)
-			continue
-		}
-	}
-
-	return nil
+	return err
 }
 
 // queueLookup finds the URL for a given queue name in the user's env.
@@ -146,13 +136,10 @@ func (a *adapter) queueLookup(queueName string) (*sqs.GetQueueUrlOutput, error) 
 
 // getMessages returns the parsed messages from SQS if any. If an error
 // occurs that error will be returned.
-func (a *adapter) getMessages(queueURL string, waitTimeout int64) ([]*sqs.Message, error) {
+func (a *adapter) getMessages(queueURL string) ([]*sqs.Message, error) {
 	params := sqs.ReceiveMessageInput{
-		AttributeNames: aws.StringSlice([]string{"All"}),
+		AttributeNames: aws.StringSlice([]string{sqs.QueueAttributeNameAll}),
 		QueueUrl:       &queueURL,
-	}
-	if waitTimeout > 0 {
-		params.WaitTimeSeconds = &waitTimeout
 	}
 	resp, err := a.sqsClient.ReceiveMessage(&params)
 	if err != nil {
@@ -161,27 +148,20 @@ func (a *adapter) getMessages(queueURL string, waitTimeout int64) ([]*sqs.Messag
 	return resp.Messages, nil
 }
 
-func (a *adapter) sendSQSEvent(msg *sqs.Message, queueARN *string) error {
+func (a *adapter) sendSQSEvent(msg *sqs.Message) error {
 	a.logger.Infof("Processing message with ID: %s", *msg.MessageId)
 
-	data := &Event{
-		MessageID:         msg.MessageId,
-		ReceiptHandle:     msg.ReceiptHandle,
-		Body:              msg.Body,
-		Attributes:        msg.Attributes,
-		MessageAttributes: msg.MessageAttributes,
-		Md5OfBody:         msg.MD5OfBody,
-		EventSource:       aws.String("aws:sqs"),
-		EventSourceARN:    queueARN,
-		AwsRegion:         &a.arn.Region,
+	// TODO: work on CE attributes contract
+	subject, exist := msg.Attributes[sqs.MessageSystemAttributeNameSenderId]
+	if !exist {
+		subject = msg.MessageId
 	}
-
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
 	event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSSQSGenericEventType))
-	event.SetSubject(*msg.MessageId)
+	event.SetSubject(*subject)
 	event.SetSource(a.arn.String())
 	event.SetID(*msg.MessageId)
-	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+	if err := event.SetData(cloudevents.ApplicationJSON, msg); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
 	}
 

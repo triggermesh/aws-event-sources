@@ -112,19 +112,35 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 	a.logger.Debugf("Streams descriptions: %v", streamsDescriptions)
 
-	for {
+	backoff := common.NewBackoff()
+
+	err = backoff.Run(stopCh, func(ctx context.Context) (bool, error) {
+		resetBackoff := false
 		shardIterators, err := a.getShardIterators(streamsDescriptions)
 		if err != nil {
 			a.logger.Errorw("Failed to get shard iterators", zap.Error(err))
 		}
 
+		var records []*dynamodbstreams.Record
 		for _, shardIterator := range shardIterators {
-			if err := a.processLatestRecords(shardIterator); err != nil {
+			shardRecords, err := a.processLatestRecords(shardIterator)
+			if err != nil {
 				a.logger.Errorw("Error while processing records for shard iterator "+
 					*shardIterator, zap.Error(err))
 			}
+			records = append(records, shardRecords...)
 		}
-	}
+
+		for _, record := range records {
+			resetBackoff = true
+			if err := a.sendDynamoDBEvent(record); err != nil {
+				a.logger.Errorw("Failed to send CloudEvent", zap.Error(err))
+			}
+		}
+		return resetBackoff, nil
+	})
+
+	return err
 }
 
 func (a *adapter) getStreams() ([]*dynamodbstreams.Stream, error) {
@@ -193,23 +209,17 @@ func (a *adapter) getShardIterators(streamsDescriptions []*dynamodbstreams.Strea
 	return shardIterators, nil
 }
 
-func (a *adapter) processLatestRecords(shardIterator *string) error {
+func (a *adapter) processLatestRecords(shardIterator *string) ([]*dynamodbstreams.Record, error) {
 	getRecordsInput := dynamodbstreams.GetRecordsInput{
 		ShardIterator: shardIterator,
 	}
 
 	getRecordsOutput, err := a.dyndbClient.GetRecords(&getRecordsInput)
 	if err != nil {
-		return fmt.Errorf("failed to get records: %w", err)
+		return []*dynamodbstreams.Record{}, fmt.Errorf("failed to get records: %w", err)
 	}
 
-	for _, record := range getRecordsOutput.Records {
-		if err := a.sendDynamoDBEvent(record); err != nil {
-			a.logger.Errorw("Failed to send CloudEvent", zap.Error(err))
-		}
-	}
-
-	return nil
+	return getRecordsOutput.Records, nil
 }
 
 func (a *adapter) sendDynamoDBEvent(record *dynamodbstreams.Record) error {

@@ -93,7 +93,10 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 func (a *adapter) Start(stopCh <-chan struct{}) error {
 	a.logger.Infof("Listening to AWS Cognito stream for Identity: %s", a.identityPoolID)
 
-	for {
+	backoff := common.NewBackoff()
+
+	err := backoff.Run(stopCh, func(ctx context.Context) (bool, error) {
+		resetBackoff := false
 		identities, err := a.getIdentities()
 		if err != nil {
 			a.logger.Error(err)
@@ -105,6 +108,7 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 		}
 
 		for _, dataset := range datasets {
+			resetBackoff = true
 			records, err := a.getRecords(dataset)
 			if err != nil {
 				a.logger.Error(err)
@@ -116,7 +120,10 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 				a.logger.Errorf("SendCloudEvent failed: %v", err)
 			}
 		}
-	}
+		return resetBackoff, nil
+	})
+
+	return err
 }
 
 func (a *adapter) getIdentities() ([]*cognitoidentity.IdentityDescription, error) {

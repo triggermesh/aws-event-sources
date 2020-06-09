@@ -39,12 +39,6 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
-var (
-	// number of seconds to wait between poll requests
-	// TODO: replace with exponential backoff
-	pollInterval = 5
-)
-
 // envConfig is a set parameters sourced from the environment for the source's
 // adapter.
 type envConfig struct {
@@ -99,31 +93,30 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 	var latestTimestamp time.Time
 
-	ticker := time.NewTicker(time.Duration(pollInterval) * time.Second)
-	defer ticker.Stop()
+	backoff := common.NewBackoff()
 
-	for {
-		select {
-		case <-stopCh:
-			a.logger.Info("Exiting receiver loop")
-			return nil
-		case <-ticker.C:
-			users, err := a.listUsers()
+	err := backoff.Run(stopCh, func(ctx context.Context) (bool, error) {
+		resetBackoff := false
+		users, err := a.listUsers()
+		if err != nil {
+			a.logger.Errorf("Cognito ListUsers failed: %v", err)
+			return resetBackoff, err
+		}
+
+		users, latestTimestamp = filterByTimestamp(users, latestTimestamp)
+
+		for _, user := range users {
+			// we have new users - reset backoff duration
+			resetBackoff = true
+			err := a.sendCognitoEvent(user)
 			if err != nil {
-				a.logger.Errorf("Cognito ListUsers failed: %v", err)
-				continue
-			}
-
-			users, latestTimestamp = filterByTimestamp(users, latestTimestamp)
-
-			for _, user := range users {
-				err := a.sendCognitoEvent(user)
-				if err != nil {
-					a.logger.Errorf("Failed to send cloudevent: %v", err)
-				}
+				a.logger.Errorf("Failed to send cloudevent: %v", err)
 			}
 		}
-	}
+		return resetBackoff, nil
+	})
+
+	return err
 }
 
 func (a *adapter) listUsers() ([]*cognitoidentityprovider.UserType, error) {

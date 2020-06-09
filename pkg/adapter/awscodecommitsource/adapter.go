@@ -140,12 +140,16 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 		a.logger.Errorw("Failed to process pull requests", "error", err)
 	}
 
-	//range time.Tick(time.Duration(syncTime) * time.Second)
-	for {
+	backoff := common.NewBackoff()
+
+	err = backoff.Run(stopCh, func(ctx context.Context) (bool, error) {
+		resetBackoff := false
+
 		if strings.Contains(a.gitEvents, pushEventType) {
 			err := a.processCommits()
 			if err != nil {
 				a.logger.Errorw("Failed to process commits", "error", err)
+				return resetBackoff, nil
 			}
 		}
 
@@ -153,19 +157,25 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 			pullRequests, err := a.preparePullRequests()
 			if err != nil {
 				a.logger.Errorw("Failed to process pull requests", "error", err)
+				return resetBackoff, nil
 			}
 
 			pullRequests = removeOldPRs(processedPullRequests, pullRequests)
 
 			for _, pr := range pullRequests {
+				resetBackoff = true
 				err = a.sendPREvent(pr)
 				if err != nil {
 					a.logger.Errorw("Failed to send PR event", "error", err)
+					return resetBackoff, nil
 				}
 				processedPullRequests = append(processedPullRequests, pr)
 			}
 		}
-	}
+		return resetBackoff, nil
+	})
+
+	return err
 }
 
 func (a *adapter) processCommits() error {
@@ -243,20 +253,12 @@ func (a *adapter) preparePullRequests() ([]*codecommit.PullRequest, error) {
 func (a *adapter) sendPushEvent(commit *codecommit.Commit) error {
 	a.logger.Info("Sending Push event")
 
-	data := &PushEvent{
-		Commit:           commit,
-		CommitRepository: &a.arn.Resource,
-		CommitBranch:     &a.branch,
-		EventSource:      aws.String("aws:codecommit"),
-		AwsRegion:        &a.arn.Region,
-	}
-
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
 	event.SetType(v1alpha1.AWSEventType(a.arn.Service, pushEventType))
 	event.SetSubject(fmt.Sprintf("%s/%s", a.arn.Resource, a.branch))
 	event.SetSource(a.arn.String())
 	event.SetID(*commit.CommitId)
-	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+	if err := event.SetData(cloudevents.ApplicationJSON, commit); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
 	}
 
@@ -269,20 +271,12 @@ func (a *adapter) sendPushEvent(commit *codecommit.Commit) error {
 func (a *adapter) sendPREvent(pullRequest *codecommit.PullRequest) error {
 	a.logger.Info("Sending Pull Request event")
 
-	data := &PullRequestEvent{
-		PullRequest: pullRequest,
-		Repository:  &a.arn.Resource,
-		Branch:      &a.branch,
-		EventSource: aws.String("aws:codecommit"),
-		AwsRegion:   &a.arn.Region,
-	}
-
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
 	event.SetType(v1alpha1.AWSEventType(a.arn.Service, prEventType))
 	event.SetSubject(a.branch)
 	event.SetSource(a.arn.String())
 	event.SetID(*pullRequest.PullRequestId)
-	if err := event.SetData(cloudevents.ApplicationJSON, data); err != nil {
+	if err := event.SetData(cloudevents.ApplicationJSON, pullRequest); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
 	}
 

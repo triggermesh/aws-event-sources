@@ -79,9 +79,10 @@ func TestSendPREvent(t *testing.T) {
 	gotEvents := ceClient.Sent()
 	assert.Len(t, gotEvents, 1, "Expected 1 event, got %d", len(gotEvents))
 
-	wantData := `{"pullRequest":{"ApprovalRules":null,"AuthorArn":null,"ClientRequestToken":null,"CreationDate":null,"Description":null,"LastActivityDate":null,"PullRequestId":"12345","PullRequestStatus":null,"PullRequestTargets":null,"RevisionId":null,"Title":null},"eventType":null,"repository":"","branch":"","eventSource":"aws:codecommit","awsRegion":""}`
-	gotData := string(gotEvents[0].Data())
-	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
+	var gotData codecommit.PullRequest
+	err = gotEvents[0].DataAs(&gotData)
+	assert.NoError(t, err)
+	assert.EqualValues(t, *pr, gotData, "Expected event %q, got %q", *pr, gotData)
 }
 
 func TestSendPushEvent(t *testing.T) {
@@ -101,9 +102,10 @@ func TestSendPushEvent(t *testing.T) {
 	gotEvents := ceClient.Sent()
 	assert.Len(t, gotEvents, 1, "Expected 1 event, got %d", len(gotEvents))
 
-	wantData := `{"commit":{"AdditionalData":null,"Author":null,"CommitId":"12345","Committer":null,"Message":null,"Parents":null,"TreeId":null},"commitRepository":"","commitBranch":"","commitHash":null,"eventSource":"aws:codecommit","awsRegion":""}`
-	gotData := string(gotEvents[0].Data())
-	assert.EqualValues(t, wantData, gotData, "Expected event %q, got %q", wantData, gotData)
+	var gotData codecommit.Commit
+	err = gotEvents[0].DataAs(&gotData)
+	assert.NoError(t, err)
+	assert.EqualValues(t, *commit, gotData, "Expected event %q, got %q", *commit, gotData)
 }
 
 func TestProcessCommits(t *testing.T) {
