@@ -20,7 +20,11 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 )
+
+const defaultContainerName = "adapter"
 
 // NewContainer creates a Container object.
 func NewContainer(name string, opts ...ObjectOption) *corev1.Container {
@@ -41,10 +45,10 @@ func Image(img string) ObjectOption {
 		var image *string
 
 		switch o := object.(type) {
-		case *appsv1.Deployment:
-			image = &firstContainer(o).Image
 		case *corev1.Container:
 			image = &o.Image
+		case *appsv1.Deployment, *servingv1.Service:
+			image = &firstContainer(o).Image
 		}
 
 		*image = img
@@ -59,14 +63,24 @@ func Port(name string, port int32) ObjectOption {
 		switch o := object.(type) {
 		case *corev1.Container:
 			ports = &o.Ports
-		case *appsv1.Deployment:
+		case *appsv1.Deployment, *servingv1.Service:
 			ports = &firstContainer(o).Ports
 		}
 
-		*ports = append(*ports, corev1.ContainerPort{
-			Name:          name,
-			ContainerPort: port,
-		})
+		switch object.(type) {
+		case *corev1.Container, *appsv1.Deployment:
+			*ports = append(*ports, corev1.ContainerPort{
+				Name:          name,
+				ContainerPort: port,
+			})
+
+		case *servingv1.Service:
+			// Services can only define 1 port
+			*ports = []corev1.ContainerPort{{
+				Name:          name,
+				ContainerPort: port,
+			}}
+		}
 	}
 }
 
@@ -106,7 +120,7 @@ func envVarsFrom(object interface{}) (envVars *[]corev1.EnvVar) {
 	switch o := object.(type) {
 	case *corev1.Container:
 		envVars = &o.Env
-	case *appsv1.Deployment:
+	case *appsv1.Deployment, *servingv1.Service:
 		envVars = &firstContainer(o).Env
 	}
 
@@ -125,29 +139,45 @@ func setEnvVar(envVars *[]corev1.EnvVar, name, value string, valueFrom *corev1.E
 func Probe(path, port string) ObjectOption {
 	return func(object interface{}) {
 		var rp **corev1.Probe
+		var intstrPort intstr.IntOrString
 
 		switch o := object.(type) {
 		case *corev1.Container:
 			rp = &o.ReadinessProbe
-		case *appsv1.Deployment:
+		case *appsv1.Deployment, *servingv1.Service:
 			rp = &firstContainer(o).ReadinessProbe
+		}
+
+		switch object.(type) {
+		case *corev1.Container, *appsv1.Deployment:
+			intstrPort = intstr.FromString(port)
+		case *servingv1.Service:
+			// setting port explicitly is invalid in a Knative Service
 		}
 
 		*rp = &corev1.Probe{
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path: path,
-					Port: intstr.FromString(port),
+					Port: intstrPort,
 				},
 			},
 		}
 	}
 }
 
-// firstContainer returns a Deployment's first Container definition.
-// A new empty Container is injected if the Deployment does not contain any.
-func firstContainer(d *appsv1.Deployment) *corev1.Container {
-	containers := &d.Spec.Template.Spec.Containers
+// firstContainer returns a PodSpecable's first Container definition.
+// A new empty Container is injected if the PodSpecable does not contain any.
+func firstContainer(object interface{}) *corev1.Container {
+	var containers *[]corev1.Container
+
+	switch o := object.(type) {
+	case *appsv1.Deployment:
+		containers = &o.Spec.Template.Spec.Containers
+	case *servingv1.Service:
+		containers = &o.Spec.Template.Spec.Containers
+	}
+
 	if len(*containers) == 0 {
 		*containers = make([]corev1.Container, 1)
 	}
