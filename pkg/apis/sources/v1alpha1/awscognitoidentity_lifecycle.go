@@ -22,38 +22,38 @@ import (
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
-func (s *AWSCognitoUserPoolSource) GetGroupVersionKind() schema.GroupVersionKind {
-	return SchemeGroupVersion.WithKind("AWSCognitoUserPoolSource")
+func (s *AWSCognitoIdentitySource) GetGroupVersionKind() schema.GroupVersionKind {
+	return SchemeGroupVersion.WithKind("AWSCognitoIdentitySource")
 }
 
 // GetUntypedSpec implements apis.HasSpec.
-func (s *AWSCognitoUserPoolSource) GetUntypedSpec() interface{} {
+func (s *AWSCognitoIdentitySource) GetUntypedSpec() interface{} {
 	return s.Spec
 }
 
 // GetSink implements AWSEventSource.
-func (s *AWSCognitoUserPoolSource) GetSink() *duckv1.Destination {
+func (s *AWSCognitoIdentitySource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
 }
 
 // GetARN implements AWSEventSource.
-func (s *AWSCognitoUserPoolSource) GetARN() string {
+func (s *AWSCognitoIdentitySource) GetARN() string {
 	return s.Spec.ARN
 }
 
 // GetStatus implements AWSEventSource.
-func (s *AWSCognitoUserPoolSource) GetStatus() *AWSEventSourceStatus {
+func (s *AWSCognitoIdentitySource) GetStatus() *AWSEventSourceStatus {
 	return &s.Status
 }
 
 // Supported event types
 const (
-	AWSCognitoGenericEventType = "sync_trigger"
+	AWSCognitoIdentityGenericEventType = "sync_trigger"
 )
 
 // GetEventTypes implements AWSEventSource.
-func (s *AWSCognitoUserPoolSource) GetEventTypes() []string {
+func (s *AWSCognitoIdentitySource) GetEventTypes() []string {
 	return []string{
-		AWSCognitoGenericEventType,
+		AWSCognitoIdentityGenericEventType,
 	}
 }

@@ -52,7 +52,7 @@ rules:
   - sources.triggermesh.io
   resources:
   - awscodecommitsources
-  - awscognitosources
+  - awscognitoidentitysources
   - awscognitouserpoolsources
   - awsdynamodbsources
   - awsiotsources
@@ -68,7 +68,7 @@ rules:
   - sources.triggermesh.io
   resources:
   - awscodecommitsources/status
-  - awscognitosources/status
+  - awscognitoidentitysources/status
   - awscognitouserpoolsources/status
   - awsdynamodbsources/status
   - awsiotsources/status
@@ -134,7 +134,7 @@ rules:
   - sources.triggermesh.io
   resources:
   - awscodecommitsources
-  - awscognitosources
+  - awscognitoidentitysources
   - awscognitouserpoolsources
   - awsdynamodbsources
   - awsiotsources

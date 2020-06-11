@@ -57,8 +57,8 @@ spec:
         # Source adapters
         - name: AWSCODECOMMITSOURCE_IMAGE
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awscodecommitsource
-        - name: AWSCOGNITOSOURCE_IMAGE
-          value: ko://github.com/triggermesh/aws-event-sources/cmd/awscognitosource
+        - name: AWSCOGNITOIDENTITYSOURCE_IMAGE
+          value: ko://github.com/triggermesh/aws-event-sources/cmd/awscognitoidentitysource
         - name: AWSCOGNITOUSERPOOLSOURCE_IMAGE
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awscognitouserpoolsource
         - name: AWSDYNAMODBSOURCE_IMAGE

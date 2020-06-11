@@ -26,8 +26,8 @@ import (
 type Interface interface {
 	// AWSCodeCommitSources returns a AWSCodeCommitSourceInformer.
 	AWSCodeCommitSources() AWSCodeCommitSourceInformer
-	// AWSCognitoSources returns a AWSCognitoSourceInformer.
-	AWSCognitoSources() AWSCognitoSourceInformer
+	// AWSCognitoIdentitySources returns a AWSCognitoIdentitySourceInformer.
+	AWSCognitoIdentitySources() AWSCognitoIdentitySourceInformer
 	// AWSCognitoUserPoolSources returns a AWSCognitoUserPoolSourceInformer.
 	AWSCognitoUserPoolSources() AWSCognitoUserPoolSourceInformer
 	// AWSDynamoDBSources returns a AWSDynamoDBSourceInformer.
@@ -58,9 +58,9 @@ func (v *version) AWSCodeCommitSources() AWSCodeCommitSourceInformer {
 	return &aWSCodeCommitSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
-// AWSCognitoSources returns a AWSCognitoSourceInformer.
-func (v *version) AWSCognitoSources() AWSCognitoSourceInformer {
-	return &aWSCognitoSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// AWSCognitoIdentitySources returns a AWSCognitoIdentitySourceInformer.
+func (v *version) AWSCognitoIdentitySources() AWSCognitoIdentitySourceInformer {
+	return &aWSCognitoIdentitySourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // AWSCognitoUserPoolSources returns a AWSCognitoUserPoolSourceInformer.

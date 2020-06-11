@@ -90,14 +90,14 @@ func (l *Listers) GetAWSCodeCommitSourceLister() listersv1alpha1.AWSCodeCommitSo
 	return listersv1alpha1.NewAWSCodeCommitSourceLister(l.IndexerFor(&v1alpha1.AWSCodeCommitSource{}))
 }
 
-// GetAWSCognitoSourceLister returns a Lister for AWSCognitoSource objects.
-func (l *Listers) GetAWSCognitoSourceLister() listersv1alpha1.AWSCognitoSourceLister {
-	return listersv1alpha1.NewAWSCognitoSourceLister(l.IndexerFor(&v1alpha1.AWSCognitoSource{}))
-}
-
-// GetAWSCognitoUserPoolSourceLister returns a Lister for AWSCognitoUserPoolSource objects.
+// GetAWSCognitoUserPoolSourceLister returns a Lister for AWSCognitoIdentitySource objects.
 func (l *Listers) GetAWSCognitoUserPoolSourceLister() listersv1alpha1.AWSCognitoUserPoolSourceLister {
 	return listersv1alpha1.NewAWSCognitoUserPoolSourceLister(l.IndexerFor(&v1alpha1.AWSCognitoUserPoolSource{}))
+}
+
+// GetAWSCognitoIdentitySourceLister returns a Lister for AWSCognitoUserPoolSource objects.
+func (l *Listers) GetAWSCognitoIdentitySourceLister() listersv1alpha1.AWSCognitoIdentitySourceLister {
+	return listersv1alpha1.NewAWSCognitoIdentitySourceLister(l.IndexerFor(&v1alpha1.AWSCognitoIdentitySource{}))
 }
 
 // GetAWSDynamoDBSourceLister returns a Lister for AWSDynamoDBSource objects.

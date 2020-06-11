@@ -26,13 +26,13 @@ type AWSCodeCommitSourceListerExpansion interface{}
 // AWSCodeCommitSourceNamespaceLister.
 type AWSCodeCommitSourceNamespaceListerExpansion interface{}
 
-// AWSCognitoSourceListerExpansion allows custom methods to be added to
-// AWSCognitoSourceLister.
-type AWSCognitoSourceListerExpansion interface{}
+// AWSCognitoIdentitySourceListerExpansion allows custom methods to be added to
+// AWSCognitoIdentitySourceLister.
+type AWSCognitoIdentitySourceListerExpansion interface{}
 
-// AWSCognitoSourceNamespaceListerExpansion allows custom methods to be added to
-// AWSCognitoSourceNamespaceLister.
-type AWSCognitoSourceNamespaceListerExpansion interface{}
+// AWSCognitoIdentitySourceNamespaceListerExpansion allows custom methods to be added to
+// AWSCognitoIdentitySourceNamespaceLister.
+type AWSCognitoIdentitySourceNamespaceListerExpansion interface{}
 
 // AWSCognitoUserPoolSourceListerExpansion allows custom methods to be added to
 // AWSCognitoUserPoolSourceLister.

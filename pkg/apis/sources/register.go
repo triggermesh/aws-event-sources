@@ -28,14 +28,14 @@ var (
 		Resource: "awscodecommitsources",
 	}
 
-	// AWSCognitoSourceResource respresents an event source for AWS Cognito.
-	AWSCognitoSourceResource = schema.GroupResource{
+	// AWSCognitoIdentitySourceResource respresents an event source for AWS Cognito.
+	AWSCognitoIdentitySourceResource = schema.GroupResource{
 		Group:    GroupName,
-		Resource: "awscognitosources",
+		Resource: "awscognitoidentitysources",
 	}
 
 	// AWSCognitoUserPoolSourceResource respresents an event source for AWS Cognito User Pool.
-	AWSCognitoSourceUserPoolResource = schema.GroupResource{
+	AWSCognitoUserPoolSourceResource = schema.GroupResource{
 		Group:    GroupName,
 		Resource: "awscognitouserpoolsources",
 	}

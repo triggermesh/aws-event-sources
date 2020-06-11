@@ -25,8 +25,8 @@ import (
 )
 
 const (
-	expectCognitoResourceFmt         = "identitypool/${IdentityPoolId}"
 	expectCognitoUserPoolResourceFmt = "userpool/${UserPoolId}"
+	expectCognitoIdentityResourceFmt = "identitypool/${IdentityPoolId}"
 	expectDynamoDBResourceFmt        = "table/${TableName}"
 	expectKinesisResourceFmt         = "stream/${StreamName}"
 )
@@ -40,10 +40,10 @@ func MustParseARN(arnStr string) arn.ARN {
 	return arn
 }
 
-// MustParseCognitoResource parses the resource segment of a Cognito ARN and
-// panics in case of error.
-func MustParseCognitoResource(resource string) string /*identityPoolId*/ {
-	elements, err := parseResource(resource, expectCognitoResourceFmt)
+// MustParseCognitoIdentityResource parses the resource segment of a Cognito
+// Identity Pool ARN and panics in case of error.
+func MustParseCognitoIdentityResource(resource string) string /*identityPoolId*/ {
+	elements, err := parseResource(resource, expectCognitoIdentityResourceFmt)
 	if err != nil {
 		panic(err)
 	}
@@ -70,9 +70,9 @@ func MustParseKinesisResource(resource string) string /*stream*/ {
 	return elements[0]
 }
 
-// MustParseCognitoUserPoolID parses the resource segment of a Cognito User Pool
+// MustParseCognitoUserPoolResource parses the resource segment of a Cognito User Pool
 // ARN and panics in case of error.
-func MustParseCognitoUserPoolID(resource string) string {
+func MustParseCognitoUserPoolResource(resource string) string {
 	elements, err := parseResource(resource, expectCognitoUserPoolResourceFmt)
 	if err != nil {
 		panic(err)

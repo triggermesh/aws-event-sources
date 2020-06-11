@@ -120,7 +120,7 @@ func TestMustParseResource(t *testing.T) {
 	}
 }
 
-func TestMustParseCognitoResource(t *testing.T) {
+func TestMustParseCognitoIdentityResource(t *testing.T) {
 	testCases := map[string]struct {
 		input       string
 		expect      string
@@ -141,12 +141,48 @@ func TestMustParseCognitoResource(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			var out string
 			var testFn assert.PanicTestFunc = func() {
-				out = MustParseCognitoResource(tc.input)
+				out = MustParseCognitoIdentityResource(tc.input)
 			}
 
 			if tc.expectPanic {
 				assert.PanicsWithError(t,
-					newParseResourceError(expectCognitoResourceFmt, tc.input).Error(), testFn)
+					newParseResourceError(expectCognitoIdentityResourceFmt, tc.input).Error(), testFn)
+			} else {
+				assert.NotPanics(t, testFn)
+			}
+
+			assert.Equal(t, tc.expect, out)
+		})
+	}
+}
+
+func TestMustParseCognitoUserPoolResource(t *testing.T) {
+	testCases := map[string]struct {
+		input       string
+		expect      string
+		expectPanic bool
+	}{
+		"valid input": {
+			input:  "userpool/some-value",
+			expect: "some-value",
+		},
+		"invalid input": {
+			input:       "not-userpool/some-value",
+			expectPanic: true,
+		},
+	}
+
+	for name, tc := range testCases {
+		//nolint:scopelint
+		t.Run(name, func(t *testing.T) {
+			var out string
+			var testFn assert.PanicTestFunc = func() {
+				out = MustParseCognitoUserPoolResource(tc.input)
+			}
+
+			if tc.expectPanic {
+				assert.PanicsWithError(t,
+					newParseResourceError(expectCognitoUserPoolResourceFmt, tc.input).Error(), testFn)
 			} else {
 				assert.NotPanics(t, testFn)
 			}

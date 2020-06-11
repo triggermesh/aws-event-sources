@@ -10,15 +10,16 @@
 
 ## List of event sources
 
-| AWS service | Support level |
-|-------------|---------------|
-| CodeCommit  | alpha         |
-| Cognito     | alpha         |
-| DynamoDB    | alpha         |
-| IoT         | alpha/WIP     |
-| Kinesis     | alpha         |
-| SNS         | alpha         |
-| SQS         | alpha         |
+| AWS service     | Support level |
+|-----------------|---------------|
+| CodeCommit      | alpha         |
+| CognitoUserPool | alpha         |
+| CognitoIdentity | alpha         |
+| DynamoDB        | alpha         |
+| IoT             | alpha/WIP     |
+| Kinesis         | alpha         |
+| SNS             | alpha         |
+| SQS             | alpha         |
 
 ## Usage
 
