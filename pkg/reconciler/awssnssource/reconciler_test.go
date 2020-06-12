@@ -79,6 +79,9 @@ func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSSNSSource {
 	src := &v1alpha1.AWSSNSSource{
 		Spec: v1alpha1.AWSSNSSourceSpec{
 			ARN: NewARN(sns.ServiceName, "triggermeshtest").String(),
+			SubscriptionAttributes: map[string]*string{
+				"DeliveryPolicy": aws.String(`{"healthyRetryPolicy":{"numRetries":5}}`),
+			},
 			Credentials: v1alpha1.AWSSecurityCredentials{
 				AccessKeyID: v1alpha1.ValueFromField{
 					ValueFromSecret: &corev1.SecretKeySelector{

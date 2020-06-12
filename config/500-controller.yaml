@@ -54,6 +54,11 @@ spec:
           value: config-observability
         - name: METRICS_DOMAIN
           value: triggermesh.io/sources
+        # Global settings
+        - name: KNATIVE_DOMAIN
+          value: example.com
+        - name: KNATIVE_URL_SCHEME
+          value: http
         # Source adapters
         - name: AWSCODECOMMITSOURCE_IMAGE
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awscodecommitsource

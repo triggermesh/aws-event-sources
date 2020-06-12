@@ -23,7 +23,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -48,7 +48,9 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	ARN string `envconfig:"ARN" required:"true"`
+	ARN                    string `required:"true"`
+	SubscriptionAttributes []byte `split_words:"true"`
+	PublicURL              string `required:"true" envconfig:"PUBLIC_URL"`
 }
 
 // adapter implements the source's adapter.
@@ -58,7 +60,9 @@ type adapter struct {
 	snsClient snsiface.SNSAPI
 	ceClient  cloudevents.Client
 
-	arn arn.ARN
+	arn       arn.ARN
+	subAttrs  map[string]*string
+	publicURL url.URL
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -71,6 +75,9 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	logger := logging.FromContext(ctx)
 
 	env := envAcc.(*envConfig)
+
+	var subAttrs map[string]*string
+	mustUnmarshalSubscriptionAttributes(env.SubscriptionAttributes, subAttrs)
 
 	arn := common.MustParseARN(env.ARN)
 
@@ -85,59 +92,135 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		snsClient: sns.New(cfg),
 		ceClient:  ceClient,
 
-		arn: arn,
+		arn:       arn,
+		subAttrs:  subAttrs,
+		publicURL: mustParsePublicURL(env.PublicURL),
+	}
+}
+
+func mustParsePublicURL(publicURL string) url.URL {
+	url, err := url.Parse(publicURL)
+	if err != nil {
+		panic(err)
+	}
+	if url.String() == "" {
+		panic("empty public URL")
+	}
+
+	return *url
+}
+
+func mustUnmarshalSubscriptionAttributes(data []byte, subAttrs map[string]*string) {
+	if data == nil {
+		return
+	}
+
+	err := json.Unmarshal(data, &subAttrs)
+	if err != nil {
+		panic(err)
 	}
 }
 
 const (
-	port                      = 8081
-	defaultSubscriptionPeriod = 10 * time.Second
+	serverPort                = "8080"
+	serverShutdownGracePeriod = time.Second * 10
+	subscriptionRecheckPeriod = time.Second * 10
 )
 
 // Start implements adapter.Adapter.
 func (a *adapter) Start(stopCh <-chan struct{}) error {
-	// Setup subscription in the background. Will keep us from having chicken/egg between server
-	// being ready to respond and us having the info we need for the subscription request
+	// ctx gets canceled to stop goroutines
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// handle stop signals
 	go func() {
-		for {
-			if err := a.attempSubscription(defaultSubscriptionPeriod); err != nil {
-				a.logger.Error(err)
-			}
-		}
+		<-stopCh
+		a.logger.Info("Shutdown signal received. Terminating")
+		cancel()
 	}()
 
-	// Start server
 	http.HandleFunc("/", a.handleNotification)
 	http.HandleFunc("/health", healthCheckHandler)
-	a.logger.Infof("Serving on port %d", port)
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), nil)
+
+	server := &http.Server{Addr: ":" + serverPort}
+	serverErrCh := make(chan error)
+	defer close(serverErrCh)
+
+	var wg sync.WaitGroup
+
+	wg.Add(1)
+	go func() {
+		a.logger.Info("Serving on port " + serverPort)
+		serverErrCh <- server.ListenAndServe()
+		wg.Done()
+	}()
+
+	/* TODO(antoineco): we should delete the subscription when the source
+	   is deleted by can't do it from the adapter because a) it should
+	   scale to zero b) it shouldn't have access to the Kubernetes API to
+	   read the event source object.
+	   Ref. https://github.com/triggermesh/aws-event-sources/issues/157
+	*/
+	wg.Add(1)
+	go func() {
+		a.runSubscriptionReconciler(ctx, subscriptionRecheckPeriod)
+		wg.Done()
+	}()
+
+	var err error
+
+	select {
+	case serverErr := <-serverErrCh:
+		if serverErr != nil {
+			err = fmt.Errorf("failure during runtime of SNS notification handler: %w", serverErr)
+		}
+		cancel()
+
+	case <-ctx.Done():
+		a.logger.Info("Shutting server down")
+
+		shutdownCtx, cancelTimeout := context.WithTimeout(ctx, serverShutdownGracePeriod)
+		defer cancelTimeout()
+		if shutdownErr := server.Shutdown(shutdownCtx); shutdownErr != nil {
+			err = fmt.Errorf("error during server shutdown: %w", shutdownErr)
+		}
+
+		// unblock server goroutine
+		<-serverErrCh
+	}
+
+	wg.Wait()
+	return err
 }
 
-func (a *adapter) attempSubscription(period time.Duration) error {
-	time.Sleep(period)
+func (a *adapter) runSubscriptionReconciler(ctx context.Context, recheckPeriod time.Duration) {
+	ticker := time.NewTicker(recheckPeriod)
+	defer ticker.Stop()
 
-	topic, err := a.snsClient.CreateTopic(&sns.CreateTopicInput{Name: &a.arn.Resource})
-	if err != nil {
-		return err
+	for {
+		select {
+		case <-ticker.C:
+			if err := a.reconcileSubscription(); err != nil {
+				a.logger.Errorw("Failed to reconcile Subscription", zap.Error(err))
+			}
+		case <-ctx.Done():
+			a.logger.Info("Shutting subscription reconciler down")
+			return
+		}
 	}
+}
 
-	sink := os.Getenv("K_SINK")
-	sinkURL, err := url.Parse(sink)
-	if err != nil {
-		return err
-	}
-
-	_, err = a.snsClient.Subscribe(&sns.SubscribeInput{
-		Endpoint: &sink,
-		Protocol: &sinkURL.Scheme,
-		TopicArn: topic.TopicArn,
+func (a *adapter) reconcileSubscription() error {
+	resp, err := a.snsClient.Subscribe(&sns.SubscribeInput{
+		Endpoint:   aws.String(a.publicURL.String()),
+		Protocol:   &a.publicURL.Scheme,
+		TopicArn:   aws.String(a.arn.String()),
+		Attributes: a.subAttrs,
 	})
-	if err != nil {
-		return err
-	}
+	a.logger.Debug("Subscribe responded with: ", resp)
 
-	a.logger.Debug("Finished subscription flow")
-	return nil
+	return err
 }
 
 // handleNotification implements the receive interface for SNS.
@@ -172,54 +255,36 @@ func (a *adapter) handleNotification(rw http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		a.logger.Debug("Successfully confirmed SNS subscription ", *resp.SubscriptionArn)
+		a.logger.Debug("Successfully confirmed SNS subscription: ", *resp)
 
 	// If the message is a notification, push the event
 	// payload: https://docs.aws.amazon.com/sns/latest/dg/sns-message-and-json-formats.html#http-notification-json
 	case "Notification":
-		eventTime, err := time.Parse(time.RFC3339, data["Timestamp"].(string))
-		if err != nil {
-			a.logger.Errorw("Failed to parse notification timestamp", zap.Error(err))
-			http.Error(rw, fmt.Sprint("Failed to parse notification timestamp: ", err), http.StatusBadRequest)
-			return
-		}
-
-		record := &SNSEventRecord{
-			EventVersion: "1.0",
-			EventSource:  "aws:sns",
-			SNS: SNSEntity{
-				Message:          data["Message"].(string),
-				MessageID:        data["MessageId"].(string),
-				Signature:        data["Signature"].(string),
-				SignatureVersion: data["SignatureVersion"].(string),
-				SigningCertURL:   data["SigningCertURL"].(string),
-				Subject:          data["Subject"].(string),
-				Timestamp:        eventTime,
-				TopicArn:         data["TopicArn"].(string),
-				Type:             data["Type"].(string),
-				UnsubscribeURL:   data["UnsubscribeURL"].(string),
-			},
-		}
-
 		event := cloudevents.NewEvent(cloudevents.VersionV1)
 		event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSSNSGenericEventType))
-		event.SetSubject(data["Subject"].(string))
 		event.SetSource(a.arn.String())
 		event.SetID(data["MessageId"].(string))
-		if err := event.SetData(cloudevents.ApplicationJSON, record); err != nil {
+
+		if subjectAttr, ok := data["Subject"]; ok {
+			event.SetSubject(subjectAttr.(string))
+		}
+
+		if err := event.SetData(cloudevents.ApplicationJSON, body); err != nil {
 			a.logger.Errorw("Failed to set event data", zap.Error(err))
 			http.Error(rw, fmt.Sprint("Failed to set event data: ", err), http.StatusInternalServerError)
 			return
 		}
 
 		if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
-			a.logger.Errorw("Failed to send CloudEvent", "error", result)
+			a.logger.Errorw("Failed to send CloudEvent", zap.Error(result))
 			http.Error(rw, fmt.Sprint("Failed to send CloudEvent: ", result), http.StatusInternalServerError)
 		}
+
+		a.logger.Debug("Successfully sent SNS notification: ", event)
 	}
 }
 
-func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+func healthCheckHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "OK")

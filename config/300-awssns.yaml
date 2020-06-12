@@ -52,6 +52,25 @@ spec:
               arn:
                 type: string
                 pattern: '^arn:aws(-cn|-us-gov)?:sns:[a-z]{2}(-gov)?-[a-z]+-\d:\d{12}:.+$'
+              subscriptionAttributes:
+                type: object
+                properties:
+                  DeliveryPolicy:
+                    type: string
+                    format: json
+                    nullable: true
+                  FilterPolicy:
+                    type: string
+                    format: json
+                    nullable: true
+                  RawMessageDelivery:
+                    type: string
+                    format: json
+                    nullable: true
+                  RedrivePolicy:
+                    type: string
+                    format: json
+                    nullable: true
               credentials:
                 type: object
                 properties:

@@ -18,11 +18,14 @@ package awssnssource
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -37,18 +40,11 @@ import (
 type mockedSNSClient struct {
 	snsiface.SNSAPI
 
-	confirmSubsOutput *sns.ConfirmSubscriptionOutput
-	confirmSubsError  error
-
-	createTopicOutput      *sns.CreateTopicOutput
-	createTopicOutputError error
-
 	subscribeOutput      *sns.SubscribeOutput
 	subscribeOutputError error
-}
 
-func (m mockedSNSClient) CreateTopic(_ *sns.CreateTopicInput) (*sns.CreateTopicOutput, error) {
-	return m.createTopicOutput, m.createTopicOutputError
+	confirmSubsOutput *sns.ConfirmSubscriptionOutput
+	confirmSubsError  error
 }
 
 func (m mockedSNSClient) Subscribe(_ *sns.SubscribeInput) (*sns.SubscribeOutput, error) {
@@ -59,7 +55,39 @@ func (m mockedSNSClient) ConfirmSubscription(_ *sns.ConfirmSubscriptionInput) (*
 	return m.confirmSubsOutput, m.confirmSubsError
 }
 
-func TestHandleNotification(t *testing.T) {
+// TestStart verifies that a started adapter responds to cancelation.
+func TestStart(t *testing.T) {
+	const testTimeout = time.Second * 2
+	testCtx, testCancel := context.WithTimeout(context.Background(), testTimeout)
+	defer testCancel()
+
+	a := &adapter{
+		logger: loggingtesting.TestLogger(t),
+	}
+
+	// errCh receives the error value returned by the receiver after
+	// termination. We leave it open to avoid panicking in case the
+	// receiver returns after the timeout.
+	errCh := make(chan error)
+
+	// ctx gets canceled to cause a voluntary interruption of the receiver
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		errCh <- a.Start(ctx.Done())
+	}()
+	cancel()
+
+	select {
+	case <-testCtx.Done():
+		t.Errorf("Test timed out after %v", testTimeout)
+	case err := <-errCh:
+		if err != nil {
+			t.Errorf("Receiver returned an error: %s", err)
+		}
+	}
+}
+
+func TestHandler(t *testing.T) {
 	ceClient := adaptertest.NewTestClient()
 
 	a := &adapter{
@@ -70,6 +98,8 @@ func TestHandleNotification(t *testing.T) {
 	a.snsClient = mockedSNSClient{
 		confirmSubsOutput: &sns.ConfirmSubscriptionOutput{SubscriptionArn: aws.String("fooArn")},
 	}
+
+	// handle subscribe
 
 	data, err := ioutil.ReadFile("testSNSConfirmSubscriptionEvent.json")
 	if err != nil {
@@ -87,6 +117,11 @@ func TestHandleNotification(t *testing.T) {
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
 
+	gotEvents := ceClient.Sent()
+	assert.Len(t, gotEvents, 0, "Expect no event")
+
+	// handle notification
+
 	data, err = ioutil.ReadFile("testSNSNotificationEvent.json")
 	if err != nil {
 		t.Fatalf("Failed to open test file: %v", err)
@@ -102,37 +137,34 @@ func TestHandleNotification(t *testing.T) {
 
 	handler.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
+
+	gotEvents = ceClient.Sent()
+	assert.Len(t, gotEvents, 1, "Expect a single event")
+
+	gotData := gotEvents[0].Data()
+	assert.EqualValues(t, data, gotData, "Received event data should equal sent payload")
 }
 
-func TestAttempSubscription(t *testing.T) {
+func TestReconcileSubscription(t *testing.T) {
 	a := &adapter{
-		logger: loggingtesting.TestLogger(t),
+		logger:    loggingtesting.TestLogger(t),
+		publicURL: url.URL{Scheme: "http", Host: "example.com"},
 	}
 
 	a.snsClient = mockedSNSClient{
-		createTopicOutput:      &sns.CreateTopicOutput{},
-		createTopicOutputError: errors.New("fake error"),
-	}
-
-	err := a.attempSubscription(0)
-	assert.Error(t, err)
-
-	a.snsClient = mockedSNSClient{
-		createTopicOutput:    &sns.CreateTopicOutput{TopicArn: aws.String("fooArn")},
 		subscribeOutput:      &sns.SubscribeOutput{},
 		subscribeOutputError: errors.New("fake error"),
 	}
 
-	err = a.attempSubscription(0)
+	err := a.reconcileSubscription()
 	assert.Error(t, err)
 
 	a.snsClient = mockedSNSClient{
-		createTopicOutput:    &sns.CreateTopicOutput{TopicArn: aws.String("fooArn")},
 		subscribeOutput:      &sns.SubscribeOutput{},
 		subscribeOutputError: nil,
 	}
 
-	err = a.attempSubscription(0)
+	err = a.reconcileSubscription()
 	assert.NoError(t, err)
 }
 
