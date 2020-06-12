@@ -31,6 +31,7 @@ import (
 	"knative.dev/pkg/logging"
 	logtesting "knative.dev/pkg/logging/testing"
 	rt "knative.dev/pkg/reconciler/testing"
+	fakeservinginjectionclient "knative.dev/serving/pkg/client/injection/client/fake"
 
 	fakeinjectionclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client/fake"
 )
@@ -60,6 +61,7 @@ func MakeFactory(ctor Ctor) rt.Factory {
 		// all clients used inside reconciler implementations should be
 		// injected as well
 		ctx, k8sClient := fakek8sinjectionclient.With(ctx, ls.GetKubeObjects()...)
+		ctx, servingClient := fakeservinginjectionclient.With(ctx, ls.GetServingObjects()...)
 
 		// duck informers (e.g. used by resolver.URIResolver) use a dynamic client.
 		ctx, _ = fakedynamicclient.With(ctx, scheme, ToUnstructured(t, tr.Objects)...)
@@ -80,11 +82,13 @@ func MakeFactory(ctor Ctor) rt.Factory {
 		for _, reactor := range tr.WithReactors {
 			client.PrependReactor("*", "*", reactor)
 			k8sClient.PrependReactor("*", "*", reactor)
+			servingClient.PrependReactor("*", "*", reactor)
 		}
 
 		actionRecorderList := rt.ActionRecorderList{
 			client, // record status updates
 			k8sClient,
+			servingClient,
 		}
 
 		eventList := rt.EventList{

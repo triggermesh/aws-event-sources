@@ -27,6 +27,9 @@ import (
 
 	fakeeventingclientset "knative.dev/eventing/pkg/client/clientset/versioned/fake"
 	rt "knative.dev/pkg/reconciler/testing"
+	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
+	fakeservingclient "knative.dev/serving/pkg/client/clientset/versioned/fake"
+	servinglistersv1 "knative.dev/serving/pkg/client/listers/serving/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	fakeclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/clientset/internalclientset/fake"
@@ -36,6 +39,7 @@ import (
 var clientSetSchemes = []func(*runtime.Scheme) error{
 	fakeclient.AddToScheme,
 	fakek8sclient.AddToScheme,
+	fakeservingclient.AddToScheme,
 	// although our reconcilers do not handle eventing objects directly, we
 	// do need to register the eventing Scheme so that sink URI resolvers
 	// can recongnize the Broker objects we use in tests
@@ -85,6 +89,11 @@ func (l *Listers) GetKubeObjects() []runtime.Object {
 	return l.sorter.ObjectsForSchemeFunc(fakek8sclient.AddToScheme)
 }
 
+// GetServingObjects returns objects from the serving API.
+func (l *Listers) GetServingObjects() []runtime.Object {
+	return l.sorter.ObjectsForSchemeFunc(fakeservingclient.AddToScheme)
+}
+
 // GetAWSCodeCommitSourceLister returns a Lister for AWSCodeCommitSource objects.
 func (l *Listers) GetAWSCodeCommitSourceLister() listersv1alpha1.AWSCodeCommitSourceLister {
 	return listersv1alpha1.NewAWSCodeCommitSourceLister(l.IndexerFor(&v1alpha1.AWSCodeCommitSource{}))
@@ -128,4 +137,9 @@ func (l *Listers) GetAWSSQSSourceLister() listersv1alpha1.AWSSQSSourceLister {
 // GetDeploymentLister returns a lister for Deployment objects.
 func (l *Listers) GetDeploymentLister() k8slistersv1.DeploymentLister {
 	return k8slistersv1.NewDeploymentLister(l.IndexerFor(&appsv1.Deployment{}))
+}
+
+// GetServiceLister returns a lister for Service objects.
+func (l *Listers) GetServiceLister() servinglistersv1.ServiceLister {
+	return servinglistersv1.NewServiceLister(l.IndexerFor(&servingv1.Service{}))
 }

@@ -20,16 +20,17 @@ import (
 	"context"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sns"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"knative.dev/eventing/pkg/reconciler/source"
-	fakek8sinjectionclient "knative.dev/pkg/client/injection/kube/client/fake"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/resolver"
+	fakeservinginjectionclient "knative.dev/serving/pkg/client/injection/client/fake"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	fakeinjectionclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client/fake"
@@ -47,7 +48,7 @@ func TestReconcileSource(t *testing.T) {
 	var (
 		ctor      = reconcilerCtor(adapterCfg)
 		src       = newEventSource()
-		adapterFn = adapterDeploymentBuilder(src, adapterCfg)
+		adapterFn = adapterServiceBuilder(src, adapterCfg)
 	)
 
 	TestReconcile(t, ctor, src, adapterFn)
@@ -56,10 +57,10 @@ func TestReconcileSource(t *testing.T) {
 // reconcilerCtor returns a Ctor for a AWSSNSSource Reconciler.
 func reconcilerCtor(cfg *adapterConfig) Ctor {
 	return func(t *testing.T, ctx context.Context, ls *Listers) controller.Reconciler {
-		base := common.GenericDeploymentReconciler{
+		base := common.GenericServiceReconciler{
 			SinkResolver: resolver.NewURIResolver(ctx, func(types.NamespacedName) {}),
-			Lister:       ls.GetDeploymentLister().Deployments,
-			Client:       fakek8sinjectionclient.Get(ctx).AppsV1().Deployments,
+			Lister:       ls.GetServiceLister().Services,
+			Client:       fakeservinginjectionclient.Get(ctx).ServingV1().Services,
 		}
 
 		r := &Reconciler{
