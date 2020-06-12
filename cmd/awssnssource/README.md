@@ -2,17 +2,8 @@
 
 This event source subscribes to messages from a AWS SNS topic and sends them as CloudEvents to an arbitrary event sink.
 
-<!--
-This source expects external-dns of some flavor (https://github.com/kubernetes-sigs/external-dns) to be installed in the
-k8s cluster. If you look at the deployment.yaml file, you'll see that a service is created that has a hostname
-annotation. This hostname must be of the form `sns.$TOPIC_NAME.$CHANNEL_NAME.$NAMESPACE.$DOMAIN`. Domain can be anything
-you like. I used a subdomain in my personal env `sources.rsmitty.cloud`. These same vars are passed into the SNS
-deployment as env variables.
-
-Upon starting, a background task is launched before running the webserver. This background task attempts to subscribe to
-the SNS topic mentioned. It will wait until the hostname above resolves in DNS before attempting to do so. Once
-subscription has occurred, events are pushed like other sources.
--->
+Each instance of the SNS source is backed by a Knative Service that exposes a unique public HTTP(S) endpoint. This
+endpoint is used to subscribe to the desired SNS topic on behalf of the user.
 
 ## Contents
 
@@ -30,7 +21,6 @@ subscription has occurred, events are pushed like other sources.
 * Register an AWS account
 * Create an [Access Key][doc-accesskey] in your AWS IAM dashboard.
 * Create a [SNS topic][doc-sns].
-* Create a [SNS subscription][doc-sns].
 
 ## Deployment to Kubernetes
 
@@ -90,6 +80,7 @@ Ensure the following environment variables are exported to your current shell's 
 
 ```sh
 export ARN=<arn_of_my_sns_topic>
+export PUBLIC_URL=<public_source_url>
 export AWS_ACCESS_KEY_ID=<my_key_id>
 export AWS_SECRET_ACCESS_KEY=<my_secret_key>
 export NAME=my-awssnssource
@@ -111,6 +102,7 @@ Using one of TriggerMesh's release images:
 ```console
 $ docker run --rm \
   -e ARN=<arn_of_my_sns_topic> \
+  -e PUBLIC_URL=<public_source_url> \
   -e AWS_ACCESS_KEY_ID=<my_key_id> \
   -e AWS_SECRET_ACCESS_KEY=<my_secret_key> \
   -e NAME=my-awssnssource \

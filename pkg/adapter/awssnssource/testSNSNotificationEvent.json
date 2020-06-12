@@ -1,15 +1,12 @@
 {
   "Type" : "Notification",
-  "MessageId" : "c2f44639-64fc-50dc-8b9e-12d8a0c39dc7",
-  "TopicArn" : "arn:aws:sns:us-west-2:730809894724:triggermeshtest",
-  "Subject" : "Hello World",
-  "Message" : "fsdklfjskljskldjf",
-  "Timestamp" : "2019-02-16T07:55:43.971Z",
+  "MessageId" : "22b80b92-fdea-4c2c-8f9d-bdfb0c7bf324",
+  "TopicArn" : "arn:aws:sns:us-west-2:123456789012:MyTopic",
+  "Subject" : "My First Message",
+  "Message" : "Hello world!",
+  "Timestamp" : "2012-05-02T00:54:06.655Z",
   "SignatureVersion" : "1",
-  "Signature" : "HY==",
-  "SigningCertURL" : "https://sns.us-west-2.amazonaws.com/SimpleNotificationService-a.pem",
-  "UnsubscribeURL" : "https://sns.us-west-2.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-west-2",
-  "MessageAttributes" : {
-    "bar" : {"Type":"String","Value":"Foo"}
-  }
+  "Signature" : "EXAMPLEw6JRN...",
+  "SigningCertURL" : "https://sns.us-west-2.amazonaws.com/SimpleNotificationService-f3ecfb7224c7233fe7bb5f59f96de52f.pem",
+  "UnsubscribeURL" : "https://sns.us-west-2.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-west-2:123456789012:MyTopic:c9135db0-26c4-47ec-8998-413945fb5a96"
 }

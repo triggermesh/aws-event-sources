@@ -56,6 +56,13 @@ type AWSSNSSourceSpec struct {
 	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonsns.html#amazonsns-resources-for-iam-policies
 	ARN string `json:"arn"`
 
+	// Attributes to set on the Subscription.
+	// For a list of supported subscription attributes, please refer to the following resources:
+	//  * https://docs.aws.amazon.com/sns/latest/api/API_SetSubscriptionAttributes.html
+	//  * https://docs.aws.amazon.com/sns/latest/dg/sns-how-it-works.html
+	// +optional
+	SubscriptionAttributes map[string]*string `json:"subscriptionAttributes,omitempty"`
+
 	// Credentials to interact with the AWS SNS API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
 }
