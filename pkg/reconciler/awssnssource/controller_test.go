@@ -24,8 +24,8 @@ import (
 	// Link fake informers accessed by our controller
 	_ "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awssnssource/fake"
 	_ "knative.dev/pkg/client/injection/ducks/duck/v1/addressable/fake"
-	_ "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment/fake"
 	_ "knative.dev/pkg/injection/clients/dynamicclient/fake"
+	_ "knative.dev/serving/pkg/client/injection/informers/serving/v1/service/fake"
 )
 
 func TestNewController(t *testing.T) {

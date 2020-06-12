@@ -23,6 +23,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,6 +34,7 @@ import (
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	rt "knative.dev/pkg/reconciler/testing"
+	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
 
@@ -61,15 +63,14 @@ var tSinkURI = &apis.URL{
 //  2. MakeFactory injects those clients into a context along with fake event recorders, etc.
 //  3. A Reconciler is constructed via a Ctor function using the values injected above
 //  4. The Reconciler returned by MakeFactory is used to run the test case
-func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource,
-	adapterFn common.AdapterDeploymentBuilderFunc) {
-
+func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource, adapterFn interface{}) {
 	assertPopulatedSource(t, src)
 
 	newEventSource := eventSourceCtor(src)
-	newAdapterDeployment := adapterDeploymentCtor(adapterFn, src)
+	newAdapter := adapterCtor(adapterFn, src)
 
-	n := newAdapterDeployment().Name
+	a := newAdapter()
+	n, k, r := nameKindAndResource(a)
 
 	testCases := rt.TableTest{
 		// Creation/Deletion
@@ -82,13 +83,13 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource,
 				newEventSource(noCEAttributes),
 			},
 			WantCreates: []runtime.Object{
-				newAdapterDeployment(),
+				newAdapter(),
 			},
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
-				Object: newEventSource(withSink, notDeployed),
+				Object: newEventSource(withSink, notDeployed(a)),
 			}},
 			WantEvents: []string{
-				createAdapterEvent(n),
+				createAdapterEvent(n, k),
 			},
 		},
 		{
@@ -106,11 +107,11 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource,
 			Key:  tKey,
 			Objects: []runtime.Object{
 				newAdressable(),
-				newEventSource(withSink, notDeployed),
-				newAdapterDeployment(ready),
+				newEventSource(withSink, notDeployed(a)),
+				newAdapter(ready),
 			},
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
-				Object: newEventSource(withSink, deployed),
+				Object: newEventSource(withSink, deployed(a)),
 			}},
 		},
 		{
@@ -118,11 +119,11 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource,
 			Key:  tKey,
 			Objects: []runtime.Object{
 				newAdressable(),
-				newEventSource(withSink, deployed),
-				newAdapterDeployment(notReady),
+				newEventSource(withSink, deployed(a)),
+				newAdapter(notReady),
 			},
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
-				Object: newEventSource(withSink, notDeployed),
+				Object: newEventSource(withSink, notDeployed(a)),
 			}},
 		},
 		{
@@ -130,14 +131,14 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource,
 			Key:  tKey,
 			Objects: []runtime.Object{
 				newAdressable(),
-				newEventSource(withSink, deployed),
-				newAdapterDeployment(ready, bumpImage),
+				newEventSource(withSink, deployed(a)),
+				newAdapter(ready, bumpImage),
 			},
 			WantUpdates: []clientgotesting.UpdateActionImpl{{
-				Object: newAdapterDeployment(ready),
+				Object: newAdapter(ready),
 			}},
 			WantEvents: []string{
-				updateAdapterEvent(n),
+				updateAdapterEvent(n, k),
 			},
 		},
 
@@ -148,11 +149,11 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource,
 			Key:  tKey,
 			Objects: []runtime.Object{
 				/* sink omitted */
-				newEventSource(withSink, deployed),
-				newAdapterDeployment(ready),
+				newEventSource(withSink, deployed(a)),
+				newAdapter(ready),
 			},
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
-				Object: newEventSource(withoutSink, deployed),
+				Object: newEventSource(withoutSink, deployed(a)),
 			}},
 			WantEvents: []string{
 				badSinkEvent(),
@@ -160,42 +161,42 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource,
 			WantErr: true,
 		},
 		{
-			Name: "Fail to create adapter deployment",
+			Name: "Fail to create adapter",
 			Key:  tKey,
 			WithReactors: []clientgotesting.ReactionFunc{
-				rt.InduceFailure("create", "deployments"),
+				rt.InduceFailure("create", r),
 			},
 			Objects: []runtime.Object{
 				newAdressable(),
 				newEventSource(withSink),
 			},
 			WantCreates: []runtime.Object{
-				newAdapterDeployment(),
+				newAdapter(),
 			},
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
-				Object: newEventSource(unknownDeployedWithError, withSink),
+				Object: newEventSource(unknownDeployedWithError(a), withSink),
 			}},
 			WantEvents: []string{
-				failCreateAdapterEvent(n),
+				failCreateAdapterEvent(n, k, r),
 			},
 			WantErr: true,
 		},
 		{
-			Name: "Fail to update adapter deployment",
+			Name: "Fail to update adapter",
 			Key:  tKey,
 			WithReactors: []clientgotesting.ReactionFunc{
-				rt.InduceFailure("update", "deployments"),
+				rt.InduceFailure("update", r),
 			},
 			Objects: []runtime.Object{
 				newAdressable(),
-				newEventSource(deployed, withSink),
-				newAdapterDeployment(ready, bumpImage),
+				newEventSource(withSink, deployed(a)),
+				newAdapter(ready, bumpImage),
 			},
 			WantUpdates: []clientgotesting.UpdateActionImpl{{
-				Object: newAdapterDeployment(ready),
+				Object: newAdapter(ready),
 			}},
 			WantEvents: []string{
-				failUpdateAdapterEvent(n),
+				failUpdateAdapterEvent(n, k, r),
 			},
 			WantErr: true,
 		},
@@ -229,6 +230,24 @@ func assertPopulatedSource(t *testing.T, src v1alpha1.AWSEventSource) {
 	assert.NotEmpty(t, src.GetSink().Ref, "Provided source should reference a sink")
 	assert.NotEmpty(t, src.GetEventTypes(), "Provided source should declare its event types")
 	assert.NotEmpty(t, src.GetStatus().Status.Conditions, "Provided source should have initialized conditions")
+}
+
+func nameKindAndResource(object runtime.Object) (string /*name*/, string /*kind*/, string /*resource*/) {
+	metaObj, _ := meta.Accessor(object)
+	name := metaObj.GetName()
+
+	var kind, resource string
+
+	switch object.(type) {
+	case *appsv1.Deployment:
+		kind = "Deployment"
+		resource = "deployments"
+	case *servingv1.Service:
+		kind = "Service"
+		resource = "services"
+	}
+
+	return name, kind, resource
 }
 
 /* Event sources */
@@ -294,18 +313,39 @@ func withoutSink(src v1alpha1.AWSEventSource) {
 }
 
 // Deployed: True
-func deployed(src v1alpha1.AWSEventSource) {
-	src.GetStatus().PropagateAvailability(newReadyDeployment())
+func deployed(adapter runtime.Object) sourceOption {
+	adapter = adapter.DeepCopyObject()
+	ready(adapter)
+
+	return func(src v1alpha1.AWSEventSource) {
+		src.GetStatus().PropagateAvailability(adapter)
+	}
 }
 
 // Deployed: False
-func notDeployed(src v1alpha1.AWSEventSource) {
-	src.GetStatus().PropagateAvailability(newNotReadyDeployment())
+func notDeployed(adapter runtime.Object) sourceOption {
+	adapter = adapter.DeepCopyObject()
+	notReady(adapter)
+
+	return func(src v1alpha1.AWSEventSource) {
+		src.GetStatus().PropagateAvailability(adapter)
+	}
 }
 
 // Deployed: Unknown with error
-func unknownDeployedWithError(src v1alpha1.AWSEventSource) {
-	src.GetStatus().PropagateAvailability(nil)
+func unknownDeployedWithError(adapter runtime.Object) sourceOption {
+	var nilObj runtime.Object
+
+	switch adapter.(type) {
+	case *appsv1.Deployment:
+		nilObj = (*appsv1.Deployment)(nil)
+	case *servingv1.Service:
+		nilObj = (*servingv1.Service)(nil)
+	}
+
+	return func(src v1alpha1.AWSEventSource) {
+		src.GetStatus().PropagateAvailability(nilObj)
+	}
 }
 
 // deleted marks the source as deleted.
@@ -314,69 +354,83 @@ func deleted(src v1alpha1.AWSEventSource) {
 	src.SetDeletionTimestamp(&t)
 }
 
-/* Adapter deployment */
+/* Adapter */
 
-// adapterCtorWithOptions is a function that returns a Deployment object with
+// adapterCtorWithOptions is a function that returns a runtime object with
 // modifications applied.
-type adapterCtorWithOptions func(...deploymentOption) *appsv1.Deployment
+type adapterCtorWithOptions func(...adapterOption) runtime.Object
 
-// adapterDeploymentCtor creates a copy of the given Deployment and returns a
-// function that can apply options to that Deployment.
-func adapterDeploymentCtor(adapterFn common.AdapterDeploymentBuilderFunc,
-	src v1alpha1.AWSEventSource) adapterCtorWithOptions {
-
+// adapterCtor creates a copy of the given adapter object and returns a
+// function that can apply options to that object.
+func adapterCtor(adapterFn interface{}, src v1alpha1.AWSEventSource) adapterCtorWithOptions {
 	// error discarded because the ARN format is already validated during tests
 	arn, _ := arn.Parse(src.GetARN())
 
-	return func(opts ...deploymentOption) *appsv1.Deployment {
-		d := adapterFn(arn, tSinkURI)
+	return func(opts ...adapterOption) runtime.Object {
+		var obj runtime.Object
 
-		for _, opt := range opts {
-			opt(d)
+		switch typedAdapterFn := adapterFn.(type) {
+		case common.AdapterDeploymentBuilderFunc:
+			obj = typedAdapterFn(arn, tSinkURI)
+		case common.AdapterServiceBuilderFunc:
+			obj = typedAdapterFn(arn, tSinkURI)
 		}
 
-		return d
+		for _, opt := range opts {
+			opt(obj)
+		}
+
+		return obj
 	}
 }
 
-// deploymentOption is a functional option for a Deployment object.
-type deploymentOption func(*appsv1.Deployment)
+// adapterOption is a functional option for an adapter object.
+type adapterOption func(runtime.Object)
 
 // Ready: True
-func ready(d *appsv1.Deployment) {
-	d.Status = appsv1.DeploymentStatus{
-		Conditions: []appsv1.DeploymentCondition{{
-			Type:   appsv1.DeploymentAvailable,
+func ready(object runtime.Object) {
+	switch o := object.(type) {
+	case *appsv1.Deployment:
+		o.Status = appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{{
+				Type:   appsv1.DeploymentAvailable,
+				Status: corev1.ConditionTrue,
+			}},
+		}
+	case *servingv1.Service:
+		o.Status.SetConditions(apis.Conditions{{
+			Type:   v1alpha1.ConditionReady,
 			Status: corev1.ConditionTrue,
-		}},
+		}})
 	}
-}
-
-func newReadyDeployment() *appsv1.Deployment {
-	d := &appsv1.Deployment{}
-	ready(d)
-	return d
 }
 
 // Ready: False
-func notReady(d *appsv1.Deployment) {
-	d.Status = appsv1.DeploymentStatus{
-		Conditions: []appsv1.DeploymentCondition{{
-			Type:   appsv1.DeploymentAvailable,
+func notReady(object runtime.Object) {
+	switch o := object.(type) {
+	case *appsv1.Deployment:
+		o.Status = appsv1.DeploymentStatus{
+			Conditions: []appsv1.DeploymentCondition{{
+				Type:   appsv1.DeploymentAvailable,
+				Status: corev1.ConditionFalse,
+			}},
+		}
+	case *servingv1.Service:
+		o.Status.SetConditions(apis.Conditions{{
+			Type:   v1alpha1.ConditionReady,
 			Status: corev1.ConditionFalse,
-		}},
+		}})
 	}
 }
 
-func newNotReadyDeployment() *appsv1.Deployment {
-	d := &appsv1.Deployment{}
-	notReady(d)
-	return d
-}
-
 // bumpImage adds a static suffix to the Deployment's image.
-func bumpImage(d *appsv1.Deployment) {
-	d.Spec.Template.Spec.Containers[0].Image += "-test"
+func bumpImage(object runtime.Object) {
+	switch o := object.(type) {
+	case *appsv1.Deployment:
+		o.Spec.Template.Spec.Containers[0].Image += "-test"
+	case *servingv1.Service:
+		o.Spec.Template.Spec.Containers[0].Image += "-test"
+	}
 }
 
 /* Event sink */
@@ -398,19 +452,19 @@ func newAdressable() *eventingv1beta1.Broker {
 
 /* Events */
 
-func createAdapterEvent(name string) string {
-	return eventtesting.Eventf(corev1.EventTypeNormal, common.ReasonAdapterCreate, "Created adapter Deployment %q", name)
+func createAdapterEvent(name, kind string) string {
+	return eventtesting.Eventf(corev1.EventTypeNormal, common.ReasonAdapterCreate, "Created adapter %s %q", kind, name)
 }
-func updateAdapterEvent(name string) string {
-	return eventtesting.Eventf(corev1.EventTypeNormal, common.ReasonAdapterUpdate, "Updated adapter Deployment %q", name)
+func updateAdapterEvent(name, kind string) string {
+	return eventtesting.Eventf(corev1.EventTypeNormal, common.ReasonAdapterUpdate, "Updated adapter %s %q", kind, name)
 }
-func failCreateAdapterEvent(name string) string {
-	return eventtesting.Eventf(corev1.EventTypeWarning, common.ReasonFailedAdapterCreate, "Failed to create adapter Deployment %q: "+
-		"inducing failure for create deployments", name)
+func failCreateAdapterEvent(name, kind, resource string) string {
+	return eventtesting.Eventf(corev1.EventTypeWarning, common.ReasonFailedAdapterCreate, "Failed to create adapter %s %q: "+
+		"inducing failure for create %s", kind, name, resource)
 }
-func failUpdateAdapterEvent(name string) string {
-	return eventtesting.Eventf(corev1.EventTypeWarning, common.ReasonFailedAdapterUpdate, "Failed to update adapter Deployment %q: "+
-		"inducing failure for update deployments", name)
+func failUpdateAdapterEvent(name, kind, resource string) string {
+	return eventtesting.Eventf(corev1.EventTypeWarning, common.ReasonFailedAdapterUpdate, "Failed to update adapter %s %q: "+
+		"inducing failure for update %s", kind, name, resource)
 }
 func badSinkEvent() string {
 	addrGVK := newAdressable().GetGroupVersionKind()
