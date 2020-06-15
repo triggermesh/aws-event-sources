@@ -31,6 +31,25 @@ spec:
         - name: ARN
           value: arn:aws:sns:us-west-2:123456789012:triggermeshtest
 
+        # Public URL of the event source
+        # Used to create and validate subscriptions.
+        - name: PUBLIC_URL
+          value: https://awssns-source.example.com
+
+        # Optional attributes to set on the SNS subscription upon its creation.
+        # For a list of supported subscription attributes, please refer to the following resources:
+        #  * https://docs.aws.amazon.com/sns/latest/api/API_SetSubscriptionAttributes.html
+        #  * https://docs.aws.amazon.com/sns/latest/dg/sns-how-it-works.html
+        - name: SUBSCRIPTION_ATTRIBUTES
+          value: |
+            { "DeliveryPolicy":
+              {
+                "healthyRetryPolicy": {
+                  "numRetries": 5
+                }
+              }
+            }
+
         # AWS credentials
         - name: AWS_ACCESS_KEY_ID
           valueFrom:

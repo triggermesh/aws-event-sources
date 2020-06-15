@@ -350,6 +350,7 @@ func (in *AWSDynamoDBSourceSpec) DeepCopy() *AWSDynamoDBSourceSpec {
 func (in *AWSEventSourceStatus) DeepCopyInto(out *AWSEventSourceStatus) {
 	*out = *in
 	in.SourceStatus.DeepCopyInto(&out.SourceStatus)
+	in.AddressStatus.DeepCopyInto(&out.AddressStatus)
 	return
 }
 
@@ -603,6 +604,21 @@ func (in *AWSSNSSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSSNSSourceSpec) DeepCopyInto(out *AWSSNSSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	if in.SubscriptionAttributes != nil {
+		in, out := &in.SubscriptionAttributes, &out.SubscriptionAttributes
+		*out = make(map[string]*string, len(*in))
+		for key, val := range *in {
+			var outVal *string
+			if val == nil {
+				(*out)[key] = nil
+			} else {
+				in, out := &val, &outVal
+				*out = new(string)
+				**out = **in
+			}
+			(*out)[key] = outVal
+		}
+	}
 	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }
