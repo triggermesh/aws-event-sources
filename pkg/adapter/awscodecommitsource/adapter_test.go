@@ -73,7 +73,7 @@ func TestSendPREvent(t *testing.T) {
 	pr := &codecommit.PullRequest{}
 	pr.SetPullRequestId("12345")
 
-	err := a.sendPREvent(pr)
+	err := a.sendEvent(pr)
 	assert.NoError(t, err)
 
 	gotEvents := ceClient.Sent()
@@ -96,7 +96,7 @@ func TestSendPushEvent(t *testing.T) {
 	commit := &codecommit.Commit{}
 	commit.SetCommitId("12345")
 
-	err := a.sendPushEvent(commit)
+	err := a.sendEvent(commit)
 	assert.NoError(t, err)
 
 	gotEvents := ceClient.Sent()
