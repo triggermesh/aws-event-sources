@@ -164,7 +164,7 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 			for _, pr := range pullRequests {
 				resetBackoff = true
-				err = a.sendPREvent(pr)
+				err = a.sendEvent(pr)
 				if err != nil {
 					a.logger.Errorw("Failed to send PR event", "error", err)
 					return resetBackoff, nil
@@ -201,7 +201,7 @@ func (a *adapter) processCommits() error {
 
 	lastCommit = *commitOutput.Commit.CommitId
 
-	err = a.sendPushEvent(commitOutput.Commit)
+	err = a.sendEvent(commitOutput.Commit)
 	if err != nil {
 		return fmt.Errorf("failed to send push event: %w", err)
 	}
@@ -216,67 +216,45 @@ func (a *adapter) preparePullRequests() ([]*codecommit.PullRequest, error) {
 		RepositoryName: &a.arn.Resource,
 	}
 
-	for {
-		//Get pull request IDs
-		pullRequestsOutput, err := a.ccClient.ListPullRequests(&input)
+	// Get pull request IDs
+	pullRequestsOutput, err := a.ccClient.ListPullRequests(&input)
+	if err != nil {
+		return pullRequests, fmt.Errorf("failed to list PRs: %w", err)
+	}
+
+	for _, id := range pullRequestsOutput.PullRequestIds {
+		pri := codecommit.GetPullRequestInput{PullRequestId: id}
+
+		prInfo, err := a.ccClient.GetPullRequest(&pri)
 		if err != nil {
-			return pullRequests, fmt.Errorf("failed to list PRs: %w", err)
+			return pullRequests, fmt.Errorf("failed to get PR info: %w", err)
 		}
 
-		prIDs := []*string{}
-
-		prIDs = append(prIDs, pullRequestsOutput.PullRequestIds...)
-
-		for _, id := range prIDs {
-			pri := codecommit.GetPullRequestInput{PullRequestId: id}
-
-			prInfo, err := a.ccClient.GetPullRequest(&pri)
-			if err != nil {
-				return pullRequests, fmt.Errorf("failed to get PR info: %w", err)
-			}
-
-			pullRequests = append(pullRequests, prInfo.PullRequest)
-		}
-
-		if pullRequestsOutput.NextToken == nil {
-			break
-		}
-
-		input.NextToken = pullRequestsOutput.NextToken
+		pullRequests = append(pullRequests, prInfo.PullRequest)
 	}
 
 	return pullRequests, nil
 }
 
-// sendPushEvent sends an event containing data about a git commit that was
-// pushed to a branch.
-func (a *adapter) sendPushEvent(commit *codecommit.Commit) error {
-	a.logger.Info("Sending Push event")
+// sendEvent sends an event containing data about a git commit or PR
+func (a *adapter) sendEvent(codeCommitEvent interface{}) error {
+	a.logger.Info("Sending CodeCommit event")
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSEventType(a.arn.Service, pushEventType))
-	event.SetSubject(fmt.Sprintf("%s/%s", a.arn.Resource, a.branch))
-	event.SetSource(a.arn.String())
-	event.SetID(*commit.CommitId)
-	if err := event.SetData(cloudevents.ApplicationJSON, commit); err != nil {
-		return fmt.Errorf("failed to set event data: %w", err)
-	}
-
-	if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
-		return result
-	}
-	return nil
-}
-
-func (a *adapter) sendPREvent(pullRequest *codecommit.PullRequest) error {
-	a.logger.Info("Sending Pull Request event")
-
-	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSEventType(a.arn.Service, prEventType))
 	event.SetSubject(a.branch)
 	event.SetSource(a.arn.String())
-	event.SetID(*pullRequest.PullRequestId)
-	if err := event.SetData(cloudevents.ApplicationJSON, pullRequest); err != nil {
+
+	switch codeCommitEvent.(type) {
+	case *codecommit.PullRequest:
+		event.SetType(v1alpha1.AWSEventType(a.arn.Service, prEventType))
+	case *codecommit.Commit:
+		event.SetType(v1alpha1.AWSEventType(a.arn.Service, pushEventType))
+	default:
+		return fmt.Errorf("unknown CodeCommit event")
+	}
+
+	err := event.SetData(cloudevents.ApplicationJSON, codeCommitEvent)
+	if err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
 	}
 
