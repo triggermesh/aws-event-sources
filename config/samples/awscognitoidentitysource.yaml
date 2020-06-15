@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Sample AWSCognitoUserPoolSource object.
+# Sample AWSCognitoIdentitySource object.
 
 apiVersion: sources.triggermesh.io/v1alpha1
-kind: AWSCognitoUserPoolSource
+kind: AWSCognitoIdentitySource
 metadata:
   name: sample
 spec:
-  arn: arn:aws:cognito-idp:us-west-2:123456789012:userpool/us-west-2_abcdefghi
+  arn: arn:aws:cognito-identity:us-west-2:123456789012:identitypool/triggermeshtest
 
   credentials:
     accessKeyID:

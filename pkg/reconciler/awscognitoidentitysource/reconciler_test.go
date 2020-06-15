@@ -14,13 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awscognitouserpoolsource
+package awscognitoidentitysource
 
 import (
 	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
+	"github.com/aws/aws-sdk-go/service/cognitoidentity"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -33,7 +33,7 @@ import (
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	fakeinjectionclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client/fake"
-	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscognitouserpoolsource"
+	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscognitoidentitysource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
 )
@@ -53,7 +53,7 @@ func TestReconcileSource(t *testing.T) {
 	TestReconcile(t, ctor, src, adapterFn)
 }
 
-// reconcilerCtor returns a Ctor for a AWSCognitoUserPoolSource Reconciler.
+// reconcilerCtor returns a Ctor for a AWSCognitoIdentitySource Reconciler.
 func reconcilerCtor(cfg *adapterConfig) Ctor {
 	return func(t *testing.T, ctx context.Context, ls *Listers) controller.Reconciler {
 		base := common.GenericDeploymentReconciler{
@@ -68,16 +68,16 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 		}
 
 		return reconcilerv1alpha1.NewReconciler(ctx, logging.FromContext(ctx),
-			fakeinjectionclient.Get(ctx), ls.GetAWSCognitoUserPoolSourceLister(),
+			fakeinjectionclient.Get(ctx), ls.GetAWSCognitoIdentitySourceLister(),
 			controller.GetEventRecorder(ctx), r)
 	}
 }
 
 // newEventSource returns a test source object with a minimal set of pre-filled attributes.
-func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSCognitoUserPoolSource {
-	src := &v1alpha1.AWSCognitoUserPoolSource{
-		Spec: v1alpha1.AWSCognitoUserPoolSourceSpec{
-			ARN: NewARN(cognitoidentityprovider.ServiceName, "userpool/triggermeshtest").String(),
+func newEventSource() *v1alpha1.AWSCognitoIdentitySource {
+	src := &v1alpha1.AWSCognitoIdentitySource{
+		Spec: v1alpha1.AWSCognitoIdentitySourceSpec{
+			ARN: NewARN(cognitoidentity.ServiceName, "identitypool/triggermeshtest").String(),
 			Credentials: v1alpha1.AWSSecurityCredentials{
 				AccessKeyID: v1alpha1.ValueFromField{
 					ValueFromSecret: &corev1.SecretKeySelector{

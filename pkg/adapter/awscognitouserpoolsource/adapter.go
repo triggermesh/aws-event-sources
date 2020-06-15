@@ -83,7 +83,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		ceClient:          ceClient,
 
 		arn:        arn,
-		userPoolID: common.MustParseCognitoUserPoolID(arn.Resource),
+		userPoolID: common.MustParseCognitoUserPoolResource(arn.Resource),
 	}
 }
 

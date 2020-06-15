@@ -32,8 +32,8 @@ func (c *FakeSourcesV1alpha1) AWSCodeCommitSources(namespace string) v1alpha1.AW
 	return &FakeAWSCodeCommitSources{c, namespace}
 }
 
-func (c *FakeSourcesV1alpha1) AWSCognitoSources(namespace string) v1alpha1.AWSCognitoSourceInterface {
-	return &FakeAWSCognitoSources{c, namespace}
+func (c *FakeSourcesV1alpha1) AWSCognitoIdentitySources(namespace string) v1alpha1.AWSCognitoIdentitySourceInterface {
+	return &FakeAWSCognitoIdentitySources{c, namespace}
 }
 
 func (c *FakeSourcesV1alpha1) AWSCognitoUserPoolSources(namespace string) v1alpha1.AWSCognitoUserPoolSourceInterface {

@@ -20,7 +20,7 @@ import (
 	"knative.dev/pkg/injection/sharedmain"
 
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscodecommitsource"
-	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitosource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitoidentitysource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitouserpoolsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsdynamodbsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsiotsource"
@@ -32,7 +32,7 @@ import (
 func main() {
 	sharedmain.Main("aws-event-sources-controller",
 		awscodecommitsource.NewController,
-		awscognitosource.NewController,
+		awscognitoidentitysource.NewController,
 		awscognitouserpoolsource.NewController,
 		awsdynamodbsource.NewController,
 		awsiotsource.NewController,
