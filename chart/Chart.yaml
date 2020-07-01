@@ -1,0 +1,19 @@
+apiVersion: v2
+name: aws-event-sources
+version: 0.1.0
+appVersion: 0.3.0
+tillerVersion: ">=3.0.0"
+type: application
+description: A Helm chart for AWS event sources by Triggermesh
+home: https://github.com/triggermesh/aws-event-sources
+keywords:
+  - knative-eventing
+  - sources
+  - aws
+  - triggermesh
+  - serverless
+maintainers:
+  - name: sameersbn
+  - name: antoineco
+sources:
+  - https://github.com/triggermesh/aws-event-sources
