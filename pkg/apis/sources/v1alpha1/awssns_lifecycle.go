@@ -19,6 +19,8 @@ package v1alpha1
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
@@ -37,7 +39,7 @@ func (s *AWSSNSSource) GetSink() *duckv1.Destination {
 }
 
 // GetARN implements AWSEventSource.
-func (s *AWSSNSSource) GetARN() string {
+func (s *AWSSNSSource) GetARN() apis.ARN {
 	return s.Spec.ARN
 }
 

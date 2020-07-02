@@ -77,7 +77,7 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSKinesisSource {
 	src := &v1alpha1.AWSKinesisSource{
 		Spec: v1alpha1.AWSKinesisSourceSpec{
-			ARN: NewARN(kinesis.ServiceName, "stream/triggermeshtest").String(),
+			ARN: NewARN(kinesis.ServiceName, "stream/triggermeshtest"),
 			Credentials: v1alpha1.AWSSecurityCredentials{
 				AccessKeyID: v1alpha1.ValueFromField{
 					ValueFromSecret: &corev1.SecretKeySelector{

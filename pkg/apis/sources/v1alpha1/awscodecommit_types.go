@@ -20,9 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"knative.dev/pkg/apis"
+	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // +genclient
@@ -40,12 +42,12 @@ type AWSCodeCommitSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object     = (*AWSCodeCommitSource)(nil)
-	_ kmeta.OwnerRefable = (*AWSCodeCommitSource)(nil)
-	_ apis.Validatable   = (*AWSCodeCommitSource)(nil)
-	_ apis.Defaultable   = (*AWSCodeCommitSource)(nil)
-	_ apis.HasSpec       = (*AWSCodeCommitSource)(nil)
-	_ AWSEventSource     = (*AWSCodeCommitSource)(nil)
+	_ runtime.Object      = (*AWSCodeCommitSource)(nil)
+	_ kmeta.OwnerRefable  = (*AWSCodeCommitSource)(nil)
+	_ pkgapis.Validatable = (*AWSCodeCommitSource)(nil)
+	_ pkgapis.Defaultable = (*AWSCodeCommitSource)(nil)
+	_ pkgapis.HasSpec     = (*AWSCodeCommitSource)(nil)
+	_ AWSEventSource      = (*AWSCodeCommitSource)(nil)
 )
 
 // AWSCodeCommitSourceSpec defines the desired state of the event source.
@@ -54,7 +56,7 @@ type AWSCodeCommitSourceSpec struct {
 
 	// Repository ARN
 	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awscodecommit.html#awscodecommit-resources-for-iam-policies
-	ARN string `json:"arn"`
+	ARN apis.ARN `json:"arn"`
 	// Name of the Git branch this source observes.
 	Branch string `json:"branch"`
 	// List of event types that should be processed by the source.

@@ -78,7 +78,7 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSSNSSource {
 	src := &v1alpha1.AWSSNSSource{
 		Spec: v1alpha1.AWSSNSSourceSpec{
-			ARN: NewARN(sns.ServiceName, "triggermeshtest").String(),
+			ARN: NewARN(sns.ServiceName, "triggermeshtest"),
 			SubscriptionAttributes: map[string]*string{
 				"DeliveryPolicy": aws.String(`{"healthyRetryPolicy":{"numRetries":5}}`),
 			},

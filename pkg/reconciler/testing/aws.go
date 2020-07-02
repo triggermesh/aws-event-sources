@@ -16,15 +16,15 @@ limitations under the License.
 
 package testing
 
-import "github.com/aws/aws-sdk-go/aws/arn"
+import "github.com/triggermesh/aws-event-sources/pkg/apis"
 
 // NewARN returns a ARN with the given attributes.
-func NewARN(service, resource string) arn.ARN {
-	return arn.ARN{
+func NewARN(service, resource string) apis.ARN {
+	return apis.ARN{
 		Partition: "aws",
 		Service:   service,
 		Region:    "us-test-0",
-		AccountID: "1234567890",
+		AccountID: "123456789012",
 		Resource:  resource,
 	}
 }

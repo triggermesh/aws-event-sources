@@ -20,9 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"knative.dev/pkg/apis"
+	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // +genclient
@@ -40,12 +42,12 @@ type AWSSNSSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object     = (*AWSSNSSource)(nil)
-	_ kmeta.OwnerRefable = (*AWSSNSSource)(nil)
-	_ apis.Validatable   = (*AWSSNSSource)(nil)
-	_ apis.Defaultable   = (*AWSSNSSource)(nil)
-	_ apis.HasSpec       = (*AWSSNSSource)(nil)
-	_ AWSEventSource     = (*AWSSNSSource)(nil)
+	_ runtime.Object      = (*AWSSNSSource)(nil)
+	_ kmeta.OwnerRefable  = (*AWSSNSSource)(nil)
+	_ pkgapis.Validatable = (*AWSSNSSource)(nil)
+	_ pkgapis.Defaultable = (*AWSSNSSource)(nil)
+	_ pkgapis.HasSpec     = (*AWSSNSSource)(nil)
+	_ AWSEventSource      = (*AWSSNSSource)(nil)
 )
 
 // AWSSNSSourceSpec defines the desired state of the event source.
@@ -54,7 +56,7 @@ type AWSSNSSourceSpec struct {
 
 	// Topic ARN
 	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonsns.html#amazonsns-resources-for-iam-policies
-	ARN string `json:"arn"`
+	ARN apis.ARN `json:"arn"`
 
 	// Attributes to set on the Subscription.
 	// For a list of supported subscription attributes, please refer to the following resources:

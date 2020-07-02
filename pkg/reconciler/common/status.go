@@ -17,14 +17,15 @@ limitations under the License.
 package common
 
 import (
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
 // CreateCloudEventAttributes returns CloudEvent attributes for the event types
 // supported by the source.
-func CreateCloudEventAttributes(arn arn.ARN, eventTypes []string) []duckv1.CloudEventAttributes {
+func CreateCloudEventAttributes(arn apis.ARN, eventTypes []string) []duckv1.CloudEventAttributes {
 	ceAttributes := make([]duckv1.CloudEventAttributes, len(eventTypes))
 
 	for i, typ := range eventTypes {

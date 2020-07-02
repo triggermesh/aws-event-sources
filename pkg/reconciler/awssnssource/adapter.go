@@ -20,8 +20,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
-
 	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/kmeta"
@@ -57,7 +55,7 @@ type adapterConfig struct {
 // adapterServiceBuilder returns an AdapterServiceBuilderFunc for the
 // given source object and adapter config.
 func adapterServiceBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) common.AdapterServiceBuilderFunc {
-	return func(arn arn.ARN, sinkURI *apis.URL) *servingv1.Service {
+	return func(sinkURI *apis.URL) *servingv1.Service {
 		name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), src.Name)
 
 		var sinkURIStr string
@@ -96,7 +94,7 @@ func adapterServiceBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) commo
 			resource.EnvVar(common.EnvName, src.Name),
 			resource.EnvVar(common.EnvNamespace, src.Namespace),
 			resource.EnvVar(common.EnvSink, sinkURIStr),
-			resource.EnvVar(common.EnvARN, arn.String()),
+			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
 			resource.EnvVar(envSubscriptionAttrs, subsAttrsStr),
 			resource.EnvVar(envPublicURL, adapterURL),
 			resource.EnvVarFromSecret(common.EnvAccessKeyID,

@@ -90,6 +90,7 @@ func (in *AWSCodeCommitSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSCodeCommitSourceSpec) DeepCopyInto(out *AWSCodeCommitSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	out.ARN = in.ARN
 	if in.EventTypes != nil {
 		in, out := &in.EventTypes, &out.EventTypes
 		*out = make([]string, len(*in))
@@ -174,6 +175,7 @@ func (in *AWSCognitoIdentitySourceList) DeepCopyObject() runtime.Object {
 func (in *AWSCognitoIdentitySourceSpec) DeepCopyInto(out *AWSCognitoIdentitySourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	out.ARN = in.ARN
 	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }
@@ -253,6 +255,7 @@ func (in *AWSCognitoUserPoolSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSCognitoUserPoolSourceSpec) DeepCopyInto(out *AWSCognitoUserPoolSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	out.ARN = in.ARN
 	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }
@@ -332,6 +335,7 @@ func (in *AWSDynamoDBSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSDynamoDBSourceSpec) DeepCopyInto(out *AWSDynamoDBSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	out.ARN = in.ARN
 	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }
@@ -429,6 +433,7 @@ func (in *AWSIoTSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSIoTSourceSpec) DeepCopyInto(out *AWSIoTSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	out.ARN = in.ARN
 	in.RootCA.DeepCopyInto(&out.RootCA)
 	if in.RootCAPath != nil {
 		in, out := &in.RootCAPath, &out.RootCAPath
@@ -525,6 +530,7 @@ func (in *AWSKinesisSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSKinesisSourceSpec) DeepCopyInto(out *AWSKinesisSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	out.ARN = in.ARN
 	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }
@@ -604,6 +610,7 @@ func (in *AWSSNSSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSSNSSourceSpec) DeepCopyInto(out *AWSSNSSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	out.ARN = in.ARN
 	if in.SubscriptionAttributes != nil {
 		in, out := &in.SubscriptionAttributes, &out.SubscriptionAttributes
 		*out = make(map[string]*string, len(*in))
@@ -698,6 +705,7 @@ func (in *AWSSQSSourceList) DeepCopyObject() runtime.Object {
 func (in *AWSSQSSourceSpec) DeepCopyInto(out *AWSSQSSourceSpec) {
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
+	out.ARN = in.ARN
 	in.Credentials.DeepCopyInto(&out.Credentials)
 	return
 }

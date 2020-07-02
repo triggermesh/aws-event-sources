@@ -20,9 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"knative.dev/pkg/apis"
+	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // +genclient
@@ -40,12 +42,12 @@ type AWSIoTSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object     = (*AWSIoTSource)(nil)
-	_ kmeta.OwnerRefable = (*AWSIoTSource)(nil)
-	_ apis.Validatable   = (*AWSIoTSource)(nil)
-	_ apis.Defaultable   = (*AWSIoTSource)(nil)
-	_ apis.HasSpec       = (*AWSIoTSource)(nil)
-	_ AWSEventSource     = (*AWSIoTSource)(nil)
+	_ runtime.Object      = (*AWSIoTSource)(nil)
+	_ kmeta.OwnerRefable  = (*AWSIoTSource)(nil)
+	_ pkgapis.Validatable = (*AWSIoTSource)(nil)
+	_ pkgapis.Defaultable = (*AWSIoTSource)(nil)
+	_ pkgapis.HasSpec     = (*AWSIoTSource)(nil)
+	_ AWSEventSource      = (*AWSIoTSource)(nil)
 )
 
 // AWSIoTSourceSpec defines the desired state of the event source.
@@ -56,7 +58,7 @@ type AWSIoTSourceSpec struct {
 	Endpoint string `json:"endpoint"`
 	// Topic ARN
 	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_awsiot.html#awsiot-resources-for-iam-policies
-	ARN string `json:"arn"`
+	ARN apis.ARN `json:"arn"`
 
 	// Contents of the root CA
 	RootCA ValueFromField `json:"rootCA"`

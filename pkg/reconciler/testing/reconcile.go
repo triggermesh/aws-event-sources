@@ -36,8 +36,6 @@ import (
 	rt "knative.dev/pkg/reconciler/testing"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
-
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 	eventtesting "github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event/testing"
@@ -219,9 +217,6 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource, adapter
 func assertPopulatedSource(t *testing.T, src v1alpha1.AWSEventSource) {
 	t.Helper()
 
-	_, err := arn.Parse(src.GetARN())
-	assert.NoError(t, err, "Provided source object should have a valid ARN")
-
 	// used to generate the adapter's owner reference
 	assert.NotEmpty(t, src.GetNamespace())
 	assert.NotEmpty(t, src.GetName())
@@ -267,11 +262,8 @@ func Populate(srcCpy v1alpha1.AWSEventSource) {
 		Name:       addr.GetName(),
 	}
 
-	// error discarded because the ARN format is already validated during tests
-	arn, _ := arn.Parse(srcCpy.GetARN())
-
 	status := srcCpy.GetStatus()
-	status.CloudEventAttributes = common.CreateCloudEventAttributes(arn, srcCpy.GetEventTypes())
+	status.CloudEventAttributes = common.CreateCloudEventAttributes(srcCpy.GetARN(), srcCpy.GetEventTypes())
 	status.InitializeConditions()
 }
 
@@ -363,17 +355,14 @@ type adapterCtorWithOptions func(...adapterOption) runtime.Object
 // adapterCtor creates a copy of the given adapter object and returns a
 // function that can apply options to that object.
 func adapterCtor(adapterFn interface{}, src v1alpha1.AWSEventSource) adapterCtorWithOptions {
-	// error discarded because the ARN format is already validated during tests
-	arn, _ := arn.Parse(src.GetARN())
-
 	return func(opts ...adapterOption) runtime.Object {
 		var obj runtime.Object
 
 		switch typedAdapterFn := adapterFn.(type) {
 		case common.AdapterDeploymentBuilderFunc:
-			obj = typedAdapterFn(arn, tSinkURI)
+			obj = typedAdapterFn(tSinkURI)
 		case common.AdapterServiceBuilderFunc:
-			obj = typedAdapterFn(arn, tSinkURI)
+			obj = typedAdapterFn(tSinkURI)
 		}
 
 		for _, opt := range opts {

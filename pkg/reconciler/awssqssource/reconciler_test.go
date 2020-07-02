@@ -77,7 +77,7 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSSQSSource {
 	src := &v1alpha1.AWSSQSSource{
 		Spec: v1alpha1.AWSSQSSourceSpec{
-			ARN: NewARN(sqs.ServiceName, "triggermeshtest").String(),
+			ARN: NewARN(sqs.ServiceName, "triggermeshtest"),
 			Credentials: v1alpha1.AWSSecurityCredentials{
 				AccessKeyID: v1alpha1.ValueFromField{
 					ValueFromSecret: &corev1.SecretKeySelector{

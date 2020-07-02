@@ -20,9 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"knative.dev/pkg/apis"
+	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // +genclient
@@ -40,12 +42,12 @@ type AWSDynamoDBSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object     = (*AWSDynamoDBSource)(nil)
-	_ kmeta.OwnerRefable = (*AWSDynamoDBSource)(nil)
-	_ apis.Validatable   = (*AWSDynamoDBSource)(nil)
-	_ apis.Defaultable   = (*AWSDynamoDBSource)(nil)
-	_ apis.HasSpec       = (*AWSDynamoDBSource)(nil)
-	_ AWSEventSource     = (*AWSDynamoDBSource)(nil)
+	_ runtime.Object      = (*AWSDynamoDBSource)(nil)
+	_ kmeta.OwnerRefable  = (*AWSDynamoDBSource)(nil)
+	_ pkgapis.Validatable = (*AWSDynamoDBSource)(nil)
+	_ pkgapis.Defaultable = (*AWSDynamoDBSource)(nil)
+	_ pkgapis.HasSpec     = (*AWSDynamoDBSource)(nil)
+	_ AWSEventSource      = (*AWSDynamoDBSource)(nil)
 )
 
 // AWSDynamoDBSourceSpec defines the desired state of the event source.
@@ -54,7 +56,7 @@ type AWSDynamoDBSourceSpec struct {
 
 	// Table ARN
 	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazondynamodb.html#amazondynamodb-resources-for-iam-policies
-	ARN string `json:"arn"`
+	ARN apis.ARN `json:"arn"`
 
 	// Credentials to interact with the AWS Cognito API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

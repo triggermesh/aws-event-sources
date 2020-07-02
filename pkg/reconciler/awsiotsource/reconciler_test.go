@@ -88,7 +88,7 @@ func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSIoTSource {
 	src := &v1alpha1.AWSIoTSource{
 		Spec: v1alpha1.AWSIoTSourceSpec{
 			Endpoint: "http://testendpoint:8000",
-			ARN:      NewARN(iot.ServiceName, "topic/topictest").String(),
+			ARN:      NewARN(iot.ServiceName, "topic/topictest"),
 			Certificate: v1alpha1.ValueFromField{
 				ValueFromSecret: tFooRef,
 			},

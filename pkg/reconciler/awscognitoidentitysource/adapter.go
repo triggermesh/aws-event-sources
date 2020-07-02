@@ -19,8 +19,6 @@ package awscognitoidentitysource
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
-
 	appsv1 "k8s.io/api/apps/v1"
 
 	"knative.dev/eventing/pkg/reconciler/source"
@@ -46,7 +44,7 @@ type adapterConfig struct {
 // adapterDeploymentBuilder returns an AdapterDeploymentBuilderFunc for the
 // given source object and adapter config.
 func adapterDeploymentBuilder(src *v1alpha1.AWSCognitoIdentitySource, cfg *adapterConfig) common.AdapterDeploymentBuilderFunc {
-	return func(arn arn.ARN, sinkURI *apis.URL) *appsv1.Deployment {
+	return func(sinkURI *apis.URL) *appsv1.Deployment {
 		name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), src.Name)
 
 		var sinkURIStr string
@@ -74,7 +72,7 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCognitoIdentitySource, cfg *adapt
 			resource.EnvVar(common.EnvName, src.Name),
 			resource.EnvVar(common.EnvNamespace, src.Namespace),
 			resource.EnvVar(common.EnvSink, sinkURIStr),
-			resource.EnvVar(common.EnvARN, arn.String()),
+			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
 			resource.EnvVarFromSecret(common.EnvAccessKeyID,
 				src.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
 				src.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),

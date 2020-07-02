@@ -77,7 +77,7 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSDynamoDBSource {
 	src := &v1alpha1.AWSDynamoDBSource{
 		Spec: v1alpha1.AWSDynamoDBSourceSpec{
-			ARN: NewARN(dynamodb.ServiceName, "table/triggermeshtest").String(),
+			ARN: NewARN(dynamodb.ServiceName, "table/triggermeshtest"),
 			Credentials: v1alpha1.AWSSecurityCredentials{
 				AccessKeyID: v1alpha1.ValueFromField{
 					ValueFromSecret: &corev1.SecretKeySelector{

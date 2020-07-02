@@ -77,7 +77,7 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 func newEventSource() *v1alpha1.AWSCodeCommitSource {
 	src := &v1alpha1.AWSCodeCommitSource{
 		Spec: v1alpha1.AWSCodeCommitSourceSpec{
-			ARN:        NewARN(codecommit.ServiceName, "triggermeshtest").String(),
+			ARN:        NewARN(codecommit.ServiceName, "triggermeshtest"),
 			Branch:     "test",
 			EventTypes: []string{"pull-request", "push"},
 			Credentials: v1alpha1.AWSSecurityCredentials{

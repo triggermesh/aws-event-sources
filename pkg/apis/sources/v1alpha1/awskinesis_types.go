@@ -20,9 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"knative.dev/pkg/apis"
+	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // +genclient
@@ -40,12 +42,12 @@ type AWSKinesisSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object     = (*AWSKinesisSource)(nil)
-	_ kmeta.OwnerRefable = (*AWSKinesisSource)(nil)
-	_ apis.Validatable   = (*AWSKinesisSource)(nil)
-	_ apis.Defaultable   = (*AWSKinesisSource)(nil)
-	_ apis.HasSpec       = (*AWSKinesisSource)(nil)
-	_ AWSEventSource     = (*AWSKinesisSource)(nil)
+	_ runtime.Object      = (*AWSKinesisSource)(nil)
+	_ kmeta.OwnerRefable  = (*AWSKinesisSource)(nil)
+	_ pkgapis.Validatable = (*AWSKinesisSource)(nil)
+	_ pkgapis.Defaultable = (*AWSKinesisSource)(nil)
+	_ pkgapis.HasSpec     = (*AWSKinesisSource)(nil)
+	_ AWSEventSource      = (*AWSKinesisSource)(nil)
 )
 
 // AWSKinesisSourceSpec defines the desired state of the event source.
@@ -54,7 +56,7 @@ type AWSKinesisSourceSpec struct {
 
 	// Stream ARN
 	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonkinesis.html#amazonkinesis-resources-for-iam-policies
-	ARN string `json:"arn"`
+	ARN apis.ARN `json:"arn"`
 
 	// Credentials to interact with the AWS Kinesis API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

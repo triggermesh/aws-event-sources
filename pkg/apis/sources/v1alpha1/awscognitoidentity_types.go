@@ -20,9 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"knative.dev/pkg/apis"
+	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // +genclient
@@ -40,12 +42,12 @@ type AWSCognitoIdentitySource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object     = (*AWSCognitoIdentitySource)(nil)
-	_ kmeta.OwnerRefable = (*AWSCognitoIdentitySource)(nil)
-	_ apis.Validatable   = (*AWSCognitoIdentitySource)(nil)
-	_ apis.Defaultable   = (*AWSCognitoIdentitySource)(nil)
-	_ apis.HasSpec       = (*AWSCognitoIdentitySource)(nil)
-	_ AWSEventSource     = (*AWSCognitoIdentitySource)(nil)
+	_ runtime.Object      = (*AWSCognitoIdentitySource)(nil)
+	_ kmeta.OwnerRefable  = (*AWSCognitoIdentitySource)(nil)
+	_ pkgapis.Validatable = (*AWSCognitoIdentitySource)(nil)
+	_ pkgapis.Defaultable = (*AWSCognitoIdentitySource)(nil)
+	_ pkgapis.HasSpec     = (*AWSCognitoIdentitySource)(nil)
+	_ AWSEventSource      = (*AWSCognitoIdentitySource)(nil)
 )
 
 // AWSCognitoIdentitySourceSpec defines the desired state of the event source.
@@ -54,7 +56,7 @@ type AWSCognitoIdentitySourceSpec struct {
 
 	// Identity Pool ARN
 	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazoncognitoidentity.html#amazoncognitoidentity-resources-for-iam-policies
-	ARN string `json:"arn"`
+	ARN apis.ARN `json:"arn"`
 
 	// Credentials to interact with the AWS Cognito API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

@@ -31,8 +31,6 @@ import (
 	"knative.dev/serving/pkg/apis/serving"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
-
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/semantic"
@@ -46,7 +44,7 @@ var knativeServingAnnotations = []string{
 }
 
 // AdapterDeploymentBuilderFunc builds a Deployment object for a source's adapter.
-type AdapterDeploymentBuilderFunc func(arn arn.ARN, sinkURI *apis.URL) *appsv1.Deployment
+type AdapterDeploymentBuilderFunc func(sinkURI *apis.URL) *appsv1.Deployment
 
 // ReconcileSource reconciles an event source type.
 func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context, adb AdapterDeploymentBuilderFunc) reconciler.Event {
@@ -54,13 +52,7 @@ func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context, adb A
 
 	src.GetStatus().InitializeConditions()
 	src.GetStatus().ObservedGeneration = src.GetGeneration()
-
-	arn, err := arn.Parse(src.GetARN())
-	if err != nil {
-		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning,
-			ReasonInvalidSpec, "Failed to parse ARN: %s", err))
-	}
-	src.GetStatus().CloudEventAttributes = CreateCloudEventAttributes(arn, src.GetEventTypes())
+	src.GetStatus().CloudEventAttributes = CreateCloudEventAttributes(src.GetARN(), src.GetEventTypes())
 
 	sinkURI, err := r.resolveSinkURL(ctx)
 	if err != nil {
@@ -70,7 +62,7 @@ func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context, adb A
 	}
 	src.GetStatus().MarkSink(sinkURI)
 
-	if err := r.reconcileAdapter(ctx, adb(arn, sinkURI)); err != nil {
+	if err := r.reconcileAdapter(ctx, adb(sinkURI)); err != nil {
 		return fmt.Errorf("failed to reconcile adapter: %w", err)
 	}
 	return nil
@@ -156,7 +148,7 @@ func (r *GenericDeploymentReconciler) syncAdapterDeployment(ctx context.Context,
 }
 
 // AdapterServiceBuilderFunc builds a Service object for a source's adapter.
-type AdapterServiceBuilderFunc func(arn arn.ARN, sinkURI *apis.URL) *servingv1.Service
+type AdapterServiceBuilderFunc func(sinkURI *apis.URL) *servingv1.Service
 
 // ReconcileSource reconciles an event source type.
 func (r *GenericServiceReconciler) ReconcileSource(ctx context.Context, adb AdapterServiceBuilderFunc) reconciler.Event {
@@ -164,13 +156,7 @@ func (r *GenericServiceReconciler) ReconcileSource(ctx context.Context, adb Adap
 
 	src.GetStatus().InitializeConditions()
 	src.GetStatus().ObservedGeneration = src.GetGeneration()
-
-	arn, err := arn.Parse(src.GetARN())
-	if err != nil {
-		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning,
-			ReasonInvalidSpec, "Failed to parse ARN: %s", err))
-	}
-	src.GetStatus().CloudEventAttributes = CreateCloudEventAttributes(arn, src.GetEventTypes())
+	src.GetStatus().CloudEventAttributes = CreateCloudEventAttributes(src.GetARN(), src.GetEventTypes())
 
 	sinkURI, err := r.resolveSinkURL(ctx)
 	if err != nil {
@@ -180,7 +166,7 @@ func (r *GenericServiceReconciler) ReconcileSource(ctx context.Context, adb Adap
 	}
 	src.GetStatus().MarkSink(sinkURI)
 
-	if err := r.reconcileAdapter(ctx, adb(arn, sinkURI)); err != nil {
+	if err := r.reconcileAdapter(ctx, adb(sinkURI)); err != nil {
 		return fmt.Errorf("failed to reconcile adapter: %w", err)
 	}
 	return nil

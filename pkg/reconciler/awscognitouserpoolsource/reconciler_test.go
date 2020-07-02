@@ -77,7 +77,7 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSCognitoUserPoolSource {
 	src := &v1alpha1.AWSCognitoUserPoolSource{
 		Spec: v1alpha1.AWSCognitoUserPoolSourceSpec{
-			ARN: NewARN(cognitoidentityprovider.ServiceName, "userpool/triggermeshtest").String(),
+			ARN: NewARN(cognitoidentityprovider.ServiceName, "userpool/triggermeshtest"),
 			Credentials: v1alpha1.AWSSecurityCredentials{
 				AccessKeyID: v1alpha1.ValueFromField{
 					ValueFromSecret: &corev1.SecretKeySelector{

@@ -20,9 +20,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"knative.dev/pkg/apis"
+	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // +genclient
@@ -40,12 +42,12 @@ type AWSSQSSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object     = (*AWSSQSSource)(nil)
-	_ kmeta.OwnerRefable = (*AWSSQSSource)(nil)
-	_ apis.Validatable   = (*AWSSQSSource)(nil)
-	_ apis.Defaultable   = (*AWSSQSSource)(nil)
-	_ apis.HasSpec       = (*AWSSQSSource)(nil)
-	_ AWSEventSource     = (*AWSSQSSource)(nil)
+	_ runtime.Object      = (*AWSSQSSource)(nil)
+	_ kmeta.OwnerRefable  = (*AWSSQSSource)(nil)
+	_ pkgapis.Validatable = (*AWSSQSSource)(nil)
+	_ pkgapis.Defaultable = (*AWSSQSSource)(nil)
+	_ pkgapis.HasSpec     = (*AWSSQSSource)(nil)
+	_ AWSEventSource      = (*AWSSQSSource)(nil)
 )
 
 // AWSSQSSourceSpec defines the desired state of the event source.
@@ -54,7 +56,7 @@ type AWSSQSSourceSpec struct {
 
 	// Queue ARN
 	// https://docs.aws.amazon.com/IAM/latest/UserGuide/list_amazonsqs.html#amazonsqs-resources-for-iam-policies
-	ARN string `json:"arn"`
+	ARN apis.ARN `json:"arn"`
 
 	// Credentials to interact with the AWS SQS API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
