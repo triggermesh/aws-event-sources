@@ -136,7 +136,7 @@ jobs:
             helm repo index --merge upstream.yaml --url https://storage.googleapis.com/${GOOGLE_PROJECT_ID}-charts repo/
       - run:
           name: Publishing charts
-          command: gsutil rsync -r -n repo/  gs://${GOOGLE_PROJECT_ID}-charts/
+          command: gsutil rsync -r repo/  gs://${GOOGLE_PROJECT_ID}-charts/
 
   release:
     executor:
