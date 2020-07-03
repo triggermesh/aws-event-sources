@@ -3,6 +3,7 @@ version: 2.1
 orbs:
   go: circleci/go@1.1.1
   gcp-cli: circleci/gcp-cli@1.8.4
+  helm: circleci/helm@1.0.0
 
 jobs:
   checkout:
@@ -61,7 +62,7 @@ jobs:
       - store_artifacts:
           path: /tmp/cover-results/
 
-  publish:
+  publish-image:
     executor:
       name: gcp-cli/google
     steps:
@@ -116,6 +117,27 @@ jobs:
             git commit -m "Update overlays/<< parameters.cluster >>/sources aws deployments to '${CIRCLE_TAG:-${CIRCLE_SHA1}}'"
             git push origin master
 
+  publish-chart:
+    executor:
+      name: gcp-cli/google
+    steps:
+      - attach_workspace:
+          at: ~/
+      - gcp-cli/initialize
+      - helm/install-helm-client:
+          version: v3.2.4
+      - run:
+          name: Packaging chart
+          command: helm package chart/ -d repo/
+      - run:
+          name: Generating repository index
+          command: |
+            gsutil cp gs://${GOOGLE_PROJECT_ID}-charts/index.yaml upstream.yaml
+            helm repo index --merge upstream.yaml --url https://storage.googleapis.com/${GOOGLE_PROJECT_ID}-charts repo/
+      - run:
+          name: Publishing charts
+          command: gsutil rsync -r -n repo/  gs://${GOOGLE_PROJECT_ID}-charts/
+
   release:
     executor:
       name: go/default
@@ -159,7 +181,7 @@ workflows:
           filters:
             tags:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-      - publish:
+      - publish-image:
           context: production
           requires:
             - build
@@ -169,11 +191,20 @@ workflows:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
             branches:
               only: master
+      - publish-chart:
+          context: production
+          requires:
+            - publish-image
+          filters:
+            tags:
+              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+            branches:
+              ignore: /.*/
       - deploy:
           name: update-staging-config
           cluster: staging
           requires:
-            - publish
+            - publish-image
           filters:
             branches:
               only: master
@@ -183,7 +214,7 @@ workflows:
           name: update-production-config
           cluster: prod
           requires:
-            - publish
+            - publish-image
           filters:
             tags:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
@@ -192,7 +223,7 @@ workflows:
       - release:
           context: production
           requires:
-            - publish
+            - publish-image
           filters:
             tags:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
