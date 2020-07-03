@@ -3,6 +3,8 @@ categories:
   - faas
   - serverless
   - AWS
+labels:
+  io.rancher.certified: partner
 questions:
 - variable: defaultImage
   default: "true"
