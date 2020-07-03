@@ -54,7 +54,7 @@ To uninstall/delete the `my-release` deployment:
 $ helm delete my-release
 ```
 
-The kubernetes resources associated with chart will be removed and the Helm release will be deleted.
+The Kubernetes resources associated with chart will be removed and the Helm release will be deleted.
 
 However note that the `CustomResourceDefinition` resources created by the chart will not be removed by the delete command and therefore need to be removed manually.
 
