@@ -47,6 +47,7 @@ var (
 	_ pkgapis.Validatable = (*AWSSQSSource)(nil)
 	_ pkgapis.Defaultable = (*AWSSQSSource)(nil)
 	_ pkgapis.HasSpec     = (*AWSSQSSource)(nil)
+	_ duckv1.KRShaped     = (*AWSSQSSource)(nil)
 	_ AWSEventSource      = (*AWSSQSSource)(nil)
 )
 

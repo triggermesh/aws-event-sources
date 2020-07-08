@@ -88,14 +88,14 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 }
 
 // Start implements adapter.Adapter.
-func (a *adapter) Start(stopCh <-chan struct{}) error {
+func (a *adapter) Start(ctx context.Context) error {
 	a.logger.Infof("Listening to AWS Cognito User Pool: %s", a.userPoolID)
 
 	var latestTimestamp time.Time
 
 	backoff := common.NewBackoff()
 
-	err := backoff.Run(stopCh, func(ctx context.Context) (bool, error) {
+	err := backoff.Run(ctx.Done(), func(ctx context.Context) (bool, error) {
 		resetBackoff := false
 		users, err := a.listUsers()
 		if err != nil {

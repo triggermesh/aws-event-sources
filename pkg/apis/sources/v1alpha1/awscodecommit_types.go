@@ -47,6 +47,7 @@ var (
 	_ pkgapis.Validatable = (*AWSCodeCommitSource)(nil)
 	_ pkgapis.Defaultable = (*AWSCodeCommitSource)(nil)
 	_ pkgapis.HasSpec     = (*AWSCodeCommitSource)(nil)
+	_ duckv1.KRShaped     = (*AWSCodeCommitSource)(nil)
 	_ AWSEventSource      = (*AWSCodeCommitSource)(nil)
 )
 

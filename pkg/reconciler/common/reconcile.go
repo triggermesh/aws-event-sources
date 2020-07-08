@@ -50,17 +50,15 @@ type AdapterDeploymentBuilderFunc func(sinkURI *apis.URL) *appsv1.Deployment
 func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context, adb AdapterDeploymentBuilderFunc) reconciler.Event {
 	src := v1alpha1.SourceFromContext(ctx)
 
-	src.GetStatus().InitializeConditions()
-	src.GetStatus().ObservedGeneration = src.GetGeneration()
-	src.GetStatus().CloudEventAttributes = CreateCloudEventAttributes(src.GetARN(), src.GetEventTypes())
+	src.GetSourceStatus().CloudEventAttributes = CreateCloudEventAttributes(src.GetARN(), src.GetEventTypes())
 
 	sinkURI, err := r.resolveSinkURL(ctx)
 	if err != nil {
-		src.GetStatus().MarkNoSink()
+		src.GetSourceStatus().MarkNoSink()
 		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning,
 			ReasonBadSinkURI, "Could not resolve sink URI: %s", err))
 	}
-	src.GetStatus().MarkSink(sinkURI)
+	src.GetSourceStatus().MarkSink(sinkURI)
 
 	if err := r.reconcileAdapter(ctx, adb(sinkURI)); err != nil {
 		return fmt.Errorf("failed to reconcile adapter: %w", err)
@@ -86,7 +84,7 @@ func (r *GenericDeploymentReconciler) reconcileAdapter(ctx context.Context, desi
 
 	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
 	if err != nil {
-		src.GetStatus().PropagateAvailability(currentAdapter)
+		src.GetSourceStatus().PropagateAvailability(currentAdapter)
 		return err
 	}
 
@@ -94,7 +92,7 @@ func (r *GenericDeploymentReconciler) reconcileAdapter(ctx context.Context, desi
 	if err != nil {
 		return fmt.Errorf("failed to synchronize adapter Deployment: %w", err)
 	}
-	src.GetStatus().PropagateAvailability(currentAdapter)
+	src.GetSourceStatus().PropagateAvailability(currentAdapter)
 
 	return nil
 }
@@ -154,17 +152,15 @@ type AdapterServiceBuilderFunc func(sinkURI *apis.URL) *servingv1.Service
 func (r *GenericServiceReconciler) ReconcileSource(ctx context.Context, adb AdapterServiceBuilderFunc) reconciler.Event {
 	src := v1alpha1.SourceFromContext(ctx)
 
-	src.GetStatus().InitializeConditions()
-	src.GetStatus().ObservedGeneration = src.GetGeneration()
-	src.GetStatus().CloudEventAttributes = CreateCloudEventAttributes(src.GetARN(), src.GetEventTypes())
+	src.GetSourceStatus().CloudEventAttributes = CreateCloudEventAttributes(src.GetARN(), src.GetEventTypes())
 
 	sinkURI, err := r.resolveSinkURL(ctx)
 	if err != nil {
-		src.GetStatus().MarkNoSink()
+		src.GetSourceStatus().MarkNoSink()
 		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning,
 			ReasonBadSinkURI, "Could not resolve sink URI: %s", err))
 	}
-	src.GetStatus().MarkSink(sinkURI)
+	src.GetSourceStatus().MarkSink(sinkURI)
 
 	if err := r.reconcileAdapter(ctx, adb(sinkURI)); err != nil {
 		return fmt.Errorf("failed to reconcile adapter: %w", err)
@@ -190,7 +186,7 @@ func (r *GenericServiceReconciler) reconcileAdapter(ctx context.Context, desired
 
 	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
 	if err != nil {
-		src.GetStatus().PropagateAvailability(currentAdapter)
+		src.GetSourceStatus().PropagateAvailability(currentAdapter)
 		return err
 	}
 
@@ -198,7 +194,7 @@ func (r *GenericServiceReconciler) reconcileAdapter(ctx context.Context, desired
 	if err != nil {
 		return fmt.Errorf("failed to synchronize adapter Service: %w", err)
 	}
-	src.GetStatus().PropagateAvailability(currentAdapter)
+	src.GetSourceStatus().PropagateAvailability(currentAdapter)
 
 	return nil
 }

@@ -47,6 +47,7 @@ var (
 	_ pkgapis.Validatable = (*AWSCognitoIdentitySource)(nil)
 	_ pkgapis.Defaultable = (*AWSCognitoIdentitySource)(nil)
 	_ pkgapis.HasSpec     = (*AWSCognitoIdentitySource)(nil)
+	_ duckv1.KRShaped     = (*AWSCognitoIdentitySource)(nil)
 	_ AWSEventSource      = (*AWSCognitoIdentitySource)(nil)
 )
 

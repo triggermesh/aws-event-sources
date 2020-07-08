@@ -47,6 +47,7 @@ var (
 	_ pkgapis.Validatable = (*AWSIoTSource)(nil)
 	_ pkgapis.Defaultable = (*AWSIoTSource)(nil)
 	_ pkgapis.HasSpec     = (*AWSIoTSource)(nil)
+	_ duckv1.KRShaped     = (*AWSIoTSource)(nil)
 	_ AWSEventSource      = (*AWSIoTSource)(nil)
 )
 

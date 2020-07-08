@@ -84,7 +84,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 }
 
 // Start implements adapter.Adapter.
-func (a *adapter) Start(stopCh <-chan struct{}) error {
+func (a *adapter) Start(ctx context.Context) error {
 	url, err := a.queueLookup(a.arn.Resource)
 	if err != nil {
 		a.logger.Errorw("Unable to find URL of SQS queue "+a.arn.Resource, zap.Error(err))
@@ -96,7 +96,7 @@ func (a *adapter) Start(stopCh <-chan struct{}) error {
 
 	backoff := common.NewBackoff()
 
-	err = backoff.Run(stopCh, func(ctx context.Context) (bool, error) {
+	err = backoff.Run(ctx.Done(), func(ctx context.Context) (bool, error) {
 		resetBackoff := false
 		messages, err := a.getMessages(queueURL)
 		if err != nil {

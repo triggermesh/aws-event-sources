@@ -19,6 +19,7 @@ package awssnssource
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 
 	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
@@ -36,6 +37,8 @@ const (
 	envSubscriptionAttrs = "SUBSCRIPTION_ATTRIBUTES"
 	envPublicURL         = "PUBLIC_URL"
 )
+
+const metricsPrometheusPort uint16 = 9092
 
 // adapterConfig contains properties used to configure the source's adapter.
 // These are automatically populated by envconfig.
@@ -103,10 +106,8 @@ func adapterServiceBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) commo
 			resource.EnvVarFromSecret(common.EnvSecretAccessKey,
 				src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
 				src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
+			resource.EnvVar(common.EnvMetricsPrometheusPort, strconv.Itoa(int(metricsPrometheusPort))),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
-			/* FIXME(antoineco): default metrics port 9090 overlaps with queue-proxy
-			 */
-			resource.EnvVar(source.EnvMetricsCfg, ""),
 		)
 	}
 }

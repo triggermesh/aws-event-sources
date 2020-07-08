@@ -73,7 +73,7 @@ func TestStart(t *testing.T) {
 	// ctx gets canceled to cause a voluntary interruption of the receiver
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
-		errCh <- a.Start(ctx.Done())
+		errCh <- a.Start(ctx)
 	}()
 	cancel()
 

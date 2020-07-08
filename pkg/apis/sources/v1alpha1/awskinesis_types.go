@@ -47,6 +47,7 @@ var (
 	_ pkgapis.Validatable = (*AWSKinesisSource)(nil)
 	_ pkgapis.Defaultable = (*AWSKinesisSource)(nil)
 	_ pkgapis.HasSpec     = (*AWSKinesisSource)(nil)
+	_ duckv1.KRShaped     = (*AWSKinesisSource)(nil)
 	_ AWSEventSource      = (*AWSKinesisSource)(nil)
 )
 

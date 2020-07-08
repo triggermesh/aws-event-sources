@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
@@ -33,6 +34,16 @@ func (s *AWSCognitoUserPoolSource) GetUntypedSpec() interface{} {
 	return s.Spec
 }
 
+// GetConditionSet implements duckv1.KRShaped.
+func (s *AWSCognitoUserPoolSource) GetConditionSet() pkgapis.ConditionSet {
+	return awsEventSourceConditionSet
+}
+
+// GetStatus implements duckv1.KRShaped.
+func (s *AWSCognitoUserPoolSource) GetStatus() *duckv1.Status {
+	return &s.Status.Status
+}
+
 // GetSink implements AWSEventSource.
 func (s *AWSCognitoUserPoolSource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
@@ -43,8 +54,8 @@ func (s *AWSCognitoUserPoolSource) GetARN() apis.ARN {
 	return s.Spec.ARN
 }
 
-// GetStatus implements AWSEventSource.
-func (s *AWSCognitoUserPoolSource) GetStatus() *AWSEventSourceStatus {
+// GetSourceStatus implements AWSEventSource.
+func (s *AWSCognitoUserPoolSource) GetSourceStatus() *AWSEventSourceStatus {
 	return &s.Status
 }
 

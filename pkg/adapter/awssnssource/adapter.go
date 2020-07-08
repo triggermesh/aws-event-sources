@@ -128,14 +128,14 @@ const (
 )
 
 // Start implements adapter.Adapter.
-func (a *adapter) Start(stopCh <-chan struct{}) error {
+func (a *adapter) Start(ctx context.Context) error {
 	// ctx gets canceled to stop goroutines
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	// handle stop signals
 	go func() {
-		<-stopCh
+		<-ctx.Done()
 		a.logger.Info("Shutdown signal received. Terminating")
 		cancel()
 	}()

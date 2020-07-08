@@ -224,7 +224,7 @@ func assertPopulatedSource(t *testing.T, src v1alpha1.AWSEventSource) {
 
 	assert.NotEmpty(t, src.GetSink().Ref, "Provided source should reference a sink")
 	assert.NotEmpty(t, src.GetEventTypes(), "Provided source should declare its event types")
-	assert.NotEmpty(t, src.GetStatus().Status.Conditions, "Provided source should have initialized conditions")
+	assert.NotEmpty(t, src.GetSourceStatus().Status.Conditions, "Provided source should have initialized conditions")
 }
 
 func nameKindAndResource(object runtime.Object) (string /*name*/, string /*kind*/, string /*resource*/) {
@@ -262,7 +262,7 @@ func Populate(srcCpy v1alpha1.AWSEventSource) {
 		Name:       addr.GetName(),
 	}
 
-	status := srcCpy.GetStatus()
+	status := srcCpy.GetSourceStatus()
 	status.CloudEventAttributes = common.CreateCloudEventAttributes(srcCpy.GetARN(), srcCpy.GetEventTypes())
 	status.InitializeConditions()
 }
@@ -291,17 +291,17 @@ type sourceOption func(v1alpha1.AWSEventSource)
 
 // noCEAttributes sets empty CE attributes. Simulates the creation of a new source.
 func noCEAttributes(src v1alpha1.AWSEventSource) {
-	src.GetStatus().CloudEventAttributes = nil
+	src.GetSourceStatus().CloudEventAttributes = nil
 }
 
 // Sink: True
 func withSink(src v1alpha1.AWSEventSource) {
-	src.GetStatus().MarkSink(tSinkURI)
+	src.GetSourceStatus().MarkSink(tSinkURI)
 }
 
 // Sink: False
 func withoutSink(src v1alpha1.AWSEventSource) {
-	src.GetStatus().MarkNoSink()
+	src.GetSourceStatus().MarkNoSink()
 }
 
 // Deployed: True
@@ -310,7 +310,7 @@ func deployed(adapter runtime.Object) sourceOption {
 	ready(adapter)
 
 	return func(src v1alpha1.AWSEventSource) {
-		src.GetStatus().PropagateAvailability(adapter)
+		src.GetSourceStatus().PropagateAvailability(adapter)
 	}
 }
 
@@ -320,7 +320,7 @@ func notDeployed(adapter runtime.Object) sourceOption {
 	notReady(adapter)
 
 	return func(src v1alpha1.AWSEventSource) {
-		src.GetStatus().PropagateAvailability(adapter)
+		src.GetSourceStatus().PropagateAvailability(adapter)
 	}
 }
 
@@ -336,7 +336,7 @@ func unknownDeployedWithError(adapter runtime.Object) sourceOption {
 	}
 
 	return func(src v1alpha1.AWSEventSource) {
-		src.GetStatus().PropagateAvailability(nilObj)
+		src.GetSourceStatus().PropagateAvailability(nilObj)
 	}
 }
 
@@ -458,9 +458,7 @@ func failUpdateAdapterEvent(name, kind, resource string) string {
 func badSinkEvent() string {
 	addrGVK := newAdressable().GetGroupVersionKind()
 
-	// FIXME: the event reason is "InternalError" instead of the expected common.ReasonBadSinkURI
-	// because controller.NewPermanentError does not use Go's error wrapping.
-	return eventtesting.Eventf(corev1.EventTypeWarning, "InternalError", "Could not resolve sink URI: "+
+	return eventtesting.Eventf(corev1.EventTypeWarning, common.ReasonBadSinkURI, "Could not resolve sink URI: "+
 		"failed to get ref &ObjectReference{Kind:%s,Namespace:%s,Name:%s,UID:,APIVersion:%s,ResourceVersion:,FieldPath:,}: "+
 		"%s %q not found",
 		addrGVK.Kind, tNs, tName, addrGVK.GroupVersion().String(),

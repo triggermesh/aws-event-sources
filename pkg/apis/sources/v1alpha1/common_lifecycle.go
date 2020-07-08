@@ -111,7 +111,7 @@ func (s *AWSEventSourceStatus) propagateServiceAvailability(ksvc *servingv1.Serv
 	}
 	s.Address.URL = ksvc.Status.URL
 
-	if ksvc.Status.IsReady() {
+	if ksvc.IsReady() {
 		awsEventSourceConditionSet.Manage(s).MarkTrue(ConditionDeployed)
 		return
 	}

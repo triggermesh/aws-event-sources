@@ -25,4 +25,6 @@ const (
 	EnvARN             = "ARN"
 	EnvAccessKeyID     = "AWS_ACCESS_KEY_ID"
 	EnvSecretAccessKey = "AWS_SECRET_ACCESS_KEY" //nolint:gosec
+
+	EnvMetricsPrometheusPort = "METRICS_PROMETHEUS_PORT"
 )

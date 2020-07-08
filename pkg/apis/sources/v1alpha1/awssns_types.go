@@ -47,6 +47,7 @@ var (
 	_ pkgapis.Validatable = (*AWSSNSSource)(nil)
 	_ pkgapis.Defaultable = (*AWSSNSSource)(nil)
 	_ pkgapis.HasSpec     = (*AWSSNSSource)(nil)
+	_ duckv1.KRShaped     = (*AWSSNSSource)(nil)
 	_ AWSEventSource      = (*AWSSNSSource)(nil)
 )
 

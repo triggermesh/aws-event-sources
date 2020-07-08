@@ -13,19 +13,18 @@ replace (
 
 require (
 	github.com/aws/aws-sdk-go v1.30.21
-	github.com/cloudevents/sdk-go/v2 v2.0.0
+	github.com/cloudevents/sdk-go/v2 v2.1.0
 	github.com/google/go-cmp v0.4.0
 	github.com/imdario/mergo v0.3.9 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/stretchr/testify v1.5.1
-	go.opencensus.io v0.22.4 // indirect
 	go.uber.org/zap v1.15.0
-	k8s.io/api v0.18.0
+	k8s.io/api v0.18.1
 	k8s.io/apiextensions-apiserver v0.18.0 // indirect
-	k8s.io/apimachinery v0.18.0
+	k8s.io/apimachinery v0.18.1
 	k8s.io/client-go v11.0.1-0.20190805182717-6502b5e7b1b5+incompatible
 	k8s.io/utils v0.0.0-20200327001022-6496210b90e8 // indirect
-	knative.dev/eventing v0.15.1
-	knative.dev/pkg v0.0.0-20200528142800-1c6815d7e4c9
-	knative.dev/serving v0.15.1
+	knative.dev/eventing v0.16.0
+	knative.dev/pkg v0.0.0-20200702222342-ea4d6e985ba0
+	knative.dev/serving v0.16.0
 )

@@ -90,12 +90,12 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 }
 
 // Start implements adapter.Adapter.
-func (a *adapter) Start(stopCh <-chan struct{}) error {
+func (a *adapter) Start(ctx context.Context) error {
 	a.logger.Infof("Listening to AWS Cognito stream for Identity: %s", a.identityPoolID)
 
 	backoff := common.NewBackoff()
 
-	err := backoff.Run(stopCh, func(ctx context.Context) (bool, error) {
+	err := backoff.Run(ctx.Done(), func(ctx context.Context) (bool, error) {
 		resetBackoff := false
 		identities, err := a.getIdentities()
 		if err != nil {

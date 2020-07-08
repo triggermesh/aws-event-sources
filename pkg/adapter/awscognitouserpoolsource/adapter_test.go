@@ -138,25 +138,25 @@ func TestStart(t *testing.T) {
 	testCtx, testCancel := context.WithTimeout(context.Background(), testTimeout)
 	defer testCancel()
 
-	// channel to receive stop signals
-	stopCh := make(chan struct{})
+	// context to receive stop signals
+	adapCtx, adapCancel := context.WithCancel(context.Background())
 
 	// channel to receive the value returned by Start()
 	errCh := make(chan error)
 
 	// run adapter handler in the background
 	go func() {
-		errCh <- a.Start(stopCh)
+		errCh <- a.Start(adapCtx)
 	}()
 
 	// simulate sending a stop signal to the adapter
-	close(stopCh)
+	adapCancel()
 
 	// if the timeout is done before the handler returned, the test is always failed
 	select {
 	case <-testCtx.Done():
 		t.Errorf("Test timed out after %v", testTimeout)
 	case err := <-errCh:
-		assert.NoErrorf(t, err, "Receiver returned an error")
+		assert.NoError(t, err, "Receiver returned an error")
 	}
 }

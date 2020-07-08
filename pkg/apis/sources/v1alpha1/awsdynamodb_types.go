@@ -47,6 +47,7 @@ var (
 	_ pkgapis.Validatable = (*AWSDynamoDBSource)(nil)
 	_ pkgapis.Defaultable = (*AWSDynamoDBSource)(nil)
 	_ pkgapis.HasSpec     = (*AWSDynamoDBSource)(nil)
+	_ duckv1.KRShaped     = (*AWSDynamoDBSource)(nil)
 	_ AWSEventSource      = (*AWSDynamoDBSource)(nil)
 )
 
