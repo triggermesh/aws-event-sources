@@ -1,0 +1,12 @@
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: aws-event-sources-operator
+subjects:
+- kind: ServiceAccount
+  name: aws-event-sources-operator
+  namespace: openshift-operators
+roleRef:
+  kind: ClusterRole
+  name: aws-event-sources-operator
+  apiGroup: rbac.authorization.k8s.io

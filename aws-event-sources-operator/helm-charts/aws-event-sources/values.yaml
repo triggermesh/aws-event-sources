@@ -1,0 +1,71 @@
+nameOverride: ""
+
+fullnameOverride: ""
+
+rbac:
+  create: true
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+imagePullSecrets: []
+
+image:
+  # registry: gcr.io
+  # repository: triggermesh/aws-event-sources-controller
+  # tag: "v0.3.0"
+  image: gcr.io/triggermesh/aws-event-sources-controller:v0.3.0
+  pullPolicy: IfNotPresent
+
+adapters:
+  awscodecommit:
+    # repository: triggermesh/awscodecommitsource
+    # tag: ""
+    image: gcr.io/triggermesh/awscodecommitsource:v0.3.0
+  awscognitoidentity:
+    # repository: triggermesh/awscognitoidentitysource
+    # tag: ""
+    image: gcr.io/triggermesh/awscognitoidentitysource:v0.3.0
+  awscognitouserpool:
+    # repository: triggermesh/awscognitouserpoolsource
+    # tag: ""
+    image: gcr.io/triggermesh/awscognitouserpoolsource:v0.3.0
+  awsdynamodb:
+    # repository: triggermesh/awsdynamodbsource
+    # tag: ""
+    image: gcr.io/triggermesh/awsdynamodbsource:v0.3.0
+  awskinesis:
+    # repository: triggermesh/awskinesissource
+    # tag: ""
+    image: gcr.io/triggermesh/awskinesissource:v0.3.0
+  awssns:
+    # repository: triggermesh/awssnssource
+    # tag: ""
+    image: gcr.io/triggermesh/awssnssource:v0.3.0
+  awssqs:
+    # repository: triggermesh/awssqssource
+    # tag: ""
+    image: gcr.io/triggermesh/awssqssource:v0.3.0
+
+knative:
+  urlScheme: http
+  domain: example.com
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+resources:
+  requests:
+    cpu: 20m
+    memory: 20Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
