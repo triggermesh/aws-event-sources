@@ -1,4 +1,4 @@
-# Triggermesh AWS Event Sources
+# TriggerMesh AWS Event Sources
 
 [aws-event-sources](https://github.com/triggermesh/aws-event-sources) is a Kubernetes controller for Knative event sources for AWS services.
 
