@@ -42,7 +42,7 @@ spec:
       containers:
         - name: controller
           image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.imagePullPolicy}}
+          imagePullPolicy: {{ .Values.image.pullPolicy}}
           terminationMessagePolicy: FallbackToLogsOnError
           env:
             - name: SYSTEM_NAMESPACE
