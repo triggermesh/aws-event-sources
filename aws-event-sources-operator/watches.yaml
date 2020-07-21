@@ -1,0 +1,14 @@
+---
+- group: sources.triggermesh.com
+  version: v1alpha1
+  kind: AwsEventSources
+  chart: helm-charts/aws-event-sources
+  overrideValues:
+    image.image: $AWS_EVENT_SOURCES_CONTROLLER_IMAGE
+    adapters.awscodecommit.image: $AWSCODECOMMIT_ADAPTER_IMAGE
+    adapters.awscognitoidentity.image: $AWSCOGNITOIDENTITY_ADAPTER_IMAGE
+    adapters.awscognitouserpool.image: $AWSCOGNITOUSERPOOL_ADAPTER_IMAGE
+    adapters.awsdynamodb.image: $AWSDYNAMODB_ADAPTER_IMAGE
+    adapters.awskinesis.image: $AWSKINESIS_ADAPTER_IMAGE
+    adapters.awssns.image: $AWSSNS_ADAPTER_IMAGE
+    adapters.awssqs.image: $AWSSQS_ADAPTER_IMAGE

@@ -1,0 +1,277 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "sources.triggermesh.com/v1alpha1",
+          "kind": "AwsEventSources",
+          "metadata": {
+            "name": "example-awseventsources"
+          },
+          "spec": {
+            "adapters": {
+              "awscodecommit": {
+                "image": "gcr.io/triggermesh/awscodecommitsource:v0.3.0"
+              },
+              "awscognitoidentity": {
+                "image": "gcr.io/triggermesh/awscognitoidentitysource:v0.3.0"
+              },
+              "awscognitouserpool": {
+                "image": "gcr.io/triggermesh/awscognitouserpoolsource:v0.3.0"
+              },
+              "awsdynamodb": {
+                "image": "gcr.io/triggermesh/awsdynamodbsource:v0.3.0"
+              },
+              "awskinesis": {
+                "image": "gcr.io/triggermesh/awskinesissource:v0.3.0"
+              },
+              "awssns": {
+                "image": "gcr.io/triggermesh/awssnssource:v0.3.0"
+              },
+              "awssqs": {
+                "image": "gcr.io/triggermesh/awssqssource:v0.3.0"
+              }
+            },
+            "affinity": {},
+            "fullnameOverride": "",
+            "image": {
+              "image": "gcr.io/triggermesh/aws-event-sources-controller:v0.3.0",
+              "pullPolicy": "IfNotPresent"
+            },
+            "imagePullSecrets": [],
+            "knative": {
+              "domain": "example.com",
+              "urlScheme": "http"
+            },
+            "nameOverride": "",
+            "nodeSelector": {},
+            "podAnnotations": {},
+            "podSecurityContext": {},
+            "rbac": {
+              "create": true
+            },
+            "resources": {
+              "requests": {
+                "cpu": "20m",
+                "memory": "20Mi"
+              }
+            },
+            "securityContext": {},
+            "serviceAccount": {
+              "annotations": {},
+              "create": true,
+              "name": ""
+            },
+            "tolerations": []
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: Integration & Delivery,Streaming & Messaging
+    containerImage: gcr.io/triggermesh/aws-event-sources-operator:v0.0.1
+    createdAt: "2020-07-18T12:00:00Z"
+    description: AWS Event Sources controller for Kubernetes
+    repository: https://github.com/triggermesh/aws-event-sources
+    support: TriggerMesh Inc.
+  name: aws-event-sources-operator.v0.0.1
+  namespace: openshift-operators
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: AWS Event Sources controller for Kubernetes
+      displayName: AwsEventSources Operator
+      kind: AwsEventSources
+      name: awseventsources.sources.triggermesh.com
+      version: v1alpha1
+  description: |
+    aws-event-sources is a Kubernetes controller that implements Knative event sources for AWS services. The following event sources are currently supported by the controller
+
+    - Amazon CodeCommit (`kind: AWSCodeCommitSource`)
+    - Amazon Cognito Identity (`kind: AWSCognitoIdentitySource`)
+    - Amazon Cognito UserPool (`kind: AWSCognitoUserPoolSource`)
+    - Amazon DynamoDB (`kind: AWSDynamoDBSource`)
+    - Amazon Kinesis (`kind: AWSKinesisSource`)
+    - Amazon Simple Notification Service (`kind: AWSSNSSource`)
+    - Amazon Simple Queue Service (`kind: AWSSQSSource`)
+
+    Refer to [aws-event-sources/config/samples](https://github.com/triggermesh/aws-event-sources/tree/master/config/samples) for examples that make use of the controller.
+  displayName: AWS Event Sources Operator
+  icon:
+  - base64data: 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
+    mediatype: image/png
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - '*'
+        - apiGroups:
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          verbs:
+          - get
+          - create
+        - apiGroups:
+          - apps
+          resourceNames:
+          - aws-event-sources-operator
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - services
+          - services/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          - deployments
+          verbs:
+          - get
+        - apiGroups:
+          - sources.triggermesh.com
+          resources:
+          - '*'
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - '*'
+        serviceAccountName: aws-event-sources-operator
+      deployments:
+      - name: aws-event-sources-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: aws-event-sources-operator
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                name: aws-event-sources-operator
+            spec:
+              containers:
+              - env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: aws-event-sources-operator
+                - name: AWS_EVENT_SOURCES_CONTROLLER_IMAGE
+                  value: gcr.io/triggermesh/aws-event-sources-controller:v0.3.0
+                - name: AWSCODECOMMIT_ADAPTER_IMAGE
+                  value: gcr.io/triggermesh/awscodecommitsource:v0.3.0
+                - name: AWSCOGNITOIDENTITY_ADAPTER_IMAGE
+                  value: gcr.io/triggermesh/awscognitoidentitysource:v0.3.0
+                - name: AWSCOGNITOUSERPOOL_ADAPTER_IMAGE
+                  value: gcr.io/triggermesh/awscognitouserpoolsource:v0.3.0
+                - name: AWSDYNAMODB_ADAPTER_IMAGE
+                  value: gcr.io/triggermesh/awsdynamodbsource:v0.3.0
+                - name: AWSKINESIS_ADAPTER_IMAGE
+                  value: gcr.io/triggermesh/awskinesissource:v0.3.0
+                - name: AWSSNS_ADAPTER_IMAGE
+                  value: gcr.io/triggermesh/awssnssource:v0.3.0
+                - name: AWSSQS_ADAPTER_IMAGE
+                  value: gcr.io/triggermesh/awssqssource:v0.3.0
+                image: gcr.io/triggermesh/aws-event-sources-operator:v0.0.1
+                imagePullPolicy: Always
+                name: aws-event-sources-operator
+                resources: {}
+              serviceAccountName: aws-event-sources-operator
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - knative
+  - serverless
+  - aws
+  - triggermesh
+  links:
+  - name: Aws Event Sources Operator
+    url: https://aws-event-sources-operator.domain
+  maintainers:
+  - email: dev@triggermesh.com
+    name: TriggerMesh Developers
+  maturity: alpha
+  provider:
+    name: TriggerMesh Inc.
+  version: 0.0.1
