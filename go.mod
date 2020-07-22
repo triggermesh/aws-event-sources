@@ -5,10 +5,10 @@ go 1.14
 // Top-level module control over the exact version used for important direct dependencies.
 // https://github.com/golang/go/wiki/Modules#when-should-i-use-the-replace-directive
 replace (
-	k8s.io/api => k8s.io/api v0.16.8
-	k8s.io/apimachinery => k8s.io/apimachinery v0.16.8
-	k8s.io/client-go => k8s.io/client-go v0.16.8
-	k8s.io/code-generator => k8s.io/code-generator v0.16.8
+	k8s.io/api => k8s.io/api v0.17.6
+	k8s.io/apimachinery => k8s.io/apimachinery v0.17.6
+	k8s.io/client-go => k8s.io/client-go v0.17.6
+	k8s.io/code-generator => k8s.io/code-generator v0.17.6
 )
 
 require (
