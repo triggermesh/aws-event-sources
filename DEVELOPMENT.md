@@ -10,6 +10,7 @@
    * [Custom resource definition](#custom-resource-definition)
    * [Reconciler](#reconciler)
    * [Adapter](#adapter)
+1. [External resources](#external-resources)
 
 ## Running the controller
 
@@ -127,5 +128,11 @@ the two is usually based on environment variables that can be used to inject par
 
 1. If specific libraries are needed for that adapter, write them under `pkg/adapter/<RESOURCE>`.
 
+## External resources
+
+For a comprehensive and step-by-step tutorial about writing an event source for Knative, please refer to [Writing an
+event source with Receive Adapter][kndoc-source] (knative.dev).
+
 
 [depinject]: https://github.com/knative/pkg/blob/release-0.15/injection/README.md
+[kndoc-source]: https://knative.dev/v0.15-docs/eventing/samples/writing-receive-adapter-source/
