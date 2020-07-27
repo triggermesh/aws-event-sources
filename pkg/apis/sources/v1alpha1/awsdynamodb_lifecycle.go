@@ -17,12 +17,14 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strings"
+
+	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	pkgapis "knative.dev/pkg/apis"
+	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
-
-	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
@@ -31,7 +33,7 @@ func (s *AWSDynamoDBSource) GetGroupVersionKind() schema.GroupVersionKind {
 }
 
 // GetConditionSet implements duckv1.KRShaped.
-func (s *AWSDynamoDBSource) GetConditionSet() pkgapis.ConditionSet {
+func (s *AWSDynamoDBSource) GetConditionSet() apis.ConditionSet {
 	return awsEventSourceConditionSet
 }
 
@@ -40,33 +42,34 @@ func (s *AWSDynamoDBSource) GetStatus() *duckv1.Status {
 	return &s.Status.Status
 }
 
-// GetSink implements AWSEventSource.
+// GetSink implements EventSource.
 func (s *AWSDynamoDBSource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
 }
 
-// GetARN implements AWSEventSource.
-func (s *AWSDynamoDBSource) GetARN() apis.ARN {
-	return s.Spec.ARN
-}
-
-// GetSourceStatus implements AWSEventSource.
-func (s *AWSDynamoDBSource) GetSourceStatus() *AWSEventSourceStatus {
+// GetSourceStatus implements EventSource.
+func (s *AWSDynamoDBSource) GetSourceStatus() *EventSourceStatus {
 	return &s.Status
 }
 
-// Supported event types
-const (
-	AWSDynamoDBAddEventType    = "insert"
-	AWSDynamoDBModifyEventType = "modify"
-	AWSDynamoDBRemoveEventType = "remove"
-)
-
-// GetEventTypes implements AWSEventSource.
+// GetEventTypes implements EventSource.
 func (s *AWSDynamoDBSource) GetEventTypes() []string {
-	return []string{
-		AWSDynamoDBAddEventType,
-		AWSDynamoDBModifyEventType,
-		AWSDynamoDBRemoveEventType,
+	const numEventTypes = 3
+
+	types := make([]string, numEventTypes)
+
+	for i, typ := range [numEventTypes]string{
+		dynamodbstreams.OperationTypeInsert,
+		dynamodbstreams.OperationTypeModify,
+		dynamodbstreams.OperationTypeRemove,
+	} {
+		types[i] = AWSEventType(s.Spec.ARN.Service, strings.ToLower(typ))
 	}
+
+	return types
+}
+
+// AsEventSource implements EventSource.
+func (s *AWSDynamoDBSource) AsEventSource() string {
+	return s.Spec.ARN.String()
 }

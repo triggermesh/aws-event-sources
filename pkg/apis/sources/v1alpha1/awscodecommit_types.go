@@ -35,13 +35,13 @@ type AWSCodeCommitSource struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   AWSCodeCommitSourceSpec `json:"spec,omitempty"`
-	Status AWSEventSourceStatus    `json:"status,omitempty"`
+	Status EventSourceStatus       `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object = (*AWSCodeCommitSource)(nil)
-	_ AWSEventSource = (*AWSCodeCommitSource)(nil)
+	_ EventSource    = (*AWSCodeCommitSource)(nil)
 )
 
 // AWSCodeCommitSourceSpec defines the desired state of the event source.

@@ -18,10 +18,9 @@ package v1alpha1
 
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	pkgapis "knative.dev/pkg/apis"
-	duckv1 "knative.dev/pkg/apis/duck/v1"
 
-	"github.com/triggermesh/aws-event-sources/pkg/apis"
+	"knative.dev/pkg/apis"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
@@ -30,7 +29,7 @@ func (s *AWSCognitoUserPoolSource) GetGroupVersionKind() schema.GroupVersionKind
 }
 
 // GetConditionSet implements duckv1.KRShaped.
-func (s *AWSCognitoUserPoolSource) GetConditionSet() pkgapis.ConditionSet {
+func (s *AWSCognitoUserPoolSource) GetConditionSet() apis.ConditionSet {
 	return awsEventSourceConditionSet
 }
 
@@ -39,29 +38,29 @@ func (s *AWSCognitoUserPoolSource) GetStatus() *duckv1.Status {
 	return &s.Status.Status
 }
 
-// GetSink implements AWSEventSource.
+// GetSink implements EventSource.
 func (s *AWSCognitoUserPoolSource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
 }
 
-// GetARN implements AWSEventSource.
-func (s *AWSCognitoUserPoolSource) GetARN() apis.ARN {
-	return s.Spec.ARN
-}
-
-// GetSourceStatus implements AWSEventSource.
-func (s *AWSCognitoUserPoolSource) GetSourceStatus() *AWSEventSourceStatus {
+// GetSourceStatus implements EventSource.
+func (s *AWSCognitoUserPoolSource) GetSourceStatus() *EventSourceStatus {
 	return &s.Status
 }
 
 // Supported event types
 const (
-	AWSCognitoGenericEventType = "sync_trigger"
+	AWSCognitoUserPoolGenericEventType = "sync_trigger"
 )
 
-// GetEventTypes implements AWSEventSource.
+// GetEventTypes implements EventSource.
 func (s *AWSCognitoUserPoolSource) GetEventTypes() []string {
 	return []string{
-		AWSCognitoGenericEventType,
+		AWSEventType(s.Spec.ARN.Service, AWSCognitoUserPoolGenericEventType),
 	}
+}
+
+// AsEventSource implements EventSource.
+func (s *AWSCognitoUserPoolSource) AsEventSource() string {
+	return s.Spec.ARN.String()
 }

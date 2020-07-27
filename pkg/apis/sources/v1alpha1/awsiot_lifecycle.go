@@ -19,10 +19,8 @@ package v1alpha1
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	pkgapis "knative.dev/pkg/apis"
+	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
-
-	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
@@ -31,7 +29,7 @@ func (s *AWSIoTSource) GetGroupVersionKind() schema.GroupVersionKind {
 }
 
 // GetConditionSet implements duckv1.KRShaped.
-func (s *AWSIoTSource) GetConditionSet() pkgapis.ConditionSet {
+func (s *AWSIoTSource) GetConditionSet() apis.ConditionSet {
 	return awsEventSourceConditionSet
 }
 
@@ -40,18 +38,13 @@ func (s *AWSIoTSource) GetStatus() *duckv1.Status {
 	return &s.Status.Status
 }
 
-// GetSink implements AWSEventSource.
+// GetSink implements EventSource.
 func (s *AWSIoTSource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
 }
 
-// GetARN implements AWSEventSource.
-func (s *AWSIoTSource) GetARN() apis.ARN {
-	return s.Spec.ARN
-}
-
-// GetSourceStatus implements AWSEventSource.
-func (s *AWSIoTSource) GetSourceStatus() *AWSEventSourceStatus {
+// GetSourceStatus implements EventSource.
+func (s *AWSIoTSource) GetSourceStatus() *EventSourceStatus {
 	return &s.Status
 }
 
@@ -60,9 +53,14 @@ const (
 	AWSIoTGenericEventType = "greetings"
 )
 
-// GetEventTypes implements AWSEventSource.
+// GetEventTypes implements EventSource.
 func (s *AWSIoTSource) GetEventTypes() []string {
 	return []string{
-		AWSIoTGenericEventType,
+		AWSEventType(s.Spec.ARN.Service, AWSIoTGenericEventType),
 	}
+}
+
+// AsEventSource implements EventSource.
+func (s *AWSIoTSource) AsEventSource() string {
+	return s.Spec.ARN.String()
 }

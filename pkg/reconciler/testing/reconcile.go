@@ -63,7 +63,7 @@ var tSinkURI = &apis.URL{
 //  2. MakeFactory injects those clients into a context along with fake event recorders, etc.
 //  3. A Reconciler is constructed via a Ctor function using the values injected above
 //  4. The Reconciler returned by MakeFactory is used to run the test case
-func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource, adapterFn interface{}) {
+func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn interface{}) {
 	assertPopulatedSource(t, src)
 
 	newEventSource := eventSourceCtor(src)
@@ -216,7 +216,7 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.AWSEventSource, adapter
 
 // assertPopulatedSource asserts that all source attributes required in
 // reconciliation tests are populated and valid.
-func assertPopulatedSource(t *testing.T, src v1alpha1.AWSEventSource) {
+func assertPopulatedSource(t *testing.T, src v1alpha1.EventSource) {
 	t.Helper()
 
 	// used to generate the adapter's owner reference
@@ -250,7 +250,7 @@ func nameKindAndResource(object runtime.Object) (string /*name*/, string /*kind*
 /* Event sources */
 
 // Populate populates an event source with generic attributes.
-func Populate(srcCpy v1alpha1.AWSEventSource) {
+func Populate(srcCpy v1alpha1.EventSource) {
 	srcCpy.SetNamespace(tNs)
 	srcCpy.SetName(tName)
 	srcCpy.SetUID(tUID)
@@ -269,19 +269,19 @@ func Populate(srcCpy v1alpha1.AWSEventSource) {
 	reconciler.PreProcessReconcile(context.Background(), srcCpy)
 
 	srcCpy.GetSourceStatus().CloudEventAttributes = common.CreateCloudEventAttributes(
-		srcCpy.GetARN(), srcCpy.GetEventTypes())
+		srcCpy.AsEventSource(), srcCpy.GetEventTypes())
 }
 
 // sourceCtorWithOptions is a function that returns a source object with
 // modifications applied.
-type sourceCtorWithOptions func(...sourceOption) v1alpha1.AWSEventSource
+type sourceCtorWithOptions func(...sourceOption) v1alpha1.EventSource
 
 // eventSourceCtor creates a copy of the given source object and returns a
 // function that can be invoked to return that source, with the possibility to
 // apply options to it.
-func eventSourceCtor(src v1alpha1.AWSEventSource) sourceCtorWithOptions {
-	return func(opts ...sourceOption) v1alpha1.AWSEventSource {
-		srcCpy := src.DeepCopyObject().(v1alpha1.AWSEventSource)
+func eventSourceCtor(src v1alpha1.EventSource) sourceCtorWithOptions {
+	return func(opts ...sourceOption) v1alpha1.EventSource {
+		srcCpy := src.DeepCopyObject().(v1alpha1.EventSource)
 
 		for _, opt := range opts {
 			opt(srcCpy)
@@ -292,20 +292,20 @@ func eventSourceCtor(src v1alpha1.AWSEventSource) sourceCtorWithOptions {
 }
 
 // sourceOption is a functional option for a source interface.
-type sourceOption func(v1alpha1.AWSEventSource)
+type sourceOption func(v1alpha1.EventSource)
 
 // noCEAttributes sets empty CE attributes. Simulates the creation of a new source.
-func noCEAttributes(src v1alpha1.AWSEventSource) {
+func noCEAttributes(src v1alpha1.EventSource) {
 	src.GetSourceStatus().CloudEventAttributes = nil
 }
 
 // Sink: True
-func withSink(src v1alpha1.AWSEventSource) {
+func withSink(src v1alpha1.EventSource) {
 	src.GetSourceStatus().MarkSink(tSinkURI)
 }
 
 // Sink: False
-func withoutSink(src v1alpha1.AWSEventSource) {
+func withoutSink(src v1alpha1.EventSource) {
 	src.GetSourceStatus().MarkNoSink()
 }
 
@@ -314,7 +314,7 @@ func deployed(adapter runtime.Object) sourceOption {
 	adapter = adapter.DeepCopyObject()
 	ready(adapter)
 
-	return func(src v1alpha1.AWSEventSource) {
+	return func(src v1alpha1.EventSource) {
 		src.GetSourceStatus().PropagateAvailability(adapter)
 	}
 }
@@ -324,7 +324,7 @@ func notDeployed(adapter runtime.Object) sourceOption {
 	adapter = adapter.DeepCopyObject()
 	notReady(adapter)
 
-	return func(src v1alpha1.AWSEventSource) {
+	return func(src v1alpha1.EventSource) {
 		src.GetSourceStatus().PropagateAvailability(adapter)
 	}
 }
@@ -340,13 +340,13 @@ func unknownDeployedWithError(adapter runtime.Object) sourceOption {
 		nilObj = (*servingv1.Service)(nil)
 	}
 
-	return func(src v1alpha1.AWSEventSource) {
+	return func(src v1alpha1.EventSource) {
 		src.GetSourceStatus().PropagateAvailability(nilObj)
 	}
 }
 
 // deleted marks the source as deleted.
-func deleted(src v1alpha1.AWSEventSource) {
+func deleted(src v1alpha1.EventSource) {
 	t := metav1.Unix(0, 0)
 	src.SetDeletionTimestamp(&t)
 }
@@ -359,7 +359,7 @@ type adapterCtorWithOptions func(...adapterOption) runtime.Object
 
 // adapterCtor creates a copy of the given adapter object and returns a
 // function that can apply options to that object.
-func adapterCtor(adapterFn interface{}, src v1alpha1.AWSEventSource) adapterCtorWithOptions {
+func adapterCtor(adapterFn interface{}, src v1alpha1.EventSource) adapterCtorWithOptions {
 	return func(opts ...adapterOption) runtime.Object {
 		var obj runtime.Object
 

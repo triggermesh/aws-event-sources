@@ -72,7 +72,7 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCognitoUserPoolSource, cfg *adapt
 			resource.EnvVar(common.EnvName, src.Name),
 			resource.EnvVar(common.EnvNamespace, src.Namespace),
 			resource.EnvVar(common.EnvSink, sinkURIStr),
-			resource.EnvVar(common.EnvARN, src.GetARN().String()),
+			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
 			resource.EnvVarFromSecret(common.EnvAccessKeyID,
 				src.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
 				src.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),

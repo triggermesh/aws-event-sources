@@ -19,10 +19,8 @@ package v1alpha1
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	pkgapis "knative.dev/pkg/apis"
+	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
-
-	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
@@ -31,7 +29,7 @@ func (s *AWSCodeCommitSource) GetGroupVersionKind() schema.GroupVersionKind {
 }
 
 // GetConditionSet implements duckv1.KRShaped.
-func (s *AWSCodeCommitSource) GetConditionSet() pkgapis.ConditionSet {
+func (s *AWSCodeCommitSource) GetConditionSet() apis.ConditionSet {
 	return awsEventSourceConditionSet
 }
 
@@ -40,22 +38,28 @@ func (s *AWSCodeCommitSource) GetStatus() *duckv1.Status {
 	return &s.Status.Status
 }
 
-// GetSink implements AWSEventSource.
+// GetSink implements EventSource.
 func (s *AWSCodeCommitSource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
 }
 
-// GetARN implements AWSEventSource.
-func (s *AWSCodeCommitSource) GetARN() apis.ARN {
-	return s.Spec.ARN
-}
-
-// GetSourceStatus implements AWSEventSource.
-func (s *AWSCodeCommitSource) GetSourceStatus() *AWSEventSourceStatus {
+// GetSourceStatus implements EventSource.
+func (s *AWSCodeCommitSource) GetSourceStatus() *EventSourceStatus {
 	return &s.Status
 }
 
-// GetEventTypes implements AWSEventSource.
+// GetEventTypes implements EventSource.
 func (s *AWSCodeCommitSource) GetEventTypes() []string {
-	return s.Spec.EventTypes
+	types := make([]string, len(s.Spec.EventTypes))
+
+	for i, typ := range s.Spec.EventTypes {
+		types[i] = AWSEventType(s.Spec.ARN.Service, typ)
+	}
+
+	return types
+}
+
+// AsEventSource implements EventSource.
+func (s *AWSCodeCommitSource) AsEventSource() string {
+	return s.Spec.ARN.String()
 }

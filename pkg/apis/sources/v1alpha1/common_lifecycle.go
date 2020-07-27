@@ -39,12 +39,12 @@ var awsEventSourceConditionSet = apis.NewLivingConditionSet(
 )
 
 // InitializeConditions sets relevant unset conditions to Unknown state.
-func (s *AWSEventSourceStatus) InitializeConditions() {
+func (s *EventSourceStatus) InitializeConditions() {
 	awsEventSourceConditionSet.Manage(s).InitializeConditions()
 }
 
 // MarkSink sets the SinkProvided condition to True using the given URI.
-func (s *AWSEventSourceStatus) MarkSink(uri *apis.URL) {
+func (s *EventSourceStatus) MarkSink(uri *apis.URL) {
 	s.SinkURI = uri
 	if uri == nil {
 		awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionSinkProvided,
@@ -55,7 +55,7 @@ func (s *AWSEventSourceStatus) MarkSink(uri *apis.URL) {
 }
 
 // MarkNoSink sets the SinkProvided condition to False.
-func (s *AWSEventSourceStatus) MarkNoSink() {
+func (s *EventSourceStatus) MarkNoSink() {
 	s.SinkURI = nil
 	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionSinkProvided,
 		ReasonSinkNotFound, "The sink does not exist or its URI is not set")
@@ -64,7 +64,7 @@ func (s *AWSEventSourceStatus) MarkNoSink() {
 // PropagateAvailability uses the readiness of the provided Deployment or
 // Service to determine whether the Deployed condition should be marked as True
 // or False.
-func (s *AWSEventSourceStatus) PropagateAvailability(obj interface{}) {
+func (s *EventSourceStatus) PropagateAvailability(obj interface{}) {
 	switch o := obj.(type) {
 	case *appsv1.Deployment:
 		s.propagateDeploymentAvailability(o)
@@ -73,7 +73,7 @@ func (s *AWSEventSourceStatus) PropagateAvailability(obj interface{}) {
 	}
 }
 
-func (s *AWSEventSourceStatus) propagateDeploymentAvailability(d *appsv1.Deployment) {
+func (s *EventSourceStatus) propagateDeploymentAvailability(d *appsv1.Deployment) {
 	// Deployments are not addressable
 	s.Address = nil
 
@@ -99,7 +99,7 @@ func (s *AWSEventSourceStatus) propagateDeploymentAvailability(d *appsv1.Deploym
 	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionDeployed, ReasonUnavailable, msg)
 }
 
-func (s *AWSEventSourceStatus) propagateServiceAvailability(ksvc *servingv1.Service) {
+func (s *EventSourceStatus) propagateServiceAvailability(ksvc *servingv1.Service) {
 	if ksvc == nil {
 		awsEventSourceConditionSet.Manage(s).MarkUnknown(ConditionDeployed, ReasonUnavailable,
 			"The status of the adapter Service can not be determined")

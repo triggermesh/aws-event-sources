@@ -21,8 +21,8 @@ import (
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 )
 
-// AWSEventSourceStatus defines the observed state of an event source.
-type AWSEventSourceStatus struct {
+// EventSourceStatus defines the observed state of an event source.
+type EventSourceStatus struct {
 	duckv1.SourceStatus  `json:",inline"`
 	duckv1.AddressStatus `json:",inline"`
 }

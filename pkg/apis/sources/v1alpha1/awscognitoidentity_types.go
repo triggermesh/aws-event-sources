@@ -35,13 +35,13 @@ type AWSCognitoIdentitySource struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   AWSCognitoIdentitySourceSpec `json:"spec,omitempty"`
-	Status AWSEventSourceStatus         `json:"status,omitempty"`
+	Status EventSourceStatus            `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object = (*AWSCognitoIdentitySource)(nil)
-	_ AWSEventSource = (*AWSCognitoIdentitySource)(nil)
+	_ EventSource    = (*AWSCognitoIdentitySource)(nil)
 )
 
 // AWSCognitoIdentitySourceSpec defines the desired state of the event source.

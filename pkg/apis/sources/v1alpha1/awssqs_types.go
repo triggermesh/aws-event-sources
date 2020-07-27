@@ -34,14 +34,14 @@ type AWSSQSSource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSSQSSourceSpec     `json:"spec,omitempty"`
-	Status AWSEventSourceStatus `json:"status,omitempty"`
+	Spec   AWSSQSSourceSpec  `json:"spec,omitempty"`
+	Status EventSourceStatus `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object = (*AWSSQSSource)(nil)
-	_ AWSEventSource = (*AWSSQSSource)(nil)
+	_ EventSource    = (*AWSSQSSource)(nil)
 )
 
 // AWSSQSSourceSpec defines the desired state of the event source.

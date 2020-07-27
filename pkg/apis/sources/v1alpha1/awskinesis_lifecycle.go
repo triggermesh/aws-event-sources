@@ -19,10 +19,8 @@ package v1alpha1
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	pkgapis "knative.dev/pkg/apis"
+	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
-
-	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
@@ -31,7 +29,7 @@ func (s *AWSKinesisSource) GetGroupVersionKind() schema.GroupVersionKind {
 }
 
 // GetConditionSet implements duckv1.KRShaped.
-func (s *AWSKinesisSource) GetConditionSet() pkgapis.ConditionSet {
+func (s *AWSKinesisSource) GetConditionSet() apis.ConditionSet {
 	return awsEventSourceConditionSet
 }
 
@@ -40,18 +38,13 @@ func (s *AWSKinesisSource) GetStatus() *duckv1.Status {
 	return &s.Status.Status
 }
 
-// GetSink implements AWSEventSource.
+// GetSink implements EventSource.
 func (s *AWSKinesisSource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
 }
 
-// GetARN implements AWSEventSource.
-func (s *AWSKinesisSource) GetARN() apis.ARN {
-	return s.Spec.ARN
-}
-
-// GetSourceStatus implements AWSEventSource.
-func (s *AWSKinesisSource) GetSourceStatus() *AWSEventSourceStatus {
+// GetSourceStatus implements EventSource.
+func (s *AWSKinesisSource) GetSourceStatus() *EventSourceStatus {
 	return &s.Status
 }
 
@@ -60,9 +53,14 @@ const (
 	AWSKinesisGenericEventType = "stream_record"
 )
 
-// GetEventTypes implements AWSEventSource.
+// GetEventTypes implements EventSource.
 func (s *AWSKinesisSource) GetEventTypes() []string {
 	return []string{
-		AWSKinesisGenericEventType,
+		AWSEventType(s.Spec.ARN.Service, AWSKinesisGenericEventType),
 	}
+}
+
+// AsEventSource implements EventSource.
+func (s *AWSKinesisSource) AsEventSource() string {
+	return s.Spec.ARN.String()
 }

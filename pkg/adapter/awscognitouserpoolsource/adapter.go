@@ -158,7 +158,7 @@ func (a *adapter) sendCognitoEvent(user *cognitoidentityprovider.UserType) error
 	event.SetSubject(a.userPoolID)
 	event.SetSource(a.arn.String())
 	event.SetID(string(uuid.NewUUID()))
-	event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSCognitoGenericEventType))
+	event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSCognitoUserPoolGenericEventType))
 	if err := event.SetData(cloudevents.ApplicationJSON, user); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
 	}

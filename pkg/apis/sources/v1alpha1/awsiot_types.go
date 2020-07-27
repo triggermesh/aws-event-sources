@@ -34,14 +34,14 @@ type AWSIoTSource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSIoTSourceSpec     `json:"spec,omitempty"`
-	Status AWSEventSourceStatus `json:"status,omitempty"`
+	Spec   AWSIoTSourceSpec  `json:"spec,omitempty"`
+	Status EventSourceStatus `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object = (*AWSIoTSource)(nil)
-	_ AWSEventSource = (*AWSIoTSource)(nil)
+	_ EventSource    = (*AWSIoTSource)(nil)
 )
 
 // AWSIoTSourceSpec defines the desired state of the event source.

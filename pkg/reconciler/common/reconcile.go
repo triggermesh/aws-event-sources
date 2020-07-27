@@ -50,7 +50,7 @@ type AdapterDeploymentBuilderFunc func(sinkURI *apis.URL) *appsv1.Deployment
 func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context, adb AdapterDeploymentBuilderFunc) reconciler.Event {
 	src := v1alpha1.SourceFromContext(ctx)
 
-	src.GetSourceStatus().CloudEventAttributes = CreateCloudEventAttributes(src.GetARN(), src.GetEventTypes())
+	src.GetSourceStatus().CloudEventAttributes = CreateCloudEventAttributes(src.AsEventSource(), src.GetEventTypes())
 
 	sinkURI, err := r.resolveSinkURL(ctx)
 	if err != nil {
@@ -152,7 +152,7 @@ type AdapterServiceBuilderFunc func(sinkURI *apis.URL) *servingv1.Service
 func (r *GenericServiceReconciler) ReconcileSource(ctx context.Context, adb AdapterServiceBuilderFunc) reconciler.Event {
 	src := v1alpha1.SourceFromContext(ctx)
 
-	src.GetSourceStatus().CloudEventAttributes = CreateCloudEventAttributes(src.GetARN(), src.GetEventTypes())
+	src.GetSourceStatus().CloudEventAttributes = CreateCloudEventAttributes(src.AsEventSource(), src.GetEventTypes())
 
 	sinkURI, err := r.resolveSinkURL(ctx)
 	if err != nil {

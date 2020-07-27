@@ -35,13 +35,13 @@ type AWSCognitoUserPoolSource struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   AWSCognitoUserPoolSourceSpec `json:"spec,omitempty"`
-	Status AWSEventSourceStatus         `json:"status,omitempty"`
+	Status EventSourceStatus            `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object = (*AWSCognitoUserPoolSource)(nil)
-	_ AWSEventSource = (*AWSCognitoUserPoolSource)(nil)
+	_ EventSource    = (*AWSCognitoUserPoolSource)(nil)
 )
 
 // AWSCognitoUserPoolSourceSpec defines the desired state of the event source.

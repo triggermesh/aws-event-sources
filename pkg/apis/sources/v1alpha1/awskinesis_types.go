@@ -35,13 +35,13 @@ type AWSKinesisSource struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   AWSKinesisSourceSpec `json:"spec,omitempty"`
-	Status AWSEventSourceStatus `json:"status,omitempty"`
+	Status EventSourceStatus    `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object = (*AWSKinesisSource)(nil)
-	_ AWSEventSource = (*AWSKinesisSource)(nil)
+	_ EventSource    = (*AWSKinesisSource)(nil)
 )
 
 // AWSKinesisSourceSpec defines the desired state of the event source.
