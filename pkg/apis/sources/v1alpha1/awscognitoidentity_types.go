@@ -22,7 +22,6 @@ import (
 
 	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
-	"knative.dev/pkg/kmeta"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
@@ -43,11 +42,9 @@ type AWSCognitoIdentitySource struct {
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object      = (*AWSCognitoIdentitySource)(nil)
-	_ kmeta.OwnerRefable  = (*AWSCognitoIdentitySource)(nil)
 	_ pkgapis.Validatable = (*AWSCognitoIdentitySource)(nil)
 	_ pkgapis.Defaultable = (*AWSCognitoIdentitySource)(nil)
 	_ pkgapis.HasSpec     = (*AWSCognitoIdentitySource)(nil)
-	_ duckv1.KRShaped     = (*AWSCognitoIdentitySource)(nil)
 	_ AWSEventSource      = (*AWSCognitoIdentitySource)(nil)
 )
 

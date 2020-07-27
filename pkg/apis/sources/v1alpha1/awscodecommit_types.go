@@ -22,7 +22,6 @@ import (
 
 	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
-	"knative.dev/pkg/kmeta"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
@@ -43,11 +42,9 @@ type AWSCodeCommitSource struct {
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object      = (*AWSCodeCommitSource)(nil)
-	_ kmeta.OwnerRefable  = (*AWSCodeCommitSource)(nil)
 	_ pkgapis.Validatable = (*AWSCodeCommitSource)(nil)
 	_ pkgapis.Defaultable = (*AWSCodeCommitSource)(nil)
 	_ pkgapis.HasSpec     = (*AWSCodeCommitSource)(nil)
-	_ duckv1.KRShaped     = (*AWSCodeCommitSource)(nil)
 	_ AWSEventSource      = (*AWSCodeCommitSource)(nil)
 )
 

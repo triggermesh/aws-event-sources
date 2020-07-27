@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+	"knative.dev/pkg/kmeta"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
@@ -31,6 +32,12 @@ import (
 type AWSEventSource interface {
 	metav1.Object
 	runtime.Object
+	// OwnerRefable is used to construct a generic reconciler for each
+	// source type, and convert source objects to owner references.
+	kmeta.OwnerRefable
+	// KRShaped is used by generated reconcilers to perform pre and
+	// post-reconcile status updates.
+	duckv1.KRShaped
 	// GetSink returns the source's event sink.
 	GetSink() *duckv1.Destination
 	// GetARN returns the source's AWS ARN.

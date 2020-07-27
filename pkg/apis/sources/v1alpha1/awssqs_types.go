@@ -22,7 +22,6 @@ import (
 
 	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
-	"knative.dev/pkg/kmeta"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
@@ -43,11 +42,9 @@ type AWSSQSSource struct {
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object      = (*AWSSQSSource)(nil)
-	_ kmeta.OwnerRefable  = (*AWSSQSSource)(nil)
 	_ pkgapis.Validatable = (*AWSSQSSource)(nil)
 	_ pkgapis.Defaultable = (*AWSSQSSource)(nil)
 	_ pkgapis.HasSpec     = (*AWSSQSSource)(nil)
-	_ duckv1.KRShaped     = (*AWSSQSSource)(nil)
 	_ AWSEventSource      = (*AWSSQSSource)(nil)
 )
 

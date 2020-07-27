@@ -22,7 +22,6 @@ import (
 
 	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
-	"knative.dev/pkg/kmeta"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
@@ -43,11 +42,9 @@ type AWSIoTSource struct {
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object      = (*AWSIoTSource)(nil)
-	_ kmeta.OwnerRefable  = (*AWSIoTSource)(nil)
 	_ pkgapis.Validatable = (*AWSIoTSource)(nil)
 	_ pkgapis.Defaultable = (*AWSIoTSource)(nil)
 	_ pkgapis.HasSpec     = (*AWSIoTSource)(nil)
-	_ duckv1.KRShaped     = (*AWSIoTSource)(nil)
 	_ AWSEventSource      = (*AWSIoTSource)(nil)
 )
 

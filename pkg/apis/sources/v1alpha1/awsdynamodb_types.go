@@ -22,7 +22,6 @@ import (
 
 	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
-	"knative.dev/pkg/kmeta"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
@@ -43,11 +42,9 @@ type AWSDynamoDBSource struct {
 // Check the interfaces the event source should be implementing.
 var (
 	_ runtime.Object      = (*AWSDynamoDBSource)(nil)
-	_ kmeta.OwnerRefable  = (*AWSDynamoDBSource)(nil)
 	_ pkgapis.Validatable = (*AWSDynamoDBSource)(nil)
 	_ pkgapis.Defaultable = (*AWSDynamoDBSource)(nil)
 	_ pkgapis.HasSpec     = (*AWSDynamoDBSource)(nil)
-	_ duckv1.KRShaped     = (*AWSDynamoDBSource)(nil)
 	_ AWSEventSource      = (*AWSDynamoDBSource)(nil)
 )
 
