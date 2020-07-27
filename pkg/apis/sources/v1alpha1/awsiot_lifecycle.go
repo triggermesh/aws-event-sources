@@ -30,11 +30,6 @@ func (s *AWSIoTSource) GetGroupVersionKind() schema.GroupVersionKind {
 	return SchemeGroupVersion.WithKind("AWSIoTSource")
 }
 
-// GetUntypedSpec implements apis.HasSpec.
-func (s *AWSIoTSource) GetUntypedSpec() interface{} {
-	return s.Spec
-}
-
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSIoTSource) GetConditionSet() pkgapis.ConditionSet {
 	return awsEventSourceConditionSet

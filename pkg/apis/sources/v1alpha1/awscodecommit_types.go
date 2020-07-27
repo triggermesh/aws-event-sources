@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
@@ -41,11 +40,8 @@ type AWSCodeCommitSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object      = (*AWSCodeCommitSource)(nil)
-	_ pkgapis.Validatable = (*AWSCodeCommitSource)(nil)
-	_ pkgapis.Defaultable = (*AWSCodeCommitSource)(nil)
-	_ pkgapis.HasSpec     = (*AWSCodeCommitSource)(nil)
-	_ AWSEventSource      = (*AWSCodeCommitSource)(nil)
+	_ runtime.Object = (*AWSCodeCommitSource)(nil)
+	_ AWSEventSource = (*AWSCodeCommitSource)(nil)
 )
 
 // AWSCodeCommitSourceSpec defines the desired state of the event source.

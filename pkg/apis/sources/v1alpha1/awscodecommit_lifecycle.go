@@ -30,11 +30,6 @@ func (s *AWSCodeCommitSource) GetGroupVersionKind() schema.GroupVersionKind {
 	return SchemeGroupVersion.WithKind("AWSCodeCommitSource")
 }
 
-// GetUntypedSpec implements apis.HasSpec.
-func (s *AWSCodeCommitSource) GetUntypedSpec() interface{} {
-	return s.Spec
-}
-
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSCodeCommitSource) GetConditionSet() pkgapis.ConditionSet {
 	return awsEventSourceConditionSet

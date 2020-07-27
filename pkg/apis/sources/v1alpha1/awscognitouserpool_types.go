@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
@@ -41,11 +40,8 @@ type AWSCognitoUserPoolSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object      = (*AWSCognitoUserPoolSource)(nil)
-	_ pkgapis.Validatable = (*AWSCognitoUserPoolSource)(nil)
-	_ pkgapis.Defaultable = (*AWSCognitoUserPoolSource)(nil)
-	_ pkgapis.HasSpec     = (*AWSCognitoUserPoolSource)(nil)
-	_ AWSEventSource      = (*AWSCognitoUserPoolSource)(nil)
+	_ runtime.Object = (*AWSCognitoUserPoolSource)(nil)
+	_ AWSEventSource = (*AWSCognitoUserPoolSource)(nil)
 )
 
 // AWSCognitoUserPoolSourceSpec defines the desired state of the event source.

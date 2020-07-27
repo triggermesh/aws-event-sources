@@ -30,11 +30,6 @@ func (s *AWSKinesisSource) GetGroupVersionKind() schema.GroupVersionKind {
 	return SchemeGroupVersion.WithKind("AWSKinesisSource")
 }
 
-// GetUntypedSpec implements apis.HasSpec.
-func (s *AWSKinesisSource) GetUntypedSpec() interface{} {
-	return s.Spec
-}
-
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSKinesisSource) GetConditionSet() pkgapis.ConditionSet {
 	return awsEventSourceConditionSet

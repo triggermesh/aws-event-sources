@@ -29,11 +29,6 @@ func (s *AWSCognitoUserPoolSource) GetGroupVersionKind() schema.GroupVersionKind
 	return SchemeGroupVersion.WithKind("AWSCognitoUserPoolSource")
 }
 
-// GetUntypedSpec implements apis.HasSpec.
-func (s *AWSCognitoUserPoolSource) GetUntypedSpec() interface{} {
-	return s.Spec
-}
-
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSCognitoUserPoolSource) GetConditionSet() pkgapis.ConditionSet {
 	return awsEventSourceConditionSet

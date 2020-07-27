@@ -80,12 +80,14 @@ Inside the `pkg/apis/sources/v1alpha1/` directory:
 
 1. Add the Go structs for your type to a new file following the naming convention `<RESOURCE>_types.go`.
 
-1. Add the defaulting methods for your type to a new file following the naming convention `<RESOURCE>_defaults.go`.
-
-1. Add the validation methods for your type to a new file following the naming convention `<RESOURCE>_validation.go`.
-
 1. Add the methods relevant to the lifecycle management of your type (status updates, etc.) to a new file following the
    naming convention `<RESOURCE>_lifecycle.go`.
+
+1. Add the defaulting methods for your type to a new file following the naming convention `<RESOURCE>_defaults.go`
+   (optional).
+
+1. Add the validation methods for your type to a new file following the naming convention `<RESOURCE>_validation.go`
+   (optional).
 
 Finally, generate the client, lister, informer and injection code using `make codegen`.
 

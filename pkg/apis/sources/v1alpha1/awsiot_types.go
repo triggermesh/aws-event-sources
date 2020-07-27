@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
@@ -41,11 +40,8 @@ type AWSIoTSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object      = (*AWSIoTSource)(nil)
-	_ pkgapis.Validatable = (*AWSIoTSource)(nil)
-	_ pkgapis.Defaultable = (*AWSIoTSource)(nil)
-	_ pkgapis.HasSpec     = (*AWSIoTSource)(nil)
-	_ AWSEventSource      = (*AWSIoTSource)(nil)
+	_ runtime.Object = (*AWSIoTSource)(nil)
+	_ AWSEventSource = (*AWSIoTSource)(nil)
 )
 
 // AWSIoTSourceSpec defines the desired state of the event source.

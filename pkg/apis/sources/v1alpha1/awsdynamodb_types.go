@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
@@ -41,11 +40,8 @@ type AWSDynamoDBSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object      = (*AWSDynamoDBSource)(nil)
-	_ pkgapis.Validatable = (*AWSDynamoDBSource)(nil)
-	_ pkgapis.Defaultable = (*AWSDynamoDBSource)(nil)
-	_ pkgapis.HasSpec     = (*AWSDynamoDBSource)(nil)
-	_ AWSEventSource      = (*AWSDynamoDBSource)(nil)
+	_ runtime.Object = (*AWSDynamoDBSource)(nil)
+	_ AWSEventSource = (*AWSDynamoDBSource)(nil)
 )
 
 // AWSDynamoDBSourceSpec defines the desired state of the event source.

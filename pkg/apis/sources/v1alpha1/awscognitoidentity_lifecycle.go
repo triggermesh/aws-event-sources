@@ -30,11 +30,6 @@ func (s *AWSCognitoIdentitySource) GetGroupVersionKind() schema.GroupVersionKind
 	return SchemeGroupVersion.WithKind("AWSCognitoIdentitySource")
 }
 
-// GetUntypedSpec implements apis.HasSpec.
-func (s *AWSCognitoIdentitySource) GetUntypedSpec() interface{} {
-	return s.Spec
-}
-
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSCognitoIdentitySource) GetConditionSet() pkgapis.ConditionSet {
 	return awsEventSourceConditionSet

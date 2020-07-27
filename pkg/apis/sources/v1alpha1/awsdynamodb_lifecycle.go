@@ -30,11 +30,6 @@ func (s *AWSDynamoDBSource) GetGroupVersionKind() schema.GroupVersionKind {
 	return SchemeGroupVersion.WithKind("AWSDynamoDBSource")
 }
 
-// GetUntypedSpec implements apis.HasSpec.
-func (s *AWSDynamoDBSource) GetUntypedSpec() interface{} {
-	return s.Spec
-}
-
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSDynamoDBSource) GetConditionSet() pkgapis.ConditionSet {
 	return awsEventSourceConditionSet

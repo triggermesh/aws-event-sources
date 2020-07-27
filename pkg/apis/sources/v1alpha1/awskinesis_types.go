@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	pkgapis "knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
@@ -41,11 +40,8 @@ type AWSKinesisSource struct {
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object      = (*AWSKinesisSource)(nil)
-	_ pkgapis.Validatable = (*AWSKinesisSource)(nil)
-	_ pkgapis.Defaultable = (*AWSKinesisSource)(nil)
-	_ pkgapis.HasSpec     = (*AWSKinesisSource)(nil)
-	_ AWSEventSource      = (*AWSKinesisSource)(nil)
+	_ runtime.Object = (*AWSKinesisSource)(nil)
+	_ AWSEventSource = (*AWSKinesisSource)(nil)
 )
 
 // AWSKinesisSourceSpec defines the desired state of the event source.
