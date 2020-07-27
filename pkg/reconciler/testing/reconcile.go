@@ -17,6 +17,7 @@ limitations under the License.
 package testing
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -33,6 +34,7 @@ import (
 	eventingv1beta1 "knative.dev/eventing/pkg/apis/eventing/v1beta1"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+	"knative.dev/pkg/reconciler"
 	rt "knative.dev/pkg/reconciler/testing"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 
@@ -262,9 +264,12 @@ func Populate(srcCpy v1alpha1.AWSEventSource) {
 		Name:       addr.GetName(),
 	}
 
-	status := srcCpy.GetSourceStatus()
-	status.CloudEventAttributes = common.CreateCloudEventAttributes(srcCpy.GetARN(), srcCpy.GetEventTypes())
-	status.InitializeConditions()
+	// *reconcilerImpl.Reconcile calls this method before any reconciliation loop. Calling it here ensures that the
+	// object is initialized in the same manner, and prevents tests from wrongly reporting unexpected status updates.
+	reconciler.PreProcessReconcile(context.Background(), srcCpy)
+
+	srcCpy.GetSourceStatus().CloudEventAttributes = common.CreateCloudEventAttributes(
+		srcCpy.GetARN(), srcCpy.GetEventTypes())
 }
 
 // sourceCtorWithOptions is a function that returns a source object with
