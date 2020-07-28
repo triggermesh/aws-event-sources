@@ -88,7 +88,7 @@ fmt-test: ## Check source formatting
 IMAGES = $(foreach cmd,$(COMMANDS),$(cmd).image)
 images: $(IMAGES) ## Builds container images
 $(IMAGES): %.image:
-	$(DOCKER) build -t $(IMAGE_REPO)/$* -f ./cmd/$*/Dockerfile . ;
+	$(DOCKER) build -t $(IMAGE_REPO)/$* -f ./cmd/$*/Dockerfile . --build-arg VERSION=${IMAGE_TAG};
 
 CLOUDBUILD_TEST = $(foreach cmd,$(COMMANDS),$(cmd).cloudbuild-test)
 cloudbuild-test: $(CLOUDBUILD_TEST) ## Test container image build with Google Cloud Build
