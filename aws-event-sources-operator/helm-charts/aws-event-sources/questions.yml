@@ -25,7 +25,7 @@ questions:
     type: string
     label: Image Repository
   - variable: image.tag
-    default: v0.3.0
+    default: v0.4.2
     description: "Docker image tag"
     type: string
     label: Image Tag

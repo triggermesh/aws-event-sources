@@ -10,24 +10,24 @@ spec:
     urlScheme: http
   adapters:
     awscodecommit:
-      image: gcr.io/triggermesh/awscodecommitsource:v0.3.0
+      image: gcr.io/triggermesh/awscodecommitsource:v0.4.2
     awscognitoidentity:
-      image: gcr.io/triggermesh/awscognitoidentitysource:v0.3.0
+      image: gcr.io/triggermesh/awscognitoidentitysource:v0.4.2
     awscognitouserpool:
-      image: gcr.io/triggermesh/awscognitouserpoolsource:v0.3.0
+      image: gcr.io/triggermesh/awscognitouserpoolsource:v0.4.2
     awsdynamodb:
-      image: gcr.io/triggermesh/awsdynamodbsource:v0.3.0
+      image: gcr.io/triggermesh/awsdynamodbsource:v0.4.2
     awskinesis:
-      image: gcr.io/triggermesh/awskinesissource:v0.3.0
+      image: gcr.io/triggermesh/awskinesissource:v0.4.2
     awssns:
-      image: gcr.io/triggermesh/awssnssource:v0.3.0
+      image: gcr.io/triggermesh/awssnssource:v0.4.2
     awssqs:
-      image: gcr.io/triggermesh/awssqssource:v0.3.0
+      image: gcr.io/triggermesh/awssqssource:v0.4.2
   affinity: {}
   fullnameOverride: ""
   image:
     pullPolicy: IfNotPresent
-    image: gcr.io/triggermesh/aws-event-sources-controller:v0.3.0
+    image: gcr.io/triggermesh/aws-event-sources-controller:v0.4.2
   imagePullSecrets: []
   nameOverride: ""
   nodeSelector: {}

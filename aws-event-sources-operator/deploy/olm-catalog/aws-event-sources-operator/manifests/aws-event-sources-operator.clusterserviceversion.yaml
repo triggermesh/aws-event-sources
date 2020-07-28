@@ -13,31 +13,31 @@ metadata:
           "spec": {
             "adapters": {
               "awscodecommit": {
-                "image": "gcr.io/triggermesh/awscodecommitsource:v0.3.0"
+                "image": "gcr.io/triggermesh/awscodecommitsource:v0.4.2"
               },
               "awscognitoidentity": {
-                "image": "gcr.io/triggermesh/awscognitoidentitysource:v0.3.0"
+                "image": "gcr.io/triggermesh/awscognitoidentitysource:v0.4.2"
               },
               "awscognitouserpool": {
-                "image": "gcr.io/triggermesh/awscognitouserpoolsource:v0.3.0"
+                "image": "gcr.io/triggermesh/awscognitouserpoolsource:v0.4.2"
               },
               "awsdynamodb": {
-                "image": "gcr.io/triggermesh/awsdynamodbsource:v0.3.0"
+                "image": "gcr.io/triggermesh/awsdynamodbsource:v0.4.2"
               },
               "awskinesis": {
-                "image": "gcr.io/triggermesh/awskinesissource:v0.3.0"
+                "image": "gcr.io/triggermesh/awskinesissource:v0.4.2"
               },
               "awssns": {
-                "image": "gcr.io/triggermesh/awssnssource:v0.3.0"
+                "image": "gcr.io/triggermesh/awssnssource:v0.4.2"
               },
               "awssqs": {
-                "image": "gcr.io/triggermesh/awssqssource:v0.3.0"
+                "image": "gcr.io/triggermesh/awssqssource:v0.4.2"
               }
             },
             "affinity": {},
             "fullnameOverride": "",
             "image": {
-              "image": "gcr.io/triggermesh/aws-event-sources-controller:v0.3.0",
+              "image": "gcr.io/triggermesh/aws-event-sources-controller:v0.4.2",
               "pullPolicy": "IfNotPresent"
             },
             "imagePullSecrets": [],
@@ -230,21 +230,21 @@ spec:
                 - name: OPERATOR_NAME
                   value: aws-event-sources-operator
                 - name: AWS_EVENT_SOURCES_CONTROLLER_IMAGE
-                  value: gcr.io/triggermesh/aws-event-sources-controller:v0.3.0
+                  value: gcr.io/triggermesh/aws-event-sources-controller:v0.4.2
                 - name: AWSCODECOMMIT_ADAPTER_IMAGE
-                  value: gcr.io/triggermesh/awscodecommitsource:v0.3.0
+                  value: gcr.io/triggermesh/awscodecommitsource:v0.4.2
                 - name: AWSCOGNITOIDENTITY_ADAPTER_IMAGE
-                  value: gcr.io/triggermesh/awscognitoidentitysource:v0.3.0
+                  value: gcr.io/triggermesh/awscognitoidentitysource:v0.4.2
                 - name: AWSCOGNITOUSERPOOL_ADAPTER_IMAGE
-                  value: gcr.io/triggermesh/awscognitouserpoolsource:v0.3.0
+                  value: gcr.io/triggermesh/awscognitouserpoolsource:v0.4.2
                 - name: AWSDYNAMODB_ADAPTER_IMAGE
-                  value: gcr.io/triggermesh/awsdynamodbsource:v0.3.0
+                  value: gcr.io/triggermesh/awsdynamodbsource:v0.4.2
                 - name: AWSKINESIS_ADAPTER_IMAGE
-                  value: gcr.io/triggermesh/awskinesissource:v0.3.0
+                  value: gcr.io/triggermesh/awskinesissource:v0.4.2
                 - name: AWSSNS_ADAPTER_IMAGE
-                  value: gcr.io/triggermesh/awssnssource:v0.3.0
+                  value: gcr.io/triggermesh/awssnssource:v0.4.2
                 - name: AWSSQS_ADAPTER_IMAGE
-                  value: gcr.io/triggermesh/awssqssource:v0.3.0
+                  value: gcr.io/triggermesh/awssqssource:v0.4.2
                 image: gcr.io/triggermesh/aws-event-sources-operator:v0.0.1
                 imagePullPolicy: Always
                 name: aws-event-sources-operator
