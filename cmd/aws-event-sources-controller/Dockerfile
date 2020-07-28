@@ -16,7 +16,14 @@ RUN BIN_OUTPUT_DIR=/bin make aws-event-sources-controller && \
     rm -rf ${GOPATH} && \
     rm -rf ${HOME}/.cache
 
-FROM scratch
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.2
+
+LABEL name="AWS Event Sources Controller"
+LABEL vendor="Triggermesh Inc."
+LABEL version="v0.4.1"
+LABEL release="1"
+LABEL summary="AWS Event Sources controller for Kubernetes"
+LABEL description="aws-event-sources is a Kubernetes controller that implements Knative event sources for AWS services"
 
 # Emulate ko builds
 # https://github.com/google/ko/blob/v0.5.0/README.md#including-static-assets
