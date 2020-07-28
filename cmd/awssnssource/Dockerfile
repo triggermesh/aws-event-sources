@@ -18,9 +18,11 @@ RUN BIN_OUTPUT_DIR=/bin make awssnssource && \
 
 FROM registry.access.redhat.com/ubi8/ubi-minimal
 
+ARG VERSION
+
 LABEL name "Triggermesh AWS SNS Event Source"
 LABEL vendor "Triggermesh"
-LABEL version "v0.4.1"
+LABEL version "$VERSION"
 LABEL release "1"
 LABEL summary "The Triggermesh SNS Source"
 LABEL description "This is the Triggermesh Knative Event Source for AWS SNS"
