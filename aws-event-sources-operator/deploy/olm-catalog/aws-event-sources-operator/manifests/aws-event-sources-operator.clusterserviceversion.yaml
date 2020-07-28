@@ -70,12 +70,12 @@ metadata:
       ]
     capabilities: Basic Install
     categories: Integration & Delivery,Streaming & Messaging
-    containerImage: gcr.io/triggermesh/aws-event-sources-operator:v0.0.1
+    containerImage: gcr.io/triggermesh/aws-event-sources-operator:v0.1.0
     createdAt: "2020-07-18T12:00:00Z"
     description: AWS Event Sources controller for Kubernetes
     repository: https://github.com/triggermesh/aws-event-sources
     support: TriggerMesh Inc.
-  name: aws-event-sources-operator.v0.0.1
+  name: aws-event-sources-operator.v0.1.0
   namespace: openshift-operators
 spec:
   apiservicedefinitions: {}
@@ -245,7 +245,7 @@ spec:
                   value: gcr.io/triggermesh/awssnssource:v0.4.2
                 - name: AWSSQS_ADAPTER_IMAGE
                   value: gcr.io/triggermesh/awssqssource:v0.4.2
-                image: gcr.io/triggermesh/aws-event-sources-operator:v0.0.1
+                image: gcr.io/triggermesh/aws-event-sources-operator:v0.1.0
                 imagePullPolicy: Always
                 name: aws-event-sources-operator
                 resources: {}
@@ -274,4 +274,4 @@ spec:
   maturity: alpha
   provider:
     name: TriggerMesh Inc.
-  version: 0.0.1
+  version: 0.1.0

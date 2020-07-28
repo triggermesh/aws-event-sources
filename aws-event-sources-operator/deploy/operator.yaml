@@ -15,7 +15,7 @@ spec:
       serviceAccountName: aws-event-sources-operator
       containers:
         - name: aws-event-sources-operator
-          image: gcr.io/triggermesh/aws-event-sources-operator:v0.0.1
+          image: gcr.io/triggermesh/aws-event-sources-operator:v0.1.0
           imagePullPolicy: Always
           env:
             - name: WATCH_NAMESPACE
