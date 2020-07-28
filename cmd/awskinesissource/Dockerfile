@@ -20,7 +20,7 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 LABEL name "Triggermesh AWS Kinesis Event Source"
 LABEL vendor "Triggermesh"
-LABEL version "v0.4.1"
+LABEL version="v0.4.2"
 LABEL release "1"
 LABEL summary "The Triggermesh Kinesis Source"
 LABEL description "This is the Triggermesh Knative Event Source for AWS Kinesis"
