@@ -13,7 +13,7 @@ keywords:
   - triggermesh
   - serverless
 maintainers:
-  - name: TriggerMesh Developers
-    email: dev@triggermesh.com
+  - name: sameersbn
+  - name: antoineco
 sources:
   - https://github.com/triggermesh/aws-event-sources
