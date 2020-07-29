@@ -1,8 +1,8 @@
 [![Release](https://img.shields.io/github/v/release/triggermesh/aws-event-sources?label=release)](https://github.com/triggermesh/aws-event-sources/releases) [![Downloads](https://img.shields.io/github/downloads/triggermesh/aws-event-sources/total?label=downloads)](https://github.com/triggermesh/aws-event-sources/releases) [![CircleCI](https://circleci.com/gh/triggermesh/aws-event-sources/tree/master.svg?style=shield)](https://circleci.com/gh/triggermesh/aws-event-sources/tree/master) [![Go Report Card](https://goreportcard.com/badge/github.com/triggermesh/aws-event-sources)](https://goreportcard.com/report/github.com/triggermesh/aws-event-sources) [![License](https://img.shields.io/github/license/triggermesh/aws-event-sources?label=license)](LICENSE)
 
-![TriggerMesh Knative Lambda Sources](./images/klass.png "TriggerMesh Knative Lambda Sources")
+![Sources for Amazon Web Services](./images/saws.png "Sources for Amazon Web Services")
 
-**What:** Knative Lambda Sources (KLASS) are Knative event sources for AWS services.
+**What:** TriggerMesh Sources for Amazon Web Services (SAWS) are event sources for AWS services.
 
 **Why:** You may be using some Cloud services on AWS but still interested to run workloads within Kubernetes and soon via [Knative](https://github.com/knative/docs) to benefit from features such as scale to zero and source-to-url FaaS functionality. To trigger those workloads when events happen in your AWS service you need to have an event source that can consume AWS events and send them to your workload. This is a key principle in Knative eventing.
 
