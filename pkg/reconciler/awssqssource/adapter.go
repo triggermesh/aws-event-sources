@@ -17,8 +17,6 @@ limitations under the License.
 package awssqssource
 
 import (
-	"fmt"
-
 	appsv1 "k8s.io/api/apps/v1"
 
 	"knative.dev/eventing/pkg/reconciler/source"
@@ -29,8 +27,6 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/resource"
 )
-
-const adapterName = "awssqssource"
 
 // adapterConfig contains properties used to configure the source's adapter.
 // These are automatically populated by envconfig.
@@ -44,8 +40,10 @@ type adapterConfig struct {
 // adapterDeploymentBuilder returns an AdapterDeploymentBuilderFunc for the
 // given source object and adapter config.
 func adapterDeploymentBuilder(src *v1alpha1.AWSSQSSource, cfg *adapterConfig) common.AdapterDeploymentBuilderFunc {
+	adapterName := common.AdapterName(src)
+
 	return func(sinkURI *apis.URL) *appsv1.Deployment {
-		name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), src.Name)
+		name := kmeta.ChildName(adapterName+"-", src.Name)
 
 		var sinkURIStr string
 		if sinkURI != nil {

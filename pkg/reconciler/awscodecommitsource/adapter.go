@@ -17,7 +17,6 @@ limitations under the License.
 package awscodecommitsource
 
 import (
-	"fmt"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -30,8 +29,6 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/resource"
 )
-
-const adapterName = "awscodecommitsource"
 
 const (
 	envBranch     = "BRANCH"
@@ -50,8 +47,10 @@ type adapterConfig struct {
 // adapterDeploymentBuilder returns an AdapterDeploymentBuilderFunc for the
 // given source object and adapter config.
 func adapterDeploymentBuilder(src *v1alpha1.AWSCodeCommitSource, cfg *adapterConfig) common.AdapterDeploymentBuilderFunc {
+	adapterName := common.AdapterName(src)
+
 	return func(sinkURI *apis.URL) *appsv1.Deployment {
-		name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), src.Name)
+		name := kmeta.ChildName(adapterName+"-", src.Name)
 
 		var sinkURIStr string
 		if sinkURI != nil {

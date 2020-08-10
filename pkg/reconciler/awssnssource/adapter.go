@@ -31,8 +31,6 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/resource"
 )
 
-const adapterName = "awssnssource"
-
 const (
 	envSubscriptionAttrs = "SUBSCRIPTION_ATTRIBUTES"
 	envPublicURL         = "PUBLIC_URL"
@@ -58,8 +56,10 @@ type adapterConfig struct {
 // adapterServiceBuilder returns an AdapterServiceBuilderFunc for the
 // given source object and adapter config.
 func adapterServiceBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) common.AdapterServiceBuilderFunc {
+	adapterName := common.AdapterName(src)
+
 	return func(sinkURI *apis.URL) *servingv1.Service {
-		name := kmeta.ChildName(fmt.Sprintf("%s-", adapterName), src.Name)
+		name := kmeta.ChildName(adapterName+"-", src.Name)
 
 		var sinkURIStr string
 		if sinkURI != nil {
