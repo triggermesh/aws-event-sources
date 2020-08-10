@@ -24,6 +24,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/controller"
@@ -102,7 +104,7 @@ func (r *GenericDeploymentReconciler) reconcileAdapter(ctx context.Context, desi
 func (r *GenericDeploymentReconciler) getOrCreateAdapter(ctx context.Context, desiredAdapter *appsv1.Deployment) (*appsv1.Deployment, error) {
 	src := v1alpha1.SourceFromContext(ctx)
 
-	adapter, err := r.Lister(src.GetNamespace()).Get(desiredAdapter.Name)
+	adapter, err := r.FindAdapter(src)
 	switch {
 	case apierrors.IsNotFound(err):
 		adapter, err = r.Client(src.GetNamespace()).Create(desiredAdapter)
@@ -117,6 +119,15 @@ func (r *GenericDeploymentReconciler) getOrCreateAdapter(ctx context.Context, de
 	}
 
 	return adapter, nil
+}
+
+// FindAdapter returns the adapter Deployment for a given source if it exists.
+func (r *GenericDeploymentReconciler) FindAdapter(src v1alpha1.EventSource) (*appsv1.Deployment, error) {
+	o, err := findAdapter(r, src)
+	if err != nil {
+		return nil, err
+	}
+	return o.(*appsv1.Deployment), nil
 }
 
 // syncAdapterDeployment synchronizes the desired state of an adapter Deployment
@@ -204,7 +215,7 @@ func (r *GenericServiceReconciler) reconcileAdapter(ctx context.Context, desired
 func (r *GenericServiceReconciler) getOrCreateAdapter(ctx context.Context, desiredAdapter *servingv1.Service) (*servingv1.Service, error) {
 	src := v1alpha1.SourceFromContext(ctx)
 
-	adapter, err := r.Lister(src.GetNamespace()).Get(desiredAdapter.Name)
+	adapter, err := r.FindAdapter(src)
 	switch {
 	case apierrors.IsNotFound(err):
 		adapter, err = r.Client(src.GetNamespace()).Create(desiredAdapter)
@@ -219,6 +230,15 @@ func (r *GenericServiceReconciler) getOrCreateAdapter(ctx context.Context, desir
 	}
 
 	return adapter, nil
+}
+
+// FindAdapter returns the adapter Service for a given source if it exists.
+func (r *GenericServiceReconciler) FindAdapter(src v1alpha1.EventSource) (*servingv1.Service, error) {
+	o, err := findAdapter(r, src)
+	if err != nil {
+		return nil, err
+	}
+	return o.(*servingv1.Service), nil
 }
 
 // syncAdapterService synchronizes the desired state of an adapter Service
@@ -252,4 +272,60 @@ func (r *GenericServiceReconciler) syncAdapterService(ctx context.Context,
 	event.Normal(ctx, ReasonAdapterUpdate, "Updated adapter Service %q", adapter.Name)
 
 	return adapter, nil
+}
+
+// findAdapter returns the adapter object for a given source if it exists.
+func findAdapter(genericReconciler interface{}, src v1alpha1.EventSource) (metav1.Object, error) {
+	// the combination of standard labels {name,instance} is unique and
+	// immutable
+	sel := labels.SelectorFromSet(labels.Set{
+		AppNameLabel:     AdapterName(src),
+		AppInstanceLabel: src.GetName(),
+	})
+
+	var objs []metav1.Object
+	var gr schema.GroupResource
+
+	switch r := genericReconciler.(type) {
+	case *GenericDeploymentReconciler:
+		depls, err := r.Lister(src.GetNamespace()).List(sel)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, d := range depls {
+			objs = append(objs, d)
+		}
+
+		gr = appsv1.Resource("deployment")
+
+	case *GenericServiceReconciler:
+		svcs, err := r.Lister(src.GetNamespace()).List(sel)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, s := range svcs {
+			objs = append(objs, s)
+		}
+
+		gr = servingv1.Resource("service")
+	}
+
+	for _, obj := range objs {
+		if metav1.IsControlledBy(obj, src) {
+			return obj, nil
+		}
+	}
+
+	return nil, newNotFoundForSelector(gr, sel)
+}
+
+// newNotFoundForSelector returns an error which indicates that no object of
+// the type matching the given GroupResource was found for the given label
+// selector.
+func newNotFoundForSelector(gr schema.GroupResource, sel labels.Selector) *apierrors.StatusError {
+	err := apierrors.NewNotFound(gr, "")
+	err.ErrStatus.Message = fmt.Sprint(gr, " not found for selector ", sel)
+	return err
 }
