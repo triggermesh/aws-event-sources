@@ -77,6 +77,22 @@ rules:
   verbs:
   - update
 
+# Ensure compatibility with the OwnerReferencesPermissionEnforcement Admission Controller
+# https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
+- apiGroups:
+  - sources.triggermesh.io
+  resources:
+  - awscodecommitsources/finalizers
+  - awscognitoidentitysources/finalizers
+  - awscognitouserpoolsources/finalizers
+  - awsdynamodbsources/finalizers
+  - awsiotsources/finalizers
+  - awskinesissources/finalizers
+  - awssnssources/finalizers
+  - awssqssources/finalizers
+  verbs:
+  - update
+
 # Set finalizers
 - apiGroups:
   - sources.triggermesh.io
@@ -84,6 +100,14 @@ rules:
   - awssnssources
   verbs:
   - patch
+
+# Read credentials
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - get
 
 # Read controller configurations
 - apiGroups:

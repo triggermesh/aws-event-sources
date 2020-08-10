@@ -18,7 +18,9 @@ package awssnssource
 
 import (
 	"context"
+	"fmt"
 
+	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"knative.dev/pkg/reconciler"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -30,6 +32,9 @@ import (
 type Reconciler struct {
 	base       common.GenericServiceReconciler
 	adapterCfg *adapterConfig
+
+	// API clients
+	secretsCli func(namespace string) coreclientv1.SecretInterface
 }
 
 // Check that our Reconciler implements Interface
@@ -43,5 +48,9 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSSNSSour
 	// inject source into context for usage in reconciliation logic
 	ctx = v1alpha1.WithSource(ctx, src)
 
-	return r.base.ReconcileSource(ctx, adapterServiceBuilder(src, r.adapterCfg))
+	if err := r.base.ReconcileSource(ctx, adapterServiceBuilder(src, r.adapterCfg)); err != nil {
+		return fmt.Errorf("failed to reconcile source: %w", err)
+	}
+
+	return r.ensureSubscribed(ctx)
 }

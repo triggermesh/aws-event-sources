@@ -28,6 +28,11 @@ func (s *AWSSNSSource) GetGroupVersionKind() schema.GroupVersionKind {
 	return SchemeGroupVersion.WithKind("AWSSNSSource")
 }
 
+// GetUntypedSpec implements apis.HasSpec.
+func (s *AWSSNSSource) GetUntypedSpec() interface{} {
+	return s.Spec
+}
+
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSSNSSource) GetConditionSet() apis.ConditionSet {
 	return awsEventSourceConditionSet

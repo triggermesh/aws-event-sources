@@ -78,6 +78,9 @@ rules:
   - awssqssources/status
   verbs:
   - update
+
+# Ensure compatibility with the OwnerReferencesPermissionEnforcement Admission Controller
+# https://kubernetes.io/docs/reference/access-authn-authz/admission-controllers/#ownerreferencespermissionenforcement
 - apiGroups:
   - sources.triggermesh.io
   resources:
@@ -99,6 +102,14 @@ rules:
   - awssnssources
   verbs:
   - patch
+
+# Read credentials
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - get
 
 # Read controller configurations
 - apiGroups:

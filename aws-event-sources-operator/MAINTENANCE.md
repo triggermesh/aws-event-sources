@@ -21,7 +21,7 @@ After updating the chart manifests, a new version of the operator should be rele
 
 First update the `version` LABEL in the `build/Dockerfile`
 
-Next, build the operator using the `operator-sdk` tool and push it to GCR
+Next, build the operator using the `operator-sdk` tool and push it to GCR:
 
 ```bash
 operator-sdk build gcr.io/triggermesh/aws-event-sources-operator:v0.0.2

@@ -18,10 +18,12 @@ package awssnssource
 
 import (
 	"context"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 
 	"knative.dev/eventing/pkg/reconciler/source"
+	k8sclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 
@@ -30,6 +32,9 @@ import (
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awssnssource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 )
+
+// the resync period ensures we regularly re-check the state of SNS subscriptions.
+const informerResyncPeriod = time.Minute * 5
 
 // NewController creates a Reconciler for the event source and returns the result of NewImpl.
 func NewController(
@@ -49,6 +54,7 @@ func NewController(
 
 	r := &Reconciler{
 		adapterCfg: adapterCfg,
+		secretsCli: k8sclient.Get(ctx).CoreV1().Secrets,
 	}
 	impl := reconcilerv1alpha1.NewImpl(ctx, r)
 
@@ -59,7 +65,7 @@ func NewController(
 		impl.EnqueueControllerOf,
 	)
 
-	informerv1alpha1.Get(ctx).Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
+	informerv1alpha1.Get(ctx).Informer().AddEventHandlerWithResyncPeriod(controller.HandleAll(impl.Enqueue), informerResyncPeriod)
 
 	return impl
 }
