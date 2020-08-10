@@ -135,6 +135,8 @@ spec:
           status:
             type: object
             properties:
+              subscriptionARN:
+                type: string
               sinkUri:
                 type: string
                 format: uri

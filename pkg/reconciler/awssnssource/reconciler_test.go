@@ -27,11 +27,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	"knative.dev/eventing/pkg/reconciler/source"
+	fakek8sinjectionclient "knative.dev/pkg/client/injection/kube/client/fake"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/resolver"
 	fakeservinginjectionclient "knative.dev/serving/pkg/client/injection/client/fake"
 
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	fakeinjectionclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client/fake"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awssnssource"
@@ -66,6 +68,7 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 		r := &Reconciler{
 			base:       base,
 			adapterCfg: cfg,
+			secretsCli: fakek8sinjectionclient.Get(ctx).CoreV1().Secrets,
 		}
 
 		return reconcilerv1alpha1.NewReconciler(ctx, logging.FromContext(ctx),
@@ -75,7 +78,7 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 }
 
 // newEventSource returns a test source object with a minimal set of pre-filled attributes.
-func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSSNSSource {
+func newEventSource() *v1alpha1.AWSSNSSource {
 	src := &v1alpha1.AWSSNSSource{
 		Spec: v1alpha1.AWSSNSSourceSpec{
 			ARN: NewARN(sns.ServiceName, "triggermeshtest"),
@@ -102,6 +105,10 @@ func newEventSource(skipCEAtrributes ...interface{}) *v1alpha1.AWSSNSSource {
 			},
 		},
 	}
+
+	// assume finalizer is already set to prevent the generated reconciler
+	// from generating an extra Patch action
+	src.Finalizers = []string{sources.AWSSNSSourceResource.String()}
 
 	Populate(src)
 

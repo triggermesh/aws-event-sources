@@ -35,8 +35,8 @@ type AWSSNSSource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSSNSSourceSpec  `json:"spec,omitempty"`
-	Status EventSourceStatus `json:"status,omitempty"`
+	Spec   AWSSNSSourceSpec   `json:"spec,omitempty"`
+	Status AWSSNSSourceStatus `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
@@ -63,6 +63,12 @@ type AWSSNSSourceSpec struct {
 
 	// Credentials to interact with the AWS SNS API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
+}
+
+// AWSSNSSourceStatus defines the observed state of the event source.
+type AWSSNSSourceStatus struct {
+	EventSourceStatus `json:",inline"`
+	SubscriptionARN   *string `json:"subscriptionARN,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

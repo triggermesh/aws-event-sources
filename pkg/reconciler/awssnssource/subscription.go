@@ -18,6 +18,7 @@ package awssnssource
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -42,10 +43,11 @@ import (
 // SNS topic.
 func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 	src := v1alpha1.SourceFromContext(ctx)
+	status := &src.(*v1alpha1.AWSSNSSource).Status
 
 	adapter, err := r.base.FindAdapter(src)
 	switch {
-	case apierrors.IsNotFound(err):
+	case isNotFound(err):
 		return nil
 	case err != nil:
 		return fmt.Errorf("finding receive adapter: %w", err)
@@ -76,12 +78,56 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 	switch {
 	case isDenied(err):
 		return controller.NewPermanentError(fmt.Errorf("subscribing to SNS topic: %w", err))
-
 	case err != nil:
 		return fmt.Errorf("subscribing to SNS topic: %w", err)
 	}
 
 	logging.FromContext(ctx).Debug("Subscribe responded with: ", resp)
+
+	status.SubscriptionARN = resp.SubscriptionArn
+
+	return nil
+}
+
+// ensureUnsubscribed ensures the source's HTTP(S) endpoint is unsubscribed
+// from the SNS topic.
+func (r *Reconciler) ensureUnsubscribed(ctx context.Context) error {
+	src := v1alpha1.SourceFromContext(ctx)
+	// TODO(antoineco): Follow up with a proper FindSubscription() method.
+	// triggermesh/aws-event-sources#185
+	subsARN := src.(*v1alpha1.AWSSNSSource).Status.SubscriptionARN
+
+	// abandon if the subscription's ARN was never written to the source's status
+	if subsARN == nil {
+		return nil
+	}
+
+	spec := src.(apis.HasSpec).GetUntypedSpec().(v1alpha1.AWSSNSSourceSpec)
+
+	snsClient, err := newSNSClient(r.secretsCli(src.GetNamespace()), spec.ARN.Region, &spec.Credentials)
+	switch {
+	case isNotFound(err):
+		// give up if AWS security credentials are sourced from a
+		// Secret that does not exist
+		return nil
+	case err != nil:
+		return fmt.Errorf("creating SNS client: %w", err)
+	}
+
+	resp, err := snsClient.UnsubscribeWithContext(ctx, &sns.UnsubscribeInput{
+		SubscriptionArn: subsARN,
+	})
+
+	switch {
+	case isNotFound(err):
+		return nil
+	case isDenied(err):
+		return nil
+	case err != nil:
+		return fmt.Errorf("unsubscribing from SNS topic: %w", err)
+	}
+
+	logging.FromContext(ctx).Debug("Unsubscribe responded with: ", resp)
 
 	return nil
 }
@@ -152,11 +198,23 @@ func awsCredentials(cli coreclientv1.SecretInterface,
 	}, nil
 }
 
+// isNotFound returns whether the given error indicates that some resource was
+// not found.
+func isNotFound(err error) bool {
+	if k8sErr := apierrors.APIStatus(nil); errors.As(err, &k8sErr) {
+		return k8sErr.Status().Reason == metav1.StatusReasonNotFound
+	}
+	if awsErr := awserr.Error(nil); errors.As(err, &awsErr) {
+		return awsErr.Code() == sns.ErrCodeNotFoundException
+	}
+	return false
+}
+
 // isDenied returns whether the given error indicates that a request to the SNS
 // API could not be authorized.
 func isDenied(err error) bool {
-	if err, ok := err.(awserr.Error); ok {
-		return err.Code() == sns.ErrCodeAuthorizationErrorException
+	if awsErr := awserr.Error(nil); errors.As(err, &awsErr) {
+		return awsErr.Code() == sns.ErrCodeAuthorizationErrorException
 	}
 	return false
 }

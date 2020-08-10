@@ -50,7 +50,7 @@ func (s *AWSSNSSource) GetSink() *duckv1.Destination {
 
 // GetSourceStatus implements EventSource.
 func (s *AWSSNSSource) GetSourceStatus() *EventSourceStatus {
-	return &s.Status
+	return &s.Status.EventSourceStatus
 }
 
 // Supported event types

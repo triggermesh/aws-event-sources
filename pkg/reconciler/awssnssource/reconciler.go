@@ -40,6 +40,9 @@ type Reconciler struct {
 // Check that our Reconciler implements Interface
 var _ reconcilerv1alpha1.Interface = (*Reconciler)(nil)
 
+// Check that our Reconciler implements Finalizer
+var _ reconcilerv1alpha1.Finalizer = (*Reconciler)(nil)
+
 // ReconcileKind implements Interface.ReconcileKind.
 func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSSNSSource) reconciler.Event {
 	// inject source into context for usage in reconciliation logic
@@ -50,4 +53,15 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSSNSSour
 	}
 
 	return r.ensureSubscribed(ctx)
+}
+
+// FinalizeKind is called when the resource is deleted.
+func (r *Reconciler) FinalizeKind(ctx context.Context, src *v1alpha1.AWSSNSSource) reconciler.Event {
+	// inject source into context for usage in finalization logic
+	ctx = v1alpha1.WithSource(ctx, src)
+
+	// The finalizer blocks the deletion of the source object until
+	// ensureUnsubscribed succeeds to ensure that we don't leave any
+	// dangling subscription behind us.
+	return r.ensureUnsubscribed(ctx)
 }
