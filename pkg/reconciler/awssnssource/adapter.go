@@ -17,8 +17,6 @@ limitations under the License.
 package awssnssource
 
 import (
-	"encoding/json"
-	"fmt"
 	"strconv"
 
 	"knative.dev/eventing/pkg/reconciler/source"
@@ -31,11 +29,6 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/resource"
 )
 
-const (
-	envSubscriptionAttrs = "SUBSCRIPTION_ATTRIBUTES"
-	envPublicURL         = "PUBLIC_URL"
-)
-
 const metricsPrometheusPort uint16 = 9092
 
 // adapterConfig contains properties used to configure the source's adapter.
@@ -43,12 +36,6 @@ const metricsPrometheusPort uint16 = 9092
 type adapterConfig struct {
 	// Container image
 	Image string `default:"gcr.io/triggermesh/awssnssource"`
-
-	// Public domain used to expose Knative Services
-	Domain string `envconfig:"KNATIVE_DOMAIN" default:"example.com"`
-	// URL scheme used to expose public Knative Services
-	Scheme string `envconfig:"KNATIVE_URL_SCHEME" default:"http"`
-
 	// Configuration accessor for logging/metrics/tracing
 	configs source.ConfigAccessor
 }
@@ -65,17 +52,6 @@ func adapterServiceBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) commo
 		if sinkURI != nil {
 			sinkURIStr = sinkURI.String()
 		}
-
-		var subsAttrsStr string
-		if subsAttrsJSON, err := json.Marshal(src.Spec.SubscriptionAttributes); err == nil {
-			subsAttrsStr = string(subsAttrsJSON)
-		}
-
-		/* FIXME(antoineco): we wouldn't need to know the service URL in
-		   advance if we could reconcile SNS subscriptions from the controller.
-		   Ref. https://github.com/triggermesh/aws-event-sources/issues/157
-		*/
-		adapterURL := fmt.Sprintf("%s://%s.%s.%s", cfg.Scheme, name, src.Namespace, cfg.Domain)
 
 		return resource.NewKnService(src.Namespace, name,
 			resource.Controller(src),
@@ -98,8 +74,6 @@ func adapterServiceBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) commo
 			resource.EnvVar(common.EnvNamespace, src.Namespace),
 			resource.EnvVar(common.EnvSink, sinkURIStr),
 			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
-			resource.EnvVar(envSubscriptionAttrs, subsAttrsStr),
-			resource.EnvVar(envPublicURL, adapterURL),
 			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
 			resource.EnvVar(common.EnvMetricsPrometheusPort, strconv.Itoa(int(metricsPrometheusPort))),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),

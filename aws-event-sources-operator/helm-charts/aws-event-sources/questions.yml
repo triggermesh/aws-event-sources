@@ -29,18 +29,3 @@ questions:
     description: "Docker image tag"
     type: string
     label: Image Tag
-- variable: knative.domain
-  default: "example.com"
-  description: "Specify the Knative Domain"
-  type: string
-  required: true
-  label: Knative Domain
-- variable: knative.urlScheme
-  default: "http"
-  description: "Specify the Knative URL Scheme"
-  type: string
-  required: true
-  label: Knative URL Scheme
-  options:
-    - "http"
-    - "https"

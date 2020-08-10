@@ -41,10 +41,6 @@ adapters:
     repository: triggermesh/awssqssource
     tag: ""
 
-knative:
-  urlScheme: http
-  domain: example.com
-
 podAnnotations: {}
 
 podSecurityContext: {}

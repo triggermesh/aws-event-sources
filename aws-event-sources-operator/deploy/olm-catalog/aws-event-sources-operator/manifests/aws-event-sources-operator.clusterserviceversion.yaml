@@ -41,10 +41,6 @@ metadata:
               "pullPolicy": "IfNotPresent"
             },
             "imagePullSecrets": [],
-            "knative": {
-              "domain": "example.com",
-              "urlScheme": "http"
-            },
             "nameOverride": "",
             "nodeSelector": {},
             "podAnnotations": {},

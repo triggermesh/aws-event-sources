@@ -56,11 +56,6 @@ spec:
               value: config-observability
             - name: METRICS_DOMAIN
               value: triggermesh.io/sources
-            # Global settings
-            - name: KNATIVE_URL_SCHEME
-              value: {{ .Values.knative.urlScheme }}
-            - name: KNATIVE_DOMAIN
-              value: {{ .Values.knative.domain }}
             # Source adapters
             - name: AWSCODECOMMITSOURCE_IMAGE
               value: "{{ .Values.image.registry }}/{{ .Values.adapters.awscodecommit.repository }}:{{ default .Values.image.tag .Values.adapters.awscodecommit.tag }}"

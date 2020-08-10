@@ -19,11 +19,9 @@ package awssnssource
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
@@ -40,15 +38,8 @@ import (
 type mockedSNSClient struct {
 	snsiface.SNSAPI
 
-	subscribeOutput      *sns.SubscribeOutput
-	subscribeOutputError error
-
 	confirmSubsOutput *sns.ConfirmSubscriptionOutput
 	confirmSubsError  error
-}
-
-func (m mockedSNSClient) Subscribe(_ *sns.SubscribeInput) (*sns.SubscribeOutput, error) {
-	return m.subscribeOutput, m.subscribeOutputError
 }
 
 func (m mockedSNSClient) ConfirmSubscription(_ *sns.ConfirmSubscriptionInput) (*sns.ConfirmSubscriptionOutput, error) {
@@ -143,29 +134,6 @@ func TestHandler(t *testing.T) {
 
 	gotData := gotEvents[0].Data()
 	assert.EqualValues(t, data, gotData, "Received event data should equal sent payload")
-}
-
-func TestReconcileSubscription(t *testing.T) {
-	a := &adapter{
-		logger:    loggingtesting.TestLogger(t),
-		publicURL: url.URL{Scheme: "http", Host: "example.com"},
-	}
-
-	a.snsClient = mockedSNSClient{
-		subscribeOutput:      &sns.SubscribeOutput{},
-		subscribeOutputError: errors.New("fake error"),
-	}
-
-	err := a.reconcileSubscription()
-	assert.Error(t, err)
-
-	a.snsClient = mockedSNSClient{
-		subscribeOutput:      &sns.SubscribeOutput{},
-		subscribeOutputError: nil,
-	}
-
-	err = a.reconcileSubscription()
-	assert.NoError(t, err)
 }
 
 func TestHealth(t *testing.T) {

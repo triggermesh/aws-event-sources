@@ -21,12 +21,19 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"knative.dev/pkg/apis"
+	"knative.dev/pkg/controller"
+	"knative.dev/pkg/logging"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
@@ -36,28 +43,70 @@ import (
 func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 	src := v1alpha1.SourceFromContext(ctx)
 
-	addr := src.GetSourceStatus().Address
+	adapter, err := r.base.FindAdapter(src)
+	switch {
+	case apierrors.IsNotFound(err):
+		return nil
+	case err != nil:
+		return fmt.Errorf("finding receive adapter: %w", err)
+	}
+
+	url := adapter.Status.URL
 
 	// skip this cycle if the adapter URL wasn't yet determined
-	if addr == nil || addr.URL == nil {
+	if !adapter.IsReady() || url == nil {
 		return nil
 	}
 
 	spec := src.(apis.HasSpec).GetUntypedSpec().(v1alpha1.AWSSNSSourceSpec)
 
-	creds, err := awsCredentials(r.secretsCli(src.GetNamespace()), spec.Credentials)
+	snsClient, err := newSNSClient(r.secretsCli(src.GetNamespace()), spec.ARN.Region, &spec.Credentials)
 	if err != nil {
-		return fmt.Errorf("reading AWS security credentials: %w", err)
+		return fmt.Errorf("creating SNS client: %w", err)
 	}
-	_ = creds
+
+	resp, err := snsClient.SubscribeWithContext(ctx, &sns.SubscribeInput{
+		Endpoint:              aws.String(url.String()),
+		Protocol:              &url.Scheme,
+		TopicArn:              aws.String(spec.ARN.String()),
+		Attributes:            spec.SubscriptionAttributes,
+		ReturnSubscriptionArn: aws.Bool(true),
+	})
+
+	switch {
+	case isDenied(err):
+		return controller.NewPermanentError(fmt.Errorf("subscribing to SNS topic: %w", err))
+
+	case err != nil:
+		return fmt.Errorf("subscribing to SNS topic: %w", err)
+	}
+
+	logging.FromContext(ctx).Debug("Subscribe responded with: ", resp)
 
 	return nil
+}
+
+// newSNSClient returns a new SNS client for the given region using static credentials.
+func newSNSClient(cli coreclientv1.SecretInterface,
+	region string, creds *v1alpha1.AWSSecurityCredentials) (*sns.SNS, error) {
+
+	credsValue, err := awsCredentials(cli, creds)
+	if err != nil {
+		return nil, fmt.Errorf("reading AWS security credentials: %w", err)
+	}
+
+	cfg := session.Must(session.NewSession(aws.NewConfig().
+		WithRegion(region).
+		WithCredentials(credentials.NewStaticCredentialsFromCreds(*credsValue)),
+	))
+
+	return sns.New(cfg), nil
 }
 
 // awsCredentials returns the AWS security credentials referenced in the
 // source's spec.
 func awsCredentials(cli coreclientv1.SecretInterface,
-	creds v1alpha1.AWSSecurityCredentials) (*credentials.Value, error) {
+	creds *v1alpha1.AWSSecurityCredentials) (*credentials.Value, error) {
 
 	accessKeyID := creds.AccessKeyID.Value
 	secretAccessKey := creds.SecretAccessKey.Value
@@ -101,4 +150,13 @@ func awsCredentials(cli coreclientv1.SecretInterface,
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
 	}, nil
+}
+
+// isDenied returns whether the given error indicates that a request to the SNS
+// API could not be authorized.
+func isDenied(err error) bool {
+	if err, ok := err.(awserr.Error); ok {
+		return err.Code() == sns.ErrCodeAuthorizationErrorException
+	}
+	return false
 }

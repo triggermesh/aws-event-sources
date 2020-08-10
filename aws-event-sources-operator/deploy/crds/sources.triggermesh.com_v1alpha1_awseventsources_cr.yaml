@@ -5,9 +5,6 @@ metadata:
 spec:
   # Default values copied from <project_dir>/helm-charts/aws-event-sources/values.yaml
 
-  knative:
-    domain: example.com
-    urlScheme: http
   adapters:
     awscodecommit:
       image: gcr.io/triggermesh/awscodecommitsource:v0.4.2

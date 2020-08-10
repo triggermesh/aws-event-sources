@@ -49,10 +49,6 @@ adapters:
     # tag: ""
     image: gcr.io/triggermesh/awssqssource:v0.4.2
 
-knative:
-  urlScheme: http
-  domain: example.com
-
 podAnnotations: {}
 
 podSecurityContext: {}

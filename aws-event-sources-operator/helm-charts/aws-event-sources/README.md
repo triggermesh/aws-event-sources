@@ -98,8 +98,6 @@ $ kubectl delete crd awssqssources.sources.triggermesh.io
 | `adapter.awssns.tag`                    | AWS SNS adapter image tag                           | _defaults to value of `.image.tag`_        |
 | `adapter.awssqs.repository`             | AWS SQS adapter image name                          | `triggermesh/awssqssource`                 |
 | `adapter.awssqs.tag`                    | AWS SQS adapter image tag                           | _defaults to value of `.image.tag`_        |
-| `knative.domain`                        | Knative Domain                                      | `example.com`                              |
-| `knative.urlScheme`                     | Knative URL Scheme                                  | `http`                                     |
 | `podAnnotations`                        | Annotations to add to the controller pod            | `{}``                                      |
 | `podSecurityContext`                    | Security context for controller pods                | `{}`                                       |
 | `securityContext`                       | Security context for controller containers          | `{}`                                       |

@@ -168,7 +168,7 @@ func TestAwsCredentials(t *testing.T) {
 
 			cli := fake.NewSimpleClientset(secrets...)
 
-			creds, err := awsCredentials(cli.CoreV1().Secrets(ns), tc.input)
+			creds, err := awsCredentials(cli.CoreV1().Secrets(ns), &tc.input)
 
 			require.NoError(t, err)
 

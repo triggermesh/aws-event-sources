@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"sync"
 	"time"
 
@@ -48,9 +47,7 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	ARN                    string `required:"true"`
-	SubscriptionAttributes []byte `split_words:"true"`
-	PublicURL              string `required:"true" envconfig:"PUBLIC_URL"`
+	ARN string `required:"true"`
 }
 
 // adapter implements the source's adapter.
@@ -60,9 +57,7 @@ type adapter struct {
 	snsClient snsiface.SNSAPI
 	ceClient  cloudevents.Client
 
-	arn       arn.ARN
-	subAttrs  map[string]*string
-	publicURL url.URL
+	arn arn.ARN
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -75,9 +70,6 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	logger := logging.FromContext(ctx)
 
 	env := envAcc.(*envConfig)
-
-	var subAttrs map[string]*string
-	mustUnmarshalSubscriptionAttributes(env.SubscriptionAttributes, subAttrs)
 
 	arn := common.MustParseARN(env.ARN)
 
@@ -92,39 +84,13 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		snsClient: sns.New(cfg),
 		ceClient:  ceClient,
 
-		arn:       arn,
-		subAttrs:  subAttrs,
-		publicURL: mustParsePublicURL(env.PublicURL),
-	}
-}
-
-func mustParsePublicURL(publicURL string) url.URL {
-	url, err := url.Parse(publicURL)
-	if err != nil {
-		panic(err)
-	}
-	if url.String() == "" {
-		panic("empty public URL")
-	}
-
-	return *url
-}
-
-func mustUnmarshalSubscriptionAttributes(data []byte, subAttrs map[string]*string) {
-	if data == nil {
-		return
-	}
-
-	err := json.Unmarshal(data, &subAttrs)
-	if err != nil {
-		panic(err)
+		arn: arn,
 	}
 }
 
 const (
 	serverPort                = "8080"
 	serverShutdownGracePeriod = time.Second * 10
-	subscriptionRecheckPeriod = time.Second * 10
 )
 
 // Start implements adapter.Adapter.
@@ -156,18 +122,6 @@ func (a *adapter) Start(ctx context.Context) error {
 		wg.Done()
 	}()
 
-	/* TODO(antoineco): we should delete the subscription when the source
-	   is deleted by can't do it from the adapter because a) it should
-	   scale to zero b) it shouldn't have access to the Kubernetes API to
-	   read the event source object.
-	   Ref. https://github.com/triggermesh/aws-event-sources/issues/157
-	*/
-	wg.Add(1)
-	go func() {
-		a.runSubscriptionReconciler(ctx, subscriptionRecheckPeriod)
-		wg.Done()
-	}()
-
 	var err error
 
 	select {
@@ -191,35 +145,6 @@ func (a *adapter) Start(ctx context.Context) error {
 	}
 
 	wg.Wait()
-	return err
-}
-
-func (a *adapter) runSubscriptionReconciler(ctx context.Context, recheckPeriod time.Duration) {
-	ticker := time.NewTicker(recheckPeriod)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			if err := a.reconcileSubscription(); err != nil {
-				a.logger.Errorw("Failed to reconcile Subscription", zap.Error(err))
-			}
-		case <-ctx.Done():
-			a.logger.Info("Shutting subscription reconciler down")
-			return
-		}
-	}
-}
-
-func (a *adapter) reconcileSubscription() error {
-	resp, err := a.snsClient.Subscribe(&sns.SubscribeInput{
-		Endpoint:   aws.String(a.publicURL.String()),
-		Protocol:   &a.publicURL.Scheme,
-		TopicArn:   aws.String(a.arn.String()),
-		Attributes: a.subAttrs,
-	})
-	a.logger.Debug("Subscribe responded with: ", resp)
-
 	return err
 }
 
