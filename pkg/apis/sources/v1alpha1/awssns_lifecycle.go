@@ -35,7 +35,7 @@ func (s *AWSSNSSource) GetUntypedSpec() interface{} {
 
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSSNSSource) GetConditionSet() apis.ConditionSet {
-	return awsEventSourceConditionSet
+	return awsSNSSourceConditionSet
 }
 
 // GetStatus implements duckv1.KRShaped.
@@ -68,4 +68,40 @@ func (s *AWSSNSSource) GetEventTypes() []string {
 // AsEventSource implements EventSource.
 func (s *AWSSNSSource) AsEventSource() string {
 	return s.Spec.ARN.String()
+}
+
+// Status conditions
+const (
+	// AWSSNSConditionSubscribed has status True when the event source's HTTP(S) endpoint has been subscribed to the
+	// SNS subscription.
+	AWSSNSConditionSubscribed apis.ConditionType = "Subscribed"
+)
+
+// Reasons for status conditions
+const (
+	// AWSSNSReasonNoURL is set on a Subscribed condition when the adapter URL is empty.
+	AWSSNSReasonNoURL = "MissingAdapterURL"
+	// AWSSNSReasonNoClient is set on a Subscribed condition when a SNS API client cannot be obtained.
+	AWSSNSReasonNoClient = "NoClient"
+	// AWSSNSReasonRejected is set on a Subscribed condition when the SNS API rejects a subscription request.
+	AWSSNSReasonRejected = "SubscriptionRejected"
+	// AWSSNSReasonFailedSync is set on a Subscribed condition when other synchronization errors occur.
+	AWSSNSReasonFailedSync = "FailedSync"
+)
+
+// awsSNSSourceConditionSet is a set of conditions for AWSSNSSource objects.
+var awsSNSSourceConditionSet = apis.NewLivingConditionSet(
+	AWSSNSConditionSubscribed,
+)
+
+// MarkSubscribed sets the Subscribed condition to True.
+func (s *AWSSNSSourceStatus) MarkSubscribed() {
+	awsSNSSourceConditionSet.Manage(s).MarkTrue(AWSSNSConditionSubscribed)
+}
+
+// MarkNotSubscribed sets the Subscribed condition to False with the given
+// reason and associated message.
+func (s *AWSSNSSourceStatus) MarkNotSubscribed(reason, msg string) {
+	awsSNSSourceConditionSet.Manage(s).MarkFalse(AWSSNSConditionSubscribed,
+		reason, msg)
 }

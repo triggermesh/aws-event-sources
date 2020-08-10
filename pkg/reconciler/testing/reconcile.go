@@ -41,6 +41,7 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 	eventtesting "github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event/testing"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/skip"
 )
 
 const (
@@ -72,12 +73,17 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 	a := newAdapter()
 	n, k, r := nameKindAndResource(a)
 
+	// initialize a context that allows for skipping parts of the
+	// reconciliation this test suite should not execute
+	skipCtx := skip.EnableSkip(context.Background())
+
 	testCases := rt.TableTest{
 		// Creation/Deletion
 
 		{
 			Name: "Source object creation",
 			Key:  tKey,
+			Ctx:  skipCtx,
 			Objects: []runtime.Object{
 				newAdressable(),
 				newEventSource(noCEAttributes),
@@ -105,6 +111,7 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 		{
 			Name: "Adapter becomes Ready",
 			Key:  tKey,
+			Ctx:  skipCtx,
 			Objects: []runtime.Object{
 				newAdressable(),
 				newEventSource(withSink, notDeployed(a)),
@@ -117,6 +124,7 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 		{
 			Name: "Adapter becomes NotReady",
 			Key:  tKey,
+			Ctx:  skipCtx,
 			Objects: []runtime.Object{
 				newAdressable(),
 				newEventSource(withSink, deployed(a)),
@@ -129,6 +137,7 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 		{
 			Name: "Adapter is outdated",
 			Key:  tKey,
+			Ctx:  skipCtx,
 			Objects: []runtime.Object{
 				newAdressable(),
 				newEventSource(withSink, deployed(a)),

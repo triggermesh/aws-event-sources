@@ -29,6 +29,7 @@ import (
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
+	"knative.dev/pkg/reconciler"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -37,11 +38,17 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/skip"
 )
 
 // ensureSubscribed ensures the source's HTTP(S) endpoint is subscribed to the
 // SNS topic.
 func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
+	if skip.Skip(ctx) {
+		return nil
+	}
+
 	src := v1alpha1.SourceFromContext(ctx)
 	status := &src.(*v1alpha1.AWSSNSSource).Status
 
@@ -57,6 +64,8 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 
 	// skip this cycle if the adapter URL wasn't yet determined
 	if !adapter.IsReady() || url == nil {
+		status.MarkNotSubscribed(v1alpha1.AWSSNSReasonNoURL,
+			"The receive adapter did not report its public URL yet")
 		return nil
 	}
 
@@ -64,7 +73,9 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 
 	snsClient, err := newSNSClient(r.secretsCli(src.GetNamespace()), spec.ARN.Region, &spec.Credentials)
 	if err != nil {
-		return fmt.Errorf("creating SNS client: %w", err)
+		status.MarkNotSubscribed(v1alpha1.AWSSNSReasonNoClient, "Cannot obtain SNS client")
+		return fmt.Errorf("%w", reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
+			"Error creating SNS client: %s", err))
 	}
 
 	resp, err := snsClient.SubscribeWithContext(ctx, &sns.SubscribeInput{
@@ -76,17 +87,24 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 	})
 
 	switch {
-	case isDenied(err):
-		return controller.NewPermanentError(fmt.Errorf("subscribing to SNS topic: %w", err))
+	case isAWSError(err):
+		// All documented API errors require some user intervention and
+		// are not to be retried.
+		// https://docs.aws.amazon.com/sns/latest/api/API_Subscribe.html#API_Subscribe_Errors
+		status.MarkNotSubscribed(v1alpha1.AWSSNSReasonRejected, "Subscription request rejected")
+		return controller.NewPermanentError(susbscribeErrorEvent(url, spec.ARN.String(), err))
 	case err != nil:
-		return fmt.Errorf("subscribing to SNS topic: %w", err)
+		status.MarkNotSubscribed(v1alpha1.AWSSNSReasonFailedSync, "Cannot subscribe event source endpoint")
+		return fmt.Errorf("%w", susbscribeErrorEvent(url, spec.ARN.String(), err))
 	}
 
 	logging.FromContext(ctx).Debug("Subscribe responded with: ", resp)
 
+	status.MarkSubscribed()
 	status.SubscriptionARN = resp.SubscriptionArn
 
-	return nil
+	return reconciler.NewEvent(corev1.EventTypeNormal, ReasonSubscribed,
+		"Subscribed to SNS topic %q", spec.ARN.String())
 }
 
 // ensureUnsubscribed ensures the source's HTTP(S) endpoint is unsubscribed
@@ -107,11 +125,14 @@ func (r *Reconciler) ensureUnsubscribed(ctx context.Context) error {
 	snsClient, err := newSNSClient(r.secretsCli(src.GetNamespace()), spec.ARN.Region, &spec.Credentials)
 	switch {
 	case isNotFound(err):
-		// give up if AWS security credentials are sourced from a
-		// Secret that does not exist
+		// the finalizer is unlikely to recover from a missing Secret,
+		// so we simply record a warning event and return
+		event.Warn(ctx, ReasonFailedUnsubscribe, "Secret missing while finalizing subscription %q. Ignoring: %s",
+			*subsARN, err)
 		return nil
 	case err != nil:
-		return fmt.Errorf("creating SNS client: %w", err)
+		return fmt.Errorf("%w", reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedUnsubscribe,
+			"Error creating SNS client: %s", err))
 	}
 
 	resp, err := snsClient.UnsubscribeWithContext(ctx, &sns.UnsubscribeInput{
@@ -120,16 +141,25 @@ func (r *Reconciler) ensureUnsubscribed(ctx context.Context) error {
 
 	switch {
 	case isNotFound(err):
-		return nil
+		return reconciler.NewEvent(corev1.EventTypeNormal, ReasonUnsubscribed,
+			"Subscription %q already absent, skipping finalization", *subsARN)
 	case isDenied(err):
+		// it is unlikely that we recover from validation errors in the
+		// finalizer, so we simply record a warning event and return
+		event.Warn(ctx, ReasonFailedUnsubscribe, "Authorization error finalizing subscription %q. Ignoring: %s",
+			*subsARN, toErrMsg(err))
 		return nil
 	case err != nil:
-		return fmt.Errorf("unsubscribing from SNS topic: %w", err)
+		// wrap any other error to fail the finalization
+		event := reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedUnsubscribe,
+			"Error finalizing event source %q: %s", *subsARN, toErrMsg(err))
+		return fmt.Errorf("%w", event)
 	}
 
 	logging.FromContext(ctx).Debug("Unsubscribe responded with: ", resp)
 
-	return nil
+	return reconciler.NewEvent(corev1.EventTypeNormal, ReasonUnsubscribed,
+		"Subscription %q was successfully deleted", *subsARN)
 }
 
 // newSNSClient returns a new SNS client for the given region using static credentials.
@@ -217,4 +247,30 @@ func isDenied(err error) bool {
 		return awsErr.Code() == sns.ErrCodeAuthorizationErrorException
 	}
 	return false
+}
+
+// isAWSError returns whether the given error is an AWS API error.
+func isAWSError(err error) bool {
+	awsErr := awserr.Error(nil)
+	return errors.As(err, &awsErr)
+}
+
+// toErrMsg attempts to extract the message from the given error if it is an
+// AWS error.
+// Those errors are particularly verbose and include a unique request ID that
+// causes an infinite loop of reconciliations when appended to a status
+// condition. Some AWS errors are not recoverable without manual intervention
+// (e.g. invalid secrets) so there is no point letting that behaviour happen.
+func toErrMsg(err error) string {
+	if awsErr := awserr.Error(nil); errors.As(err, &awsErr) {
+		return awserr.SprintError(awsErr.Code(), awsErr.Message(), "", awsErr.OrigErr())
+	}
+	return err.Error()
+}
+
+// susbscribeErrorEvent returns a reconciler event indicating that an endpoint
+// could not be subscribed to a SNS topic.
+func susbscribeErrorEvent(url *apis.URL, topicARN string, origErr error) reconciler.Event {
+	return reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
+		"Error subscribing endpoint %q to SNS topic %q: %s", url, topicARN, toErrMsg(origErr))
 }
