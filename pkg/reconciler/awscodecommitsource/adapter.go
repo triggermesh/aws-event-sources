@@ -80,12 +80,7 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCodeCommitSource, cfg *adapterCon
 			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
 			resource.EnvVar(envBranch, src.Spec.Branch),
 			resource.EnvVar(envEventTypes, strings.Join(src.Spec.EventTypes, ",")),
-			resource.EnvVarFromSecret(common.EnvAccessKeyID,
-				src.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
-				src.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
-			resource.EnvVarFromSecret(common.EnvSecretAccessKey,
-				src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
-				src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
+			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
 		)
 	}

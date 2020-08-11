@@ -71,12 +71,7 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCognitoIdentitySource, cfg *adapt
 			resource.EnvVar(common.EnvNamespace, src.Namespace),
 			resource.EnvVar(common.EnvSink, sinkURIStr),
 			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
-			resource.EnvVarFromSecret(common.EnvAccessKeyID,
-				src.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
-				src.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
-			resource.EnvVarFromSecret(common.EnvSecretAccessKey,
-				src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
-				src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
+			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
 		)
 	}

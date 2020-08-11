@@ -100,12 +100,7 @@ func adapterServiceBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) commo
 			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
 			resource.EnvVar(envSubscriptionAttrs, subsAttrsStr),
 			resource.EnvVar(envPublicURL, adapterURL),
-			resource.EnvVarFromSecret(common.EnvAccessKeyID,
-				src.Spec.Credentials.AccessKeyID.ValueFromSecret.Name,
-				src.Spec.Credentials.AccessKeyID.ValueFromSecret.Key),
-			resource.EnvVarFromSecret(common.EnvSecretAccessKey,
-				src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Name,
-				src.Spec.Credentials.SecretAccessKey.ValueFromSecret.Key),
+			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
 			resource.EnvVar(common.EnvMetricsPrometheusPort, strconv.Itoa(int(metricsPrometheusPort))),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
 		)
