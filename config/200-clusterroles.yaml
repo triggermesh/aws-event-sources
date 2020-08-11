@@ -63,7 +63,6 @@ rules:
   - list
   - watch
   - get
-  - patch
 - apiGroups:
   - sources.triggermesh.io
   resources:
@@ -77,6 +76,14 @@ rules:
   - awssqssources/status
   verbs:
   - update
+
+# Set finalizers
+- apiGroups:
+  - sources.triggermesh.io
+  resources:
+  - awssnssources
+  verbs:
+  - patch
 
 # Read controller configurations
 - apiGroups:
