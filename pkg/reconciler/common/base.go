@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
+	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	appslistersv1 "k8s.io/client-go/listers/apps/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -40,7 +41,8 @@ type GenericDeploymentReconciler struct {
 	// URI resolver for sinks
 	SinkResolver *resolver.URIResolver
 	// API clients
-	Client func(namespace string) appsclientv1.DeploymentInterface
+	Client    func(namespace string) appsclientv1.DeploymentInterface
+	PodClient func(namespace string) coreclientv1.PodInterface
 	// objects listers
 	Lister func(namespace string) appslistersv1.DeploymentNamespaceLister
 }
@@ -67,6 +69,7 @@ func NewGenericDeploymentReconciler(ctx context.Context, gvk schema.GroupVersion
 	r := GenericDeploymentReconciler{
 		SinkResolver: resolver.NewURIResolver(ctx, resolverCallback),
 		Client:       k8sclient.Get(ctx).AppsV1().Deployments,
+		PodClient:    k8sclient.Get(ctx).CoreV1().Pods,
 		Lister:       informer.Lister().Deployments,
 	}
 

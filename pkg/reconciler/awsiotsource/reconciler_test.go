@@ -70,6 +70,7 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 			SinkResolver: resolver.NewURIResolver(ctx, func(types.NamespacedName) {}),
 			Lister:       ls.GetDeploymentLister().Deployments,
 			Client:       fakek8sinjectionclient.Get(ctx).AppsV1().Deployments,
+			PodClient:    fakek8sinjectionclient.Get(ctx).CoreV1().Pods,
 		}
 
 		r := &Reconciler{

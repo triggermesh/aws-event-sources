@@ -51,11 +51,18 @@ const (
 	tUID  = types.UID("00000000-0000-0000-0000-000000000000")
 )
 
-var tSinkURI = &apis.URL{
-	Scheme: "http",
-	Host:   "default.default.svc.example.com",
-	Path:   "/",
-}
+var (
+	tSinkURI = &apis.URL{
+		Scheme: "http",
+		Host:   "default.default.svc.example.com",
+		Path:   "/",
+	}
+	tAdapterURI = &apis.URL{
+		Scheme: "http",
+		Host:   "public.example.com",
+		Path:   "/",
+	}
+)
 
 // Test the Reconcile method of the controller.Reconciler implemented by controllers.
 //
@@ -101,6 +108,7 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 		{
 			Name: "Source object deletion",
 			Key:  tKey,
+			Ctx:  skipCtx,
 			Objects: []runtime.Object{
 				newEventSource(deleted),
 			},
@@ -323,9 +331,7 @@ func deployed(adapter runtime.Object) sourceOption {
 	adapter = adapter.DeepCopyObject()
 	ready(adapter)
 
-	return func(src v1alpha1.EventSource) {
-		src.GetSourceStatus().PropagateAvailability(adapter)
-	}
+	return propagateAdapterAvailabilityFunc(adapter)
 }
 
 // Deployed: False
@@ -333,9 +339,7 @@ func notDeployed(adapter runtime.Object) sourceOption {
 	adapter = adapter.DeepCopyObject()
 	notReady(adapter)
 
-	return func(src v1alpha1.EventSource) {
-		src.GetSourceStatus().PropagateAvailability(adapter)
-	}
+	return propagateAdapterAvailabilityFunc(adapter)
 }
 
 // Deployed: Unknown with error
@@ -349,8 +353,17 @@ func unknownDeployedWithError(adapter runtime.Object) sourceOption {
 		nilObj = (*servingv1.Service)(nil)
 	}
 
+	return propagateAdapterAvailabilityFunc(nilObj)
+}
+
+func propagateAdapterAvailabilityFunc(adapter runtime.Object) func(src v1alpha1.EventSource) {
 	return func(src v1alpha1.EventSource) {
-		src.GetSourceStatus().PropagateAvailability(nilObj)
+		switch a := adapter.(type) {
+		case *appsv1.Deployment:
+			src.GetSourceStatus().PropagateDeploymentAvailability(context.Background(), a, nil)
+		case *servingv1.Service:
+			src.GetSourceStatus().PropagateServiceAvailability(a)
+		}
 	}
 }
 
@@ -408,6 +421,7 @@ func ready(object runtime.Object) {
 			Type:   v1alpha1.ConditionReady,
 			Status: corev1.ConditionTrue,
 		}})
+		o.Status.URL = tAdapterURI
 	}
 }
 

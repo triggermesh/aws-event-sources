@@ -17,12 +17,20 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
+
+	"go.uber.org/zap"
+
 	appsv1 "k8s.io/api/apps/v1"
+	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"knative.dev/eventing/pkg/apis/duck"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+	"knative.dev/pkg/logging"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
+
+	"github.com/triggermesh/aws-event-sources/pkg/status"
 )
 
 // AWSEventType returns an event type in a format suitable for usage as a
@@ -61,19 +69,15 @@ func (s *EventSourceStatus) MarkNoSink() {
 		ReasonSinkNotFound, "The sink does not exist or its URI is not set")
 }
 
-// PropagateAvailability uses the readiness of the provided Deployment or
-// Service to determine whether the Deployed condition should be marked as True
-// or False.
-func (s *EventSourceStatus) PropagateAvailability(obj interface{}) {
-	switch o := obj.(type) {
-	case *appsv1.Deployment:
-		s.propagateDeploymentAvailability(o)
-	case *servingv1.Service:
-		s.propagateServiceAvailability(o)
-	}
-}
+// PropagateDeploymentAvailability uses the readiness of the provided
+// Deployment to determine whether the Deployed condition should be marked as
+// True or False.
+// Given an optional PodInterface, the status of dependant Pods is inspected to
+// generate a more meaningful failure reason in case of non-ready status of the
+// Deployment.
+func (s *EventSourceStatus) PropagateDeploymentAvailability(ctx context.Context,
+	d *appsv1.Deployment, pi coreclientv1.PodInterface) {
 
-func (s *EventSourceStatus) propagateDeploymentAvailability(d *appsv1.Deployment) {
 	// Deployments are not addressable
 	s.Address = nil
 
@@ -88,6 +92,7 @@ func (s *EventSourceStatus) propagateDeploymentAvailability(d *appsv1.Deployment
 		return
 	}
 
+	reason := ReasonUnavailable
 	msg := "The adapter Deployment is unavailable"
 
 	for _, cond := range d.Status.Conditions {
@@ -96,10 +101,22 @@ func (s *EventSourceStatus) propagateDeploymentAvailability(d *appsv1.Deployment
 		}
 	}
 
-	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionDeployed, ReasonUnavailable, msg)
+	if pi != nil {
+		ws, err := status.DeploymentPodsWaitingState(d, pi)
+		if err != nil {
+			logging.FromContext(ctx).Warn("Unable to look up statuses of dependant Pods", zap.Error(err))
+		} else if ws != nil {
+			reason = status.ExactReason(ws)
+			msg += ": " + ws.Message
+		}
+	}
+
+	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionDeployed, reason, msg)
 }
 
-func (s *EventSourceStatus) propagateServiceAvailability(ksvc *servingv1.Service) {
+// PropagateServiceAvailability uses the readiness of the provided Service to
+// determine whether the Deployed condition should be marked as True or False.
+func (s *EventSourceStatus) PropagateServiceAvailability(ksvc *servingv1.Service) {
 	if ksvc == nil {
 		awsEventSourceConditionSet.Manage(s).MarkUnknown(ConditionDeployed, ReasonUnavailable,
 			"The status of the adapter Service can not be determined")
@@ -116,11 +133,25 @@ func (s *EventSourceStatus) propagateServiceAvailability(ksvc *servingv1.Service
 		return
 	}
 
+	reason := ReasonUnavailable
 	msg := "The adapter Service is unavailable"
-	readyCond := ksvc.Status.GetCondition(servingv1.ServiceConditionReady)
-	if readyCond != nil && readyCond.Message != "" {
-		msg += ": " + readyCond.Message
+
+	// the RoutesReady condition surfaces the reason why network traffic
+	// cannot be routed to the Service
+	routesCond := ksvc.Status.GetCondition(servingv1.ServiceConditionRoutesReady)
+	if routesCond != nil && routesCond.Message != "" {
+		msg += "; " + routesCond.Message
 	}
 
-	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionDeployed, ReasonUnavailable, msg)
+	// the ConfigurationsReady condition surfaces the reason why an
+	// underlying Pod is failing
+	configCond := ksvc.Status.GetCondition(servingv1.ServiceConditionConfigurationsReady)
+	if configCond != nil && configCond.Message != "" {
+		if r := status.ExactReason(configCond); r != configCond.Reason {
+			reason = r
+		}
+		msg += "; " + configCond.Message
+	}
+
+	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionDeployed, reason, msg)
 }

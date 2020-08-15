@@ -152,6 +152,14 @@ rules:
   - channels
   verbs: *listwatch
 
+# Determine the exact reason why Deployments fail
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+
 ---
 
 # The role is needed for the aggregated role source-observer in knative-eventing to provide readonly access to "Sources".
