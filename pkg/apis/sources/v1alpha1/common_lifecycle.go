@@ -39,12 +39,25 @@ func AWSEventType(awsService, eventType string) string {
 	return "com.amazon." + awsService + "." + eventType
 }
 
-// awsEventSourceConditionSet is a common set of conditions for AWS event
-// sources objects.
-var awsEventSourceConditionSet = apis.NewLivingConditionSet(
+// eventSourceConditionSet is a generic set of status conditions used by
+// default in all event sources.
+var eventSourceConditionSet = NewEventSourceConditionSet()
+
+// NewEventSourceConditionSet returns a set of status conditions for an event
+// source. Default conditions can be augmented by passing condition types as
+// function arguments.
+func NewEventSourceConditionSet(cts ...apis.ConditionType) apis.ConditionSet {
+	return apis.NewLivingConditionSet(
+		append(eventSourceConditionTypes, cts...)...,
+	)
+}
+
+// eventSourceConditionTypes is a list of condition types common to all event
+// sources.
+var eventSourceConditionTypes = []apis.ConditionType{
 	ConditionSinkProvided,
 	ConditionDeployed,
-)
+}
 
 // InitializeConditions sets relevant unset conditions to Unknown state.
 func (s *EventSourceStatus) InitializeConditions() {

@@ -34,7 +34,7 @@ func (s *AWSDynamoDBSource) GetGroupVersionKind() schema.GroupVersionKind {
 
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSDynamoDBSource) GetConditionSet() apis.ConditionSet {
-	return awsEventSourceConditionSet
+	return eventSourceConditionSet
 }
 
 // GetStatus implements duckv1.KRShaped.

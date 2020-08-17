@@ -30,7 +30,7 @@ func (s *AWSCognitoUserPoolSource) GetGroupVersionKind() schema.GroupVersionKind
 
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSCognitoUserPoolSource) GetConditionSet() apis.ConditionSet {
-	return awsEventSourceConditionSet
+	return eventSourceConditionSet
 }
 
 // GetStatus implements duckv1.KRShaped.

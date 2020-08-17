@@ -30,7 +30,7 @@ func (s *AWSSQSSource) GetGroupVersionKind() schema.GroupVersionKind {
 
 // GetConditionSet implements duckv1.KRShaped.
 func (s *AWSSQSSource) GetConditionSet() apis.ConditionSet {
-	return awsEventSourceConditionSet
+	return eventSourceConditionSet
 }
 
 // GetStatus implements duckv1.KRShaped.

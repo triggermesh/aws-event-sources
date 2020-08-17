@@ -90,7 +90,7 @@ const (
 )
 
 // awsSNSSourceConditionSet is a set of conditions for AWSSNSSource objects.
-var awsSNSSourceConditionSet = apis.NewLivingConditionSet(
+var awsSNSSourceConditionSet = NewEventSourceConditionSet(
 	AWSSNSConditionSubscribed,
 )
 
