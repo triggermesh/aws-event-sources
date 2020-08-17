@@ -43,9 +43,12 @@ func (s *AWSCognitoUserPoolSource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
 }
 
-// GetSourceStatus implements EventSource.
-func (s *AWSCognitoUserPoolSource) GetSourceStatus() *EventSourceStatus {
-	return &s.Status
+// GetStatusManager implements EventSource.
+func (s *AWSCognitoUserPoolSource) GetStatusManager() *EventSourceStatusManager {
+	return &EventSourceStatusManager{
+		ConditionSet:      s.GetConditionSet(),
+		EventSourceStatus: &s.Status,
+	}
 }
 
 // Supported event types

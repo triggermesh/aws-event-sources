@@ -47,9 +47,12 @@ func (s *AWSDynamoDBSource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
 }
 
-// GetSourceStatus implements EventSource.
-func (s *AWSDynamoDBSource) GetSourceStatus() *EventSourceStatus {
-	return &s.Status
+// GetStatusManager implements EventSource.
+func (s *AWSDynamoDBSource) GetStatusManager() *EventSourceStatusManager {
+	return &EventSourceStatusManager{
+		ConditionSet:      s.GetConditionSet(),
+		EventSourceStatus: &s.Status,
+	}
 }
 
 // GetEventTypes implements EventSource.

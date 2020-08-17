@@ -43,9 +43,12 @@ func (s *AWSCodeCommitSource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
 }
 
-// GetSourceStatus implements EventSource.
-func (s *AWSCodeCommitSource) GetSourceStatus() *EventSourceStatus {
-	return &s.Status
+// GetStatusManager implements EventSource.
+func (s *AWSCodeCommitSource) GetStatusManager() *EventSourceStatusManager {
+	return &EventSourceStatusManager{
+		ConditionSet:      s.GetConditionSet(),
+		EventSourceStatus: &s.Status,
+	}
 }
 
 // GetEventTypes implements EventSource.

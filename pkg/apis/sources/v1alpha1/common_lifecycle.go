@@ -59,26 +59,27 @@ var eventSourceConditionTypes = []apis.ConditionType{
 	ConditionDeployed,
 }
 
-// InitializeConditions sets relevant unset conditions to Unknown state.
-func (s *EventSourceStatus) InitializeConditions() {
-	awsEventSourceConditionSet.Manage(s).InitializeConditions()
+// EventSourceStatusManager manages the status of event sources.
+type EventSourceStatusManager struct {
+	apis.ConditionSet
+	*EventSourceStatus
 }
 
 // MarkSink sets the SinkProvided condition to True using the given URI.
-func (s *EventSourceStatus) MarkSink(uri *apis.URL) {
-	s.SinkURI = uri
+func (m *EventSourceStatusManager) MarkSink(uri *apis.URL) {
+	m.SinkURI = uri
 	if uri == nil {
-		awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionSinkProvided,
+		m.Manage(m).MarkFalse(ConditionSinkProvided,
 			ReasonSinkEmpty, "The sink has no URI")
 		return
 	}
-	awsEventSourceConditionSet.Manage(s).MarkTrue(ConditionSinkProvided)
+	m.Manage(m).MarkTrue(ConditionSinkProvided)
 }
 
 // MarkNoSink sets the SinkProvided condition to False.
-func (s *EventSourceStatus) MarkNoSink() {
-	s.SinkURI = nil
-	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionSinkProvided,
+func (m *EventSourceStatusManager) MarkNoSink() {
+	m.SinkURI = nil
+	m.ConditionSet.Manage(m).MarkFalse(ConditionSinkProvided,
 		ReasonSinkNotFound, "The sink does not exist or its URI is not set")
 }
 
@@ -88,20 +89,20 @@ func (s *EventSourceStatus) MarkNoSink() {
 // Given an optional PodInterface, the status of dependant Pods is inspected to
 // generate a more meaningful failure reason in case of non-ready status of the
 // Deployment.
-func (s *EventSourceStatus) PropagateDeploymentAvailability(ctx context.Context,
+func (m *EventSourceStatusManager) PropagateDeploymentAvailability(ctx context.Context,
 	d *appsv1.Deployment, pi coreclientv1.PodInterface) {
 
 	// Deployments are not addressable
-	s.Address = nil
+	m.Address = nil
 
 	if d == nil {
-		awsEventSourceConditionSet.Manage(s).MarkUnknown(ConditionDeployed, ReasonUnavailable,
+		m.ConditionSet.Manage(m).MarkUnknown(ConditionDeployed, ReasonUnavailable,
 			"The status of the adapter Deployment can not be determined")
 		return
 	}
 
 	if duck.DeploymentIsAvailable(&d.Status, false) {
-		awsEventSourceConditionSet.Manage(s).MarkTrue(ConditionDeployed)
+		m.ConditionSet.Manage(m).MarkTrue(ConditionDeployed)
 		return
 	}
 
@@ -124,25 +125,25 @@ func (s *EventSourceStatus) PropagateDeploymentAvailability(ctx context.Context,
 		}
 	}
 
-	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionDeployed, reason, msg)
+	m.ConditionSet.Manage(m).MarkFalse(ConditionDeployed, reason, msg)
 }
 
 // PropagateServiceAvailability uses the readiness of the provided Service to
 // determine whether the Deployed condition should be marked as True or False.
-func (s *EventSourceStatus) PropagateServiceAvailability(ksvc *servingv1.Service) {
+func (m *EventSourceStatusManager) PropagateServiceAvailability(ksvc *servingv1.Service) {
 	if ksvc == nil {
-		awsEventSourceConditionSet.Manage(s).MarkUnknown(ConditionDeployed, ReasonUnavailable,
+		m.ConditionSet.Manage(m).MarkUnknown(ConditionDeployed, ReasonUnavailable,
 			"The status of the adapter Service can not be determined")
 		return
 	}
 
-	if s.Address == nil {
-		s.Address = &duckv1.Addressable{}
+	if m.Address == nil {
+		m.Address = &duckv1.Addressable{}
 	}
-	s.Address.URL = ksvc.Status.URL
+	m.Address.URL = ksvc.Status.URL
 
 	if ksvc.IsReady() {
-		awsEventSourceConditionSet.Manage(s).MarkTrue(ConditionDeployed)
+		m.ConditionSet.Manage(m).MarkTrue(ConditionDeployed)
 		return
 	}
 
@@ -166,5 +167,5 @@ func (s *EventSourceStatus) PropagateServiceAvailability(ksvc *servingv1.Service
 		msg += "; " + configCond.Message
 	}
 
-	awsEventSourceConditionSet.Manage(s).MarkFalse(ConditionDeployed, reason, msg)
+	m.ConditionSet.Manage(m).MarkFalse(ConditionDeployed, reason, msg)
 }

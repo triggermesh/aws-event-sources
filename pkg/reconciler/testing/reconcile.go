@@ -243,7 +243,7 @@ func assertPopulatedSource(t *testing.T, src v1alpha1.EventSource) {
 
 	assert.NotEmpty(t, src.GetSink().Ref, "Provided source should reference a sink")
 	assert.NotEmpty(t, src.GetEventTypes(), "Provided source should declare its event types")
-	assert.NotEmpty(t, src.GetSourceStatus().Status.Conditions, "Provided source should have initialized conditions")
+	assert.NotEmpty(t, src.GetStatus().GetConditions(), "Provided source should have initialized conditions")
 }
 
 func nameKindAndResource(object runtime.Object) (string /*name*/, string /*kind*/, string /*resource*/) {
@@ -285,7 +285,7 @@ func Populate(srcCpy v1alpha1.EventSource) {
 	// object is initialized in the same manner, and prevents tests from wrongly reporting unexpected status updates.
 	reconciler.PreProcessReconcile(context.Background(), srcCpy)
 
-	srcCpy.GetSourceStatus().CloudEventAttributes = common.CreateCloudEventAttributes(
+	srcCpy.GetStatusManager().CloudEventAttributes = common.CreateCloudEventAttributes(
 		srcCpy.AsEventSource(), srcCpy.GetEventTypes())
 }
 
@@ -313,17 +313,17 @@ type sourceOption func(v1alpha1.EventSource)
 
 // noCEAttributes sets empty CE attributes. Simulates the creation of a new source.
 func noCEAttributes(src v1alpha1.EventSource) {
-	src.GetSourceStatus().CloudEventAttributes = nil
+	src.GetStatusManager().CloudEventAttributes = nil
 }
 
 // Sink: True
 func withSink(src v1alpha1.EventSource) {
-	src.GetSourceStatus().MarkSink(tSinkURI)
+	src.GetStatusManager().MarkSink(tSinkURI)
 }
 
 // Sink: False
 func withoutSink(src v1alpha1.EventSource) {
-	src.GetSourceStatus().MarkNoSink()
+	src.GetStatusManager().MarkNoSink()
 }
 
 // Deployed: True
@@ -360,9 +360,9 @@ func propagateAdapterAvailabilityFunc(adapter runtime.Object) func(src v1alpha1.
 	return func(src v1alpha1.EventSource) {
 		switch a := adapter.(type) {
 		case *appsv1.Deployment:
-			src.GetSourceStatus().PropagateDeploymentAvailability(context.Background(), a, nil)
+			src.GetStatusManager().PropagateDeploymentAvailability(context.Background(), a, nil)
 		case *servingv1.Service:
-			src.GetSourceStatus().PropagateServiceAvailability(a)
+			src.GetStatusManager().PropagateServiceAvailability(a)
 		}
 	}
 }
