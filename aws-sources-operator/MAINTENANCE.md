@@ -42,11 +42,11 @@ operator-sdk generate csv --csv-version 0.0.2
 
 ### Step 5: Prepare the Operator metadata
 
-Create the directory `bundle/0.0.2` and copy the `deploy/olm-catalog/aws-event-sources-operator/manifests/aws-event-sources-operator.clusterserviceversion.yaml` and `deploy/olm-catalog/aws-event-sources-operator/manifests/sources.triggermesh.com_awseventsources_crd.yaml` into this directory with the names `aws-event-sources-operator.v0.0.2.clusterserviceversion.yaml` and `aws-event-sources-operator.crd.yaml` respectively.
+Create the directory `bundle/0.0.2` and copy the `deploy/olm-catalog/aws-sources-operator/manifests/aws-sources-operator.clusterserviceversion.yaml` and `deploy/olm-catalog/aws-sources-operator/manifests/sources.triggermesh.com_awseventsources_crd.yaml` into this directory with the names `aws-sources-operator.v0.0.2.clusterserviceversion.yaml` and `aws-sources-operator.crd.yaml` respectively.
 
 > **IMPORTANT**: Please update the version number in the file names
 
-Next, edit the `bundle/aws-event-sources-operator.package.yaml` file and update the `currentCSV` field accordingly.
+Next, edit the `bundle/aws-sources-operator.package.yaml` file and update the `currentCSV` field accordingly.
 
 ## Step 6: Verify the operator metadata
 

@@ -16,38 +16,38 @@ image:
   # registry: gcr.io
   # repository: triggermesh/aws-event-sources-controller
   # tag: "v0.4.2"
-  image: gcr.io/triggermesh/aws-event-sources-controller:v0.4.2
+  image: registry.connect.redhat.com/triggermesh/aws-event-sources-controller:v0.4.2
   pullPolicy: IfNotPresent
 
 adapters:
   awscodecommit:
     # repository: triggermesh/awscodecommitsource
     # tag: ""
-    image: gcr.io/triggermesh/awscodecommitsource:v0.4.2
+    image: registry.connect.redhat.com/triggermesh/awscodecommitsource:v0.4.2
   awscognitoidentity:
     # repository: triggermesh/awscognitoidentitysource
     # tag: ""
-    image: gcr.io/triggermesh/awscognitoidentitysource:v0.4.2
+    image: registry.connect.redhat.com/triggermesh/awscognitoidentitysource:v0.4.2
   awscognitouserpool:
     # repository: triggermesh/awscognitouserpoolsource
     # tag: ""
-    image: gcr.io/triggermesh/awscognitouserpoolsource:v0.4.2
+    image: registry.connect.redhat.com/triggermesh/awscognitouserpoolsource:v0.4.2
   awsdynamodb:
     # repository: triggermesh/awsdynamodbsource
     # tag: ""
-    image: gcr.io/triggermesh/awsdynamodbsource:v0.4.2
+    image: registry.connect.redhat.com/triggermesh/awsdynamodbsource:v0.4.2
   awskinesis:
     # repository: triggermesh/awskinesissource
     # tag: ""
-    image: gcr.io/triggermesh/awskinesissource:v0.4.2
+    image: registry.connect.redhat.com/triggermesh/awskinesissource:v0.4.2
   awssns:
     # repository: triggermesh/awssnssource
     # tag: ""
-    image: gcr.io/triggermesh/awssnssource:v0.4.2
+    image: registry.connect.redhat.com/triggermesh/awssnssource:v0.4.2
   awssqs:
     # repository: triggermesh/awssqssource
     # tag: ""
-    image: gcr.io/triggermesh/awssqssource:v0.4.2
+    image: registry.connect.redhat.com/triggermesh/awssqssource:v0.4.2
 
 podAnnotations: {}
 
