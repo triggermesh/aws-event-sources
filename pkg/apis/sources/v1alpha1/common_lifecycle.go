@@ -60,6 +60,8 @@ var eventSourceConditionTypes = []apis.ConditionType{
 }
 
 // EventSourceStatusManager manages the status of event sources.
+//
+// +k8s:deepcopy-gen=false
 type EventSourceStatusManager struct {
 	apis.ConditionSet
 	*EventSourceStatus
