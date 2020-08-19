@@ -66,7 +66,7 @@ metadata:
       ]
     capabilities: Basic Install
     categories: Integration & Delivery,Streaming & Messaging
-    containerImage: registry.connect.redhat.com/triggermesh/aws-event-sources-operator:v0.2.0
+    containerImage: registry.connect.redhat.com/triggermesh/aws-event-sources-operator:v0.1.0
     createdAt: "2020-07-18T12:00:00Z"
     description: AWS Sources controller for Kubernetes
     repository: https://github.com/triggermesh/aws-event-sources
@@ -241,7 +241,7 @@ spec:
                   value: registry.connect.redhat.com/triggermesh/awssnssource:v0.5.0
                 - name: AWSSQS_ADAPTER_IMAGE
                   value: registry.connect.redhat.com/triggermesh/awssqssource:v0.5.0
-                image: registry.connect.redhat.com/triggermesh/aws-event-sources-operator:v0.2.0
+                image: registry.connect.redhat.com/triggermesh/aws-event-sources-operator:v0.1.0
                 imagePullPolicy: Always
                 name: aws-sources-operator
                 resources: {}

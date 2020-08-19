@@ -7,24 +7,24 @@ spec:
 
   adapters:
     awscodecommit:
-      image: registry.connect.redhat.com/triggermesh/awscodecommitsource:v0.4.2
+      image: registry.connect.redhat.com/triggermesh/awscodecommitsource:v0.5.0
     awscognitoidentity:
-      image: registry.connect.redhat.com/triggermesh/awscognitoidentitysource:v0.4.2
+      image: registry.connect.redhat.com/triggermesh/awscognitoidentitysource:v0.5.0
     awscognitouserpool:
-      image: registry.connect.redhat.com/triggermesh/awscognitouserpoolsource:v0.4.2
+      image: registry.connect.redhat.com/triggermesh/awscognitouserpoolsource:v0.5.0
     awsdynamodb:
-      image: registry.connect.redhat.com/triggermesh/awsdynamodbsource:v0.4.2
+      image: registry.connect.redhat.com/triggermesh/awsdynamodbsource:v0.5.0
     awskinesis:
-      image: registry.connect.redhat.com/triggermesh/awskinesissource:v0.4.2
+      image: registry.connect.redhat.com/triggermesh/awskinesissource:v0.5.0
     awssns:
-      image: registry.connect.redhat.com/triggermesh/awssnssource:v0.4.2
+      image: registry.connect.redhat.com/triggermesh/awssnssource:v0.5.0
     awssqs:
-      image: registry.connect.redhat.com/triggermesh/awssqssource:v0.4.2
+      image: registry.connect.redhat.com/triggermesh/awssqssource:v0.5.0
   affinity: {}
   fullnameOverride: ""
   image:
     pullPolicy: IfNotPresent
-    image: registry.connect.redhat.com/triggermesh/aws-event-sources-controller:v0.4.2
+    image: registry.connect.redhat.com/triggermesh/aws-event-sources-controller:v0.5.0
   imagePullSecrets: []
   nameOverride: ""
   nodeSelector: {}
