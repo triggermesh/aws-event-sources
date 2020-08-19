@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aws-sources-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: aws-sources-operator
+  template:
+    metadata:
+      labels:
+        name: aws-sources-operator
+    spec:
+      serviceAccountName: aws-sources-operator
+      containers:
+        - name: aws-sources-operator
+          image: registry.connect.redhat.com/triggermesh/aws-event-sources-operator:v0.2.0
+          imagePullPolicy: Always
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "aws-sources-operator"
+            - name: AWS_EVENT_SOURCES_CONTROLLER_IMAGE
+              value: registry.connect.redhat.com/triggermesh/aws-event-sources-controller:v0.5.0
+            - name: AWSCODECOMMIT_ADAPTER_IMAGE
+              value: registry.connect.redhat.com/triggermesh/awscodecommitsource:v0.5.0
+            - name: AWSCOGNITOIDENTITY_ADAPTER_IMAGE
+              value: registry.connect.redhat.com/triggermesh/awscognitoidentitysource:v0.5.0
+            - name: AWSCOGNITOUSERPOOL_ADAPTER_IMAGE
+              value: registry.connect.redhat.com/triggermesh/awscognitouserpoolsource:v0.5.0
+            - name: AWSDYNAMODB_ADAPTER_IMAGE
+              value: registry.connect.redhat.com/triggermesh/awsdynamodbsource:v0.5.0
+            - name: AWSKINESIS_ADAPTER_IMAGE
+              value: registry.connect.redhat.com/triggermesh/awskinesissource:v0.5.0
+            - name: AWSSNS_ADAPTER_IMAGE
+              value: registry.connect.redhat.com/triggermesh/awssnssource:v0.5.0
+            - name: AWSSQS_ADAPTER_IMAGE
+              value: registry.connect.redhat.com/triggermesh/awssqssource:v0.5.0

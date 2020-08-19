@@ -1,0 +1,274 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: |-
+      [
+        {
+          "apiVersion": "sources.triggermesh.com/v1alpha1",
+          "kind": "AwsEventSources",
+          "metadata": {
+            "name": "example-awseventsources"
+          },
+          "spec": {
+            "adapters": {
+              "awscodecommit": {
+                "image": "registry.connect.redhat.com/triggermesh/awscodecommitsource:v0.5.0"
+              },
+              "awscognitoidentity": {
+                "image": "registry.connect.redhat.com/triggermesh/awscognitoidentitysource:v0.5.0"
+              },
+              "awscognitouserpool": {
+                "image": "registry.connect.redhat.com/triggermesh/awscognitouserpoolsource:v0.5.0"
+              },
+              "awsdynamodb": {
+                "image": "registry.connect.redhat.com/triggermesh/awsdynamodbsource:v0.5.0"
+              },
+              "awskinesis": {
+                "image": "registry.connect.redhat.com/triggermesh/awskinesissource:v0.5.0"
+              },
+              "awssns": {
+                "image": "registry.connect.redhat.com/triggermesh/awssnssource:v0.5.0"
+              },
+              "awssqs": {
+                "image": "registry.connect.redhat.com/triggermesh/awssqssource:v0.5.0"
+              }
+            },
+            "affinity": {},
+            "fullnameOverride": "",
+            "image": {
+              "image": "registry.connect.redhat.com/triggermesh/aws-event-sources-controller:v0.5.0",
+              "pullPolicy": "IfNotPresent"
+            },
+            "imagePullSecrets": [],
+            "nameOverride": "",
+            "nodeSelector": {},
+            "podAnnotations": {},
+            "podSecurityContext": {},
+            "rbac": {
+              "create": true
+            },
+            "resources": {
+              "requests": {
+                "cpu": "20m",
+                "memory": "20Mi"
+              }
+            },
+            "securityContext": {},
+            "serviceAccount": {
+              "annotations": {},
+              "create": true,
+              "name": ""
+            },
+            "tolerations": []
+          }
+        }
+      ]
+    capabilities: Basic Install
+    categories: Integration & Delivery,Streaming & Messaging
+    containerImage: registry.connect.redhat.com/triggermesh/aws-event-sources-operator:v0.1.0
+    createdAt: "2020-07-18T12:00:00Z"
+    description: AWS Sources controller for Kubernetes
+    repository: https://github.com/triggermesh/aws-event-sources
+    support: TriggerMesh Inc.
+  name: aws-sources-operator.v0.2.0
+  namespace: openshift-operators
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - description: AWS Sources controller for Kubernetes
+      displayName: AwsEventSources Operator
+      kind: AwsEventSources
+      name: awseventsources.sources.triggermesh.com
+      version: v1alpha1
+  description: |
+    aws-event-sources is a Kubernetes controller that implements Knative event sources for AWS services. The following event sources are currently supported by the controller
+
+    - Amazon CodeCommit (`kind: AWSCodeCommitSource`)
+    - Amazon Cognito Identity (`kind: AWSCognitoIdentitySource`)
+    - Amazon Cognito UserPool (`kind: AWSCognitoUserPoolSource`)
+    - Amazon DynamoDB (`kind: AWSDynamoDBSource`)
+    - Amazon Kinesis (`kind: AWSKinesisSource`)
+    - Amazon Simple Notification Service (`kind: AWSSNSSource`)
+    - Amazon Simple Queue Service (`kind: AWSSQSSource`)
+
+    Refer to [aws-event-sources/config/samples](https://github.com/triggermesh/aws-event-sources/tree/master/config/samples) for examples that make use of the controller.
+  displayName: AWS Sources Operator
+  icon:
+  - base64data: PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MzUuNTUgNDMuNTQiPjxkZWZzPjxzdHlsZT4uY2xzLTF7ZmlsbDojMDA5NmRiO30uY2xzLTJ7aXNvbGF0aW9uOmlzb2xhdGU7fTwvc3R5bGU+PC9kZWZzPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTYwLjQ1LDIwQzU5LjU0LDMsMzUuNDUtNC4xNSwyNSwxMi43NGMtNi43Ni0zLTE0Ljg3LDEuNTYtMTUsOS4xMkMtMy40MywyMy4yMy00LjgzLDQzLjcsMTUsNDMuN2guNjZhNi45LDYuOSwwLDAsMSwuMTEtNC44SDEzLjY3Yy05LjUyLS4wNy0xMi0xMy44Ny42OC0xMi41OS0yLjMxLTcuNjIsNS43NS0xNCwxMi40NS04LjIyQzMyLjg2LDQsNTUuMjIsMy41NCw1Ni4yMywyMy43MWMxMi40NS44OCwxMi4wNiwxNC4wOSwzLDE1LjM0SDQ2LjQ4QTQuOTQsNC45NCwwLDAsMSw0Nyw0My43SDU5LjE4QzczLDQzLjQyLDc1LjUsMjIuOTMsNjAuNDUsMjBaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjAxIC0zLjExKSIvPjxwYXRoIGNsYXNzPSJjbHMtMSIgZD0iTTM2LjE4LDI5LjM5bC4xMi0uMjJjMS4yNy0yLjI2LDYuMzEtMi40MSw4LjI5LS42MWE1LjcyLDUuNzIsMCwwLDAsMi4xLDEuODQsNSw1LDAsMSwwLDQuMTUtOSw1LjA3LDUuMDcsMCwwLDAtNi41NiwyLjQ2Yy0xLjQ3LDIuNjgtNy4xNSwxLjg2LTguMjUuNjdhNi4wNyw2LjA3LDAsMCwwLTIuNzMtMS45MkE0LjY5LDQuNjksMCwwLDAsMjcsMjcuNzJhNS4zMiw1LjMyLDAsMCwwLC41NSwxLjY5Yy41MiwxLjI0LTIsNi44My00LjYzLDcuMzJhNS43Myw1LjczLDAsMCwwLTIuNzMuNTYsNC45NCw0Ljk0LDAsMSwwLDQuNDUsOC44MmwuMTktLjFhNS4wNyw1LjA3LDAsMCwwLDItNi42OGMtMS4yNC0yLjc4LDIuNDYtNy4xOCw0LjU3LTcuMzFzNS44Miw0Ljg0LDQuNTUsNy4xNEE1LjA4LDUuMDgsMCwwLDAsMzcuNDMsNDZhNSw1LDAsMCwwLDUuMzItOC4zNCw1Ljc4LDUuNzgsMCwwLDAtMi42NS0uNzhjLTIuNTgtLjY5LTUuMjMtNC45My00LTcuMjJaTTQ5LDIzLjc5QTIuMTUsMi4xNSwwLDEsMSw0Ni44NCwyNmgwQTIuMTYsMi4xNiwwLDAsMSw0OSwyMy43OVpNMjIuNDMsNDRhMi4xNSwyLjE1LDAsMSwxLDIuMTUtMi4xNWgwQTIuMTQsMi4xNCwwLDAsMSwyMi40NSw0NFpNMzEuNiwyOC40YTEuNjEsMS42MSwwLDEsMSwxLjYtMS42MnYwQTEuNiwxLjYsMCwwLDEsMzEuNiwyOC40Wm04LjU4LDExLjMxQTIuMTUsMi4xNSwwLDEsMSwzOCw0MS44N2gwYTIuMTQsMi4xNCwwLDAsMSwyLjEzLTIuMTVaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjAxIC0zLjExKSIvPjxnIGNsYXNzPSJjbHMtMiI+PGcgY2xhc3M9ImNscy0yIj48cGF0aCBkPSJNOTAuMjcsMTAuN0g3OVY3LjJoMjYuNHYzLjVIOTQuMTFWNDAuOEg5MC4yN1oiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAuMDEgLTMuMTEpIi8+PHBhdGggZD0iTTExMi41LDcuMkgxMjdjNC4xMiwwLDcuNDQsMS4yNSw5LjU1LDMuMzZhOS4yNyw5LjI3LDAsMCwxLDIuNTksNi42MnYuMWMwLDUuNTctMy44NCw4LjgzLTkuMTIsOS43OUwxNDAuMjksNDAuOGgtNC42NmwtOS43NC0xMy4wNmgtOS42VjQwLjhIMTEyLjVabTE0LjExLDE3LjEzYzUsMCw4LjY0LTIuNTksOC42NC02Ljkxdi0uMDljMC00LjEzLTMuMTctNi42My04LjU5LTYuNjNIMTE2LjI5VjI0LjMzWiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMSAtMy4xMSkiLz48cGF0aCBkPSJNMTQ3LjU0LDcuMmgzLjc5VjQwLjhoLTMuNzlaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjAxIC0zLjExKSIvPjxwYXRoIGQ9Ik0xNTkuNjgsMjQuMDlWMjRjMC05LjIyLDYuNzctMTcuMzgsMTYuODUtMTcuMzhhMTcuNzIsMTcuNzIsMCwwLDEsMTIuNTMsNC40NkwxODYuNjEsMTRhMTQuMjgsMTQuMjgsMCwwLDAtMTAuMjMtMy44NWMtNy40NCwwLTEyLjc2LDYuMjktMTIuNzYsMTMuNzhWMjRjMCw4LDUuMTMsMTQsMTMuMjksMTRhMTUuODQsMTUuODQsMCwwLDAsOS43LTMuMzZWMjYuMjVIMTc2LjM4di0zLjRoMTMuODhWMzYuMjRhMjAuNCwyMC40LDAsMCwxLTEzLjQ5LDUuMTRDMTY2LjIxLDQxLjM4LDE1OS42OCwzMy43LDE1OS42OCwyNC4wOVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAuMDEgLTMuMTEpIi8+PHBhdGggZD0iTTE5Ny4zMSwyNC4wOVYyNGMwLTkuMjIsNi43Ny0xNy4zOCwxNi44NS0xNy4zOGExNy43MiwxNy43MiwwLDAsMSwxMi41Myw0LjQ2TDIyNC4yNCwxNEExNC4yNywxNC4yNywwLDAsMCwyMTQsMTAuMTJjLTcuNDQsMC0xMi43Nyw2LjI5LTEyLjc3LDEzLjc4VjI0YzAsOCw1LjEzLDE0LDEzLjI5LDE0YTE1Ljg0LDE1Ljg0LDAsMCwwLDkuNy0zLjM2VjI2LjI1SDIxNHYtMy40aDEzLjg3VjM2LjI0YTIwLjQsMjAuNCwwLDAsMS0xMy40OSw1LjE0QzIwMy44NCw0MS4zOCwxOTcuMzEsMzMuNywxOTcuMzEsMjQuMDlaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjAxIC0zLjExKSIvPjxwYXRoIGQ9Ik0yMzYuNDMsNy4yaDI0LjI5djMuNDVoLTIwLjVWMjIuMTNoMTguMzR2My40NUgyNDAuMjJWMzcuMzRIMjYxVjQwLjhIMjM2LjQzWiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMSAtMy4xMSkiLz48cGF0aCBkPSJNMjY4LjU5LDcuMkgyODNjNC4xMywwLDcuNDQsMS4yNSw5LjU1LDMuMzZhOS4yNyw5LjI3LDAsMCwxLDIuNTksNi42MnYuMWMwLDUuNTctMy44NCw4LjgzLTkuMTIsOS43OUwyOTYuMzgsNDAuOGgtNC42NUwyODIsMjcuNzRoLTkuNlY0MC44aC0zLjc5Wk0yODIuNywyNC4zM2M1LDAsOC42NC0yLjU5LDguNjQtNi45MXYtLjA5YzAtNC4xMy0zLjE2LTYuNjMtOC41OS02LjYzSDI3Mi4zOFYyNC4zM1oiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAuMDEgLTMuMTEpIi8+PC9nPjxnIGNsYXNzPSJjbHMtMiI+PHBhdGggZD0iTTMwMi41Nyw3LjJoOGw4LjgzLDE0LjIxTDMyOC4yMSw3LjJoOFY0MC44aC03LjM0VjE4Ljg2bC05LjQ2LDE0LjM1aC0uMTlMMzA5LjgyLDE5VjQwLjhoLTcuMjVaIiB0cmFuc2Zvcm09InRyYW5zbGF0ZSgwLjAxIC0zLjExKSIvPjxwYXRoIGQ9Ik0zNDQuMjQsNy4yaDI1LjM0djYuNTdoLTE4djYuODJoMTUuODR2Ni41OEgzNTEuNTh2N2gxOC4yNFY0MC44SDM0NC4yNFoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAuMDEgLTMuMTEpIi8+PHBhdGggZD0iTTM3NC4wOSwzNS45bDQuMzctNS4yM2MzLDIuNSw2LjE5LDQuMDgsMTAsNC4wOCwzLDAsNC44NS0xLjIsNC44NS0zLjE3di0uMDljMC0xLjg3LTEuMTUtMi44NC02Ljc3LTQuMjgtNi43Ny0xLjcyLTExLjEzLTMuNi0xMS4xMy0xMC4yN3YtLjA5YzAtNi4xLDQuODktMTAuMTMsMTEuNzYtMTAuMTNBMTkuNDQsMTkuNDQsMCwwLDEsMzk5LjY4LDExbC0zLjg0LDUuNTdjLTMtMi4wNy01LjkxLTMuMzEtOC43NC0zLjMxcy00LjMyLDEuMjktNC4zMiwyLjkydi4xYzAsMi4yMSwxLjQ0LDIuOTMsNy4yNSw0LjQyLDYuODIsMS43NywxMC42Niw0LjIyLDEwLjY2LDEwLjA4di4wOWMwLDYuNjgtNS4wOSwxMC40Mi0xMi4zNCwxMC40MkEyMS4zOSwyMS4zOSwwLDAsMSwzNzQuMDksMzUuOVoiIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAuMDEgLTMuMTEpIi8+PHBhdGggZD0iTTQwNy4xMiw3LjJoNy4zOVYyMC40OWgxMy42M1Y3LjJoNy4zOVY0MC44aC03LjM5VjI3LjMxSDQxNC41MVY0MC44aC03LjM5WiIgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoMC4wMSAtMy4xMSkiLz48L2c+PC9nPjwvc3ZnPg==
+    mediatype: image/svg+xml
+  install:
+    spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - ""
+          resources:
+          - namespaces
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - configmaps
+          - secrets
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - events
+          verbs:
+          - create
+        - apiGroups:
+          - rbac.authorization.k8s.io
+          resources:
+          - clusterrolebindings
+          - clusterroles
+          verbs:
+          - '*'
+        - apiGroups:
+          - ""
+          resources:
+          - serviceaccounts
+          verbs:
+          - '*'
+        - apiGroups:
+          - apps
+          resources:
+          - deployments
+          verbs:
+          - '*'
+        - apiGroups:
+          - monitoring.coreos.com
+          resources:
+          - servicemonitors
+          verbs:
+          - get
+          - create
+        - apiGroups:
+          - apps
+          resourceNames:
+          - aws-sources-operator
+          resources:
+          - deployments/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - ""
+          resources:
+          - pods
+          verbs:
+          - get
+        - apiGroups:
+          - ""
+          resources:
+          - services
+          - services/finalizers
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apps
+          resources:
+          - replicasets
+          - deployments
+          verbs:
+          - get
+        - apiGroups:
+          - sources.triggermesh.com
+          resources:
+          - '*'
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - apiextensions.k8s.io
+          resources:
+          - customresourcedefinitions
+          verbs:
+          - '*'
+        serviceAccountName: aws-sources-operator
+      deployments:
+      - name: aws-sources-operator
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              name: aws-sources-operator
+          strategy: {}
+          template:
+            metadata:
+              labels:
+                name: aws-sources-operator
+            spec:
+              containers:
+              - env:
+                - name: WATCH_NAMESPACE
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.annotations['olm.targetNamespaces']
+                - name: POD_NAME
+                  valueFrom:
+                    fieldRef:
+                      fieldPath: metadata.name
+                - name: OPERATOR_NAME
+                  value: aws-sources-operator
+                - name: AWS_EVENT_SOURCES_CONTROLLER_IMAGE
+                  value: registry.connect.redhat.com/triggermesh/aws-event-sources-controller:v0.5.0
+                - name: AWSCODECOMMIT_ADAPTER_IMAGE
+                  value: registry.connect.redhat.com/triggermesh/awscodecommitsource:v0.5.0
+                - name: AWSCOGNITOIDENTITY_ADAPTER_IMAGE
+                  value: registry.connect.redhat.com/triggermesh/awscognitoidentitysource:v0.5.0
+                - name: AWSCOGNITOUSERPOOL_ADAPTER_IMAGE
+                  value: registry.connect.redhat.com/triggermesh/awscognitouserpoolsource:v0.5.0
+                - name: AWSDYNAMODB_ADAPTER_IMAGE
+                  value: registry.connect.redhat.com/triggermesh/awsdynamodbsource:v0.5.0
+                - name: AWSKINESIS_ADAPTER_IMAGE
+                  value: registry.connect.redhat.com/triggermesh/awskinesissource:v0.5.0
+                - name: AWSSNS_ADAPTER_IMAGE
+                  value: registry.connect.redhat.com/triggermesh/awssnssource:v0.5.0
+                - name: AWSSQS_ADAPTER_IMAGE
+                  value: registry.connect.redhat.com/triggermesh/awssqssource:v0.5.0
+                image: registry.connect.redhat.com/triggermesh/aws-event-sources-operator:v0.1.0
+                imagePullPolicy: Always
+                name: aws-sources-operator
+                resources: {}
+              serviceAccountName: aws-sources-operator
+    strategy: deployment
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: true
+    type: AllNamespaces
+  keywords:
+  - knative
+  - serverless
+  - aws
+  - triggermesh
+  links:
+  - name: Aws Sources Operator
+    url: https://aws-sources-operator.domain
+  maintainers:
+  - email: dev@triggermesh.com
+    name: TriggerMesh Developers
+  maturity: alpha
+  provider:
+    name: TriggerMesh Inc.
+  replaces: aws-sources-operator.v0.1.0
+  version: 0.2.0

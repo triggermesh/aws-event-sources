@@ -1,5 +1,0 @@
-channels:
-  - currentCSV: aws-event-sources-operator.v0.1.0
-    name: alpha
-defaultChannel: alpha
-packageName: aws-event-sources-operator
