@@ -128,6 +128,30 @@ rules:
   verbs:
   - get
 
+# Acquire leases for leader election
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+- apiGroups:
+  - coordination.k8s.io
+  resourceNames:
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscodecommitsource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscognitoidentitysource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscognitouserpoolsource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awsdynamodbsource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awsiotsource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awskinesissource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awssnssource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awssqssource.reconciler.00-of-01
+  resources:
+  - leases
+  verbs:
+  - get
+  - update
+
 # Resolve sink URIs
 - apiGroups:
   - ''
