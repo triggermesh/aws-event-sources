@@ -17,7 +17,7 @@ limitations under the License.
 package apis
 
 import (
-	"encoding"
+	"encoding/json"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go/aws/arn"
@@ -28,9 +28,9 @@ import (
 type ARN arn.ARN
 
 var (
-	_ fmt.Stringer             = (*ARN)(nil)
-	_ encoding.TextMarshaler   = (*ARN)(nil)
-	_ encoding.TextUnmarshaler = (*ARN)(nil)
+	_ fmt.Stringer     = (*ARN)(nil)
+	_ json.Marshaler   = (*ARN)(nil)
+	_ json.Unmarshaler = (*ARN)(nil)
 )
 
 // String implements the fmt.Stringer interface.
@@ -38,9 +38,13 @@ func (a ARN) String() string {
 	return arn.ARN(a).String()
 }
 
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (a *ARN) UnmarshalText(data []byte) error {
-	dataStr := string(data)
+// UnmarshalJSON implements json.Unmarshaler.
+func (a *ARN) UnmarshalJSON(data []byte) error {
+	var dataStr string
+	if err := json.Unmarshal(data, &dataStr); err != nil {
+		return err
+	}
+
 	arn, err := arn.Parse(dataStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse ARN %q: %w", dataStr, err)
@@ -51,7 +55,7 @@ func (a *ARN) UnmarshalText(data []byte) error {
 	return nil
 }
 
-// MarshalText implements encoding.TextMarshaler.
-func (a ARN) MarshalText() ([]byte, error) {
-	return []byte(a.String()), nil
+// MarshalJSON implements json.Marshaler.
+func (a ARN) MarshalJSON() ([]byte, error) {
+	return []byte(`"` + a.String() + `"`), nil
 }
