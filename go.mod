@@ -1,6 +1,6 @@
 module github.com/triggermesh/aws-event-sources
 
-go 1.14
+go 1.15
 
 // Top-level module control over the exact version used for important direct dependencies.
 // https://github.com/golang/go/wiki/Modules#when-should-i-use-the-replace-directive
