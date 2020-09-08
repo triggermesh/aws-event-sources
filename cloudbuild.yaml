@@ -9,6 +9,8 @@ steps:
   - --cache-repo=gcr.io/$PROJECT_ID/${_CMD}/cache
   - --cache=${_KANIKO_USE_BUILD_CACHE}
   - --no-push=${_KANIKO_NO_PUSH}
+  - --snapshotMode=redo
+  - --use-new-run
   - ${_KANIKO_EXTRA_ARGS}
   waitFor: ['-']
 
