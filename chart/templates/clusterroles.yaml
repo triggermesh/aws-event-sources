@@ -20,6 +20,7 @@ metadata:
   labels:
     {{- include "aws-event-sources.labels" . | nindent 4 }}
 rules:
+
 # Record Kubernetes events
 - apiGroups:
   - ''
@@ -116,7 +117,7 @@ rules:
   - ''
   resources:
   - configmaps
-  verbs: &listwatch
+  verbs:
   - list
   - watch
 - apiGroups:
@@ -130,27 +131,29 @@ rules:
   verbs:
   - get
 
-# Resolve sink URIs
+# Acquire leases for leader election
 - apiGroups:
-  - ''
+  - coordination.k8s.io
   resources:
-  - services
-  verbs: *listwatch
+  - leases
+  verbs:
+  - create
 - apiGroups:
-  - serving.knative.dev
+  - coordination.k8s.io
+  resourceNames:
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscodecommitsource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscognitoidentitysource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscognitouserpoolsource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awsdynamodbsource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awsiotsource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awskinesissource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awssnssource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awssqssource.reconciler.00-of-01
   resources:
-  - services
-  verbs: *listwatch
-- apiGroups:
-  - eventing.knative.dev
-  resources:
-  - brokers
-  verbs: *listwatch
-- apiGroups:
-  - messaging.knative.dev
-  resources:
-  - channels
-  verbs: *listwatch
+  - leases
+  verbs:
+  - get
+  - update
 
 # Determine the exact reason why Deployments fail
 - apiGroups:
@@ -164,7 +167,6 @@ rules:
 
 # The role is needed for the aggregated role source-observer in knative-eventing to provide readonly access to "Sources".
 # see https://github.com/knative/eventing/blob/release-0.14/docs/spec/sources.md#source-rbac
-
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

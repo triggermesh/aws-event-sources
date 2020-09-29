@@ -27,4 +27,22 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: {{ template "aws-event-sources.fullname" . }}-controller
+
+---
+
+# Resolve sink URIs
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-controller-addressable-resolver
+  labels:
+    {{- include "aws-event-sources.labels" . | nindent 4 }}
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: addressable-resolver
 {{- end }}
