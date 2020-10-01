@@ -2,71 +2,66 @@
 
 ![Sources for Amazon Web Services](./images/saws.png "Sources for Amazon Web Services")
 
-**What:** TriggerMesh Sources for Amazon Web Services (SAWS) are event sources for AWS services.
+TriggerMesh Sources for Amazon Web Services (SAWS) allows you to quickly and easily consume events from your AWS  services and send them to workloads running in your cluster.
 
-**Why:** You may be using some Cloud services on AWS but still interested to run workloads within Kubernetes and soon via [Knative](https://github.com/knative/docs) to benefit from features such as scale to zero and source-to-url FaaS functionality. To trigger those workloads when events happen in your AWS service you need to have an event source that can consume AWS events and send them to your workload. This is a key principle in Knative eventing.
+## Installation
 
-**How:** The sources listed in this repo are fully open source and can be used in any Knative cluster. They consist of Go event consumers for various AWS services. Most of them are packaged as `Container Sources` and make use of [CloudEvents](https://cloudevents.io/)
+### Kubernetes
 
-## List of event sources
+Using Helm:
 
-| AWS service     | Support level |
-|-----------------|---------------|
-| CodeCommit      | alpha         |
-| CognitoUserPool | alpha         |
-| CognitoIdentity | alpha         |
-| DynamoDB        | alpha         |
-| IoT             | alpha/WIP     |
-| Kinesis         | alpha         |
-| SNS             | alpha         |
-| SQS             | alpha         |
-
-## Usage
-
-Each individual event source can be found in a sub-directory under `cmd/`. Most sources have the following structure:
-
-```
-cmd/awscodecommitsource
-├── Dockerfile
-├── Makefile
-├── README.md
-└── main.go
+```bash
+$ helm repo add triggermesh https://storage.googleapis.com/triggermesh-charts
+$ helm install triggermesh/aws-event-sources
 ```
 
-* `README.md` contains the usage instructions for the event source. You should probably start by checking that file.
-* `main.go` contains the entry point code that starts the execution of the event source.
-* `Dockerfile` contains the directives necessary for building a container image for the event source.
-* `Makefile` contains goals for building, verifying and testing the code of the event source. Try `make help` to show all available goals for the event source.
+Refer to the [aws-event-sources chart documentation](chart/README.md) for all available configuration options.
 
-For detailed usage instructions about a particular source, please refer to its own `README.md` file.
+### OpenShift
 
-## Caveat
+Login to the OpenShift Container Platform console and install the **AWS Sources Operator** from the **OperatorHub**. Refer to the [aws-event-sources-operator documentation](https://github.com/triggermesh/aws-sources-operator/blob/master/README.md) for the complete guide in getting up and running on the OpenShift Container Platform.
 
-AWS events are very rich. AWS SNS and AWS CloudWatch can be used with almost every AWS service, hence there are many different ways to consume and/or receive AWS events. These sources represent one way of doing it.
+## Getting Started
 
-## TriggerMesh Cloud Early Access
+The following table lists the AWS services currently supported by TriggerMesh Sources for AWS and their support level.
 
-These container sources can be used as is from this repo. You can also use them from our Cloud [https://cloud.triggermesh.io](https://cloud.triggermesh.io) where we have developed an enjoyable UI to configure them. Check out this snapshot:
+|                            AWS Service                            |                  Documentation                   | Support Level |
+|-------------------------------------------------------------------|--------------------------------------------------|---------------|
+| [CodeCommit](https://aws.amazon.com/codecommit/)                  | [README](cmd/awscodecommitsource/README.md)      | alpha         |
+| [Cognito Identity Pool](https://aws.amazon.com/cognito/)               | [README](cmd/awscognitoidentitysource/README.md) | alpha         |
+| [Cognito User Pool](https://aws.amazon.com/cognito/)               | [README](cmd/awscognitouserpoolsource/README.md) | alpha         |
+| [DynamoDB](https://aws.amazon.com/dynamodb/)                      | [README](cmd/awsdynamodbsource/README.md)        | alpha         |
+| [Kinesis](https://aws.amazon.com/kinesis/)                        | [README](cmd/awskinesissource/README.md)         | alpha         |
+| [Simple Notifications Service (SNS)](https://aws.amazon.com/sns/) | [README](cmd/awssnssource/README.md)             | alpha         |
+| [Simple Queue Service (SQS)](https://aws.amazon.com/sqs/)         | [README](cmd/awssqssource/README.md)             | alpha         |
 
-![TM cloud sources](./images/sources.png)
+For detailed usage instructions about a particular source, please refer to the linked `README.md` files.
+
+## TriggerMesh Cloud
+
+These container sources can be used as is from this repository or you can use our feature rich [TriggerMesh Cloud](https://cloud.triggermesh.io) offering where you can use our easy to use interface to configure them and also have access to other event source that are not publicly available.
+
+![TriggerMesh Cloud](images/triggermesh-cloud.png)
 
 ## Roadmap
 
 * Add a more generic SNS source using an operator architecture
 * Add a CloudWatch source using an operator architecture
-* Use goroutines to make the sources more performant
+* Performance improvements
 
 ## Support
 
-We would love your feedback and help on these sources, so don't hesitate to let us know what is wrong and how we could improve them, just file an [issue](https://github.com/triggermesh/aws-event-sources/issues/new) or join those of use who are maintaining them and submit a [PR](https://github.com/triggermesh/aws-event-sources/compare)
+The sources listed in this repository are fully open source and can be used in any Knative cluster. They consist of event consumers for various AWS services. Most of them are packaged as `Container Sources` and make use of [CloudEvents](https://cloudevents.io/).
+
+We would love your feedback and ideas. Reach out to us by filing an [issue](https://github.com/triggermesh/aws-event-sources/issues/new) and help us extend and improve these sources with your [contributions](https://github.com/triggermesh/aws-event-sources/compare).
 
 ## Commercial Support
 
-TriggerMesh Inc supports those sources commercially, email info@triggermesh.com to get more details.
+TriggerMesh Inc supports these sources commercially, email info@triggermesh.com for details.
 
 ## Code of Conduct
 
-This plugin is by no means part of [CNCF](https://www.cncf.io/) but we abide by its [code of conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md)
+This repository is not a part of [CNCF](https://www.cncf.io/) but we abide by its [code of conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).
 
 ## Contributing
 
