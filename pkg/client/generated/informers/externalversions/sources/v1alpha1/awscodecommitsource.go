@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	sourcesv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -61,13 +62,13 @@ func NewFilteredAWSCodeCommitSourceInformer(client internalclientset.Interface, 
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SourcesV1alpha1().AWSCodeCommitSources(namespace).List(options)
+				return client.SourcesV1alpha1().AWSCodeCommitSources(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SourcesV1alpha1().AWSCodeCommitSources(namespace).Watch(options)
+				return client.SourcesV1alpha1().AWSCodeCommitSources(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&sourcesv1alpha1.AWSCodeCommitSource{},

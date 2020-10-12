@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var awscodecommitsourcesResource = schema.GroupVersionResource{Group: "sources.t
 var awscodecommitsourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSCodeCommitSource"}
 
 // Get takes name of the aWSCodeCommitSource, and returns the corresponding aWSCodeCommitSource object, and an error if there is any.
-func (c *FakeAWSCodeCommitSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSCodeCommitSource, err error) {
+func (c *FakeAWSCodeCommitSources) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.AWSCodeCommitSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(awscodecommitsourcesResource, c.ns, name), &v1alpha1.AWSCodeCommitSource{})
 
@@ -50,7 +52,7 @@ func (c *FakeAWSCodeCommitSources) Get(name string, options v1.GetOptions) (resu
 }
 
 // List takes label and field selectors, and returns the list of AWSCodeCommitSources that match those selectors.
-func (c *FakeAWSCodeCommitSources) List(opts v1.ListOptions) (result *v1alpha1.AWSCodeCommitSourceList, err error) {
+func (c *FakeAWSCodeCommitSources) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.AWSCodeCommitSourceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(awscodecommitsourcesResource, awscodecommitsourcesKind, c.ns, opts), &v1alpha1.AWSCodeCommitSourceList{})
 
@@ -72,14 +74,14 @@ func (c *FakeAWSCodeCommitSources) List(opts v1.ListOptions) (result *v1alpha1.A
 }
 
 // Watch returns a watch.Interface that watches the requested aWSCodeCommitSources.
-func (c *FakeAWSCodeCommitSources) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeAWSCodeCommitSources) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(awscodecommitsourcesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a aWSCodeCommitSource and creates it.  Returns the server's representation of the aWSCodeCommitSource, and an error, if there is any.
-func (c *FakeAWSCodeCommitSources) Create(aWSCodeCommitSource *v1alpha1.AWSCodeCommitSource) (result *v1alpha1.AWSCodeCommitSource, err error) {
+func (c *FakeAWSCodeCommitSources) Create(ctx context.Context, aWSCodeCommitSource *v1alpha1.AWSCodeCommitSource, opts v1.CreateOptions) (result *v1alpha1.AWSCodeCommitSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(awscodecommitsourcesResource, c.ns, aWSCodeCommitSource), &v1alpha1.AWSCodeCommitSource{})
 
@@ -90,7 +92,7 @@ func (c *FakeAWSCodeCommitSources) Create(aWSCodeCommitSource *v1alpha1.AWSCodeC
 }
 
 // Update takes the representation of a aWSCodeCommitSource and updates it. Returns the server's representation of the aWSCodeCommitSource, and an error, if there is any.
-func (c *FakeAWSCodeCommitSources) Update(aWSCodeCommitSource *v1alpha1.AWSCodeCommitSource) (result *v1alpha1.AWSCodeCommitSource, err error) {
+func (c *FakeAWSCodeCommitSources) Update(ctx context.Context, aWSCodeCommitSource *v1alpha1.AWSCodeCommitSource, opts v1.UpdateOptions) (result *v1alpha1.AWSCodeCommitSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(awscodecommitsourcesResource, c.ns, aWSCodeCommitSource), &v1alpha1.AWSCodeCommitSource{})
 
@@ -102,7 +104,7 @@ func (c *FakeAWSCodeCommitSources) Update(aWSCodeCommitSource *v1alpha1.AWSCodeC
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeAWSCodeCommitSources) UpdateStatus(aWSCodeCommitSource *v1alpha1.AWSCodeCommitSource) (*v1alpha1.AWSCodeCommitSource, error) {
+func (c *FakeAWSCodeCommitSources) UpdateStatus(ctx context.Context, aWSCodeCommitSource *v1alpha1.AWSCodeCommitSource, opts v1.UpdateOptions) (*v1alpha1.AWSCodeCommitSource, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(awscodecommitsourcesResource, "status", c.ns, aWSCodeCommitSource), &v1alpha1.AWSCodeCommitSource{})
 
@@ -113,7 +115,7 @@ func (c *FakeAWSCodeCommitSources) UpdateStatus(aWSCodeCommitSource *v1alpha1.AW
 }
 
 // Delete takes name of the aWSCodeCommitSource and deletes it. Returns an error if one occurs.
-func (c *FakeAWSCodeCommitSources) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeAWSCodeCommitSources) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(awscodecommitsourcesResource, c.ns, name), &v1alpha1.AWSCodeCommitSource{})
 
@@ -121,15 +123,15 @@ func (c *FakeAWSCodeCommitSources) Delete(name string, options *v1.DeleteOptions
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeAWSCodeCommitSources) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(awscodecommitsourcesResource, c.ns, listOptions)
+func (c *FakeAWSCodeCommitSources) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(awscodecommitsourcesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.AWSCodeCommitSourceList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched aWSCodeCommitSource.
-func (c *FakeAWSCodeCommitSources) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.AWSCodeCommitSource, err error) {
+func (c *FakeAWSCodeCommitSources) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSCodeCommitSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(awscodecommitsourcesResource, c.ns, name, pt, data, subresources...), &v1alpha1.AWSCodeCommitSource{})
 

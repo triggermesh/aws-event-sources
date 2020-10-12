@@ -192,7 +192,7 @@ func awsCredentials(cli coreclientv1.SecretInterface,
 	var secretCache map[string]*corev1.Secret
 
 	if vfs := creds.AccessKeyID.ValueFromSecret; vfs != nil {
-		secr, err := cli.Get(vfs.Name, metav1.GetOptions{})
+		secr, err := cli.Get(context.Background(), vfs.Name, metav1.GetOptions{})
 		if err != nil {
 			return nil, err
 		}
@@ -213,7 +213,7 @@ func awsCredentials(cli coreclientv1.SecretInterface,
 		if secretCache != nil && secretCache[vfs.Name] != nil {
 			secr = secretCache[vfs.Name]
 		} else {
-			secr, err = cli.Get(vfs.Name, metav1.GetOptions{})
+			secr, err = cli.Get(context.Background(), vfs.Name, metav1.GetOptions{})
 			if err != nil {
 				return nil, err
 			}

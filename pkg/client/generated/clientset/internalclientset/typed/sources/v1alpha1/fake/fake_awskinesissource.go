@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var awskinesissourcesResource = schema.GroupVersionResource{Group: "sources.trig
 var awskinesissourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSKinesisSource"}
 
 // Get takes name of the aWSKinesisSource, and returns the corresponding aWSKinesisSource object, and an error if there is any.
-func (c *FakeAWSKinesisSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSKinesisSource, err error) {
+func (c *FakeAWSKinesisSources) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.AWSKinesisSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(awskinesissourcesResource, c.ns, name), &v1alpha1.AWSKinesisSource{})
 
@@ -50,7 +52,7 @@ func (c *FakeAWSKinesisSources) Get(name string, options v1.GetOptions) (result 
 }
 
 // List takes label and field selectors, and returns the list of AWSKinesisSources that match those selectors.
-func (c *FakeAWSKinesisSources) List(opts v1.ListOptions) (result *v1alpha1.AWSKinesisSourceList, err error) {
+func (c *FakeAWSKinesisSources) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.AWSKinesisSourceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(awskinesissourcesResource, awskinesissourcesKind, c.ns, opts), &v1alpha1.AWSKinesisSourceList{})
 
@@ -72,14 +74,14 @@ func (c *FakeAWSKinesisSources) List(opts v1.ListOptions) (result *v1alpha1.AWSK
 }
 
 // Watch returns a watch.Interface that watches the requested aWSKinesisSources.
-func (c *FakeAWSKinesisSources) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeAWSKinesisSources) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(awskinesissourcesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a aWSKinesisSource and creates it.  Returns the server's representation of the aWSKinesisSource, and an error, if there is any.
-func (c *FakeAWSKinesisSources) Create(aWSKinesisSource *v1alpha1.AWSKinesisSource) (result *v1alpha1.AWSKinesisSource, err error) {
+func (c *FakeAWSKinesisSources) Create(ctx context.Context, aWSKinesisSource *v1alpha1.AWSKinesisSource, opts v1.CreateOptions) (result *v1alpha1.AWSKinesisSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(awskinesissourcesResource, c.ns, aWSKinesisSource), &v1alpha1.AWSKinesisSource{})
 
@@ -90,7 +92,7 @@ func (c *FakeAWSKinesisSources) Create(aWSKinesisSource *v1alpha1.AWSKinesisSour
 }
 
 // Update takes the representation of a aWSKinesisSource and updates it. Returns the server's representation of the aWSKinesisSource, and an error, if there is any.
-func (c *FakeAWSKinesisSources) Update(aWSKinesisSource *v1alpha1.AWSKinesisSource) (result *v1alpha1.AWSKinesisSource, err error) {
+func (c *FakeAWSKinesisSources) Update(ctx context.Context, aWSKinesisSource *v1alpha1.AWSKinesisSource, opts v1.UpdateOptions) (result *v1alpha1.AWSKinesisSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(awskinesissourcesResource, c.ns, aWSKinesisSource), &v1alpha1.AWSKinesisSource{})
 
@@ -102,7 +104,7 @@ func (c *FakeAWSKinesisSources) Update(aWSKinesisSource *v1alpha1.AWSKinesisSour
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeAWSKinesisSources) UpdateStatus(aWSKinesisSource *v1alpha1.AWSKinesisSource) (*v1alpha1.AWSKinesisSource, error) {
+func (c *FakeAWSKinesisSources) UpdateStatus(ctx context.Context, aWSKinesisSource *v1alpha1.AWSKinesisSource, opts v1.UpdateOptions) (*v1alpha1.AWSKinesisSource, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(awskinesissourcesResource, "status", c.ns, aWSKinesisSource), &v1alpha1.AWSKinesisSource{})
 
@@ -113,7 +115,7 @@ func (c *FakeAWSKinesisSources) UpdateStatus(aWSKinesisSource *v1alpha1.AWSKines
 }
 
 // Delete takes name of the aWSKinesisSource and deletes it. Returns an error if one occurs.
-func (c *FakeAWSKinesisSources) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeAWSKinesisSources) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(awskinesissourcesResource, c.ns, name), &v1alpha1.AWSKinesisSource{})
 
@@ -121,15 +123,15 @@ func (c *FakeAWSKinesisSources) Delete(name string, options *v1.DeleteOptions) e
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeAWSKinesisSources) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(awskinesissourcesResource, c.ns, listOptions)
+func (c *FakeAWSKinesisSources) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(awskinesissourcesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.AWSKinesisSourceList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched aWSKinesisSource.
-func (c *FakeAWSKinesisSources) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.AWSKinesisSource, err error) {
+func (c *FakeAWSKinesisSources) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSKinesisSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(awskinesissourcesResource, c.ns, name, pt, data, subresources...), &v1alpha1.AWSKinesisSource{})
 

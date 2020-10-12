@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var awssqssourcesResource = schema.GroupVersionResource{Group: "sources.triggerm
 var awssqssourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSSQSSource"}
 
 // Get takes name of the aWSSQSSource, and returns the corresponding aWSSQSSource object, and an error if there is any.
-func (c *FakeAWSSQSSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSSQSSource, err error) {
+func (c *FakeAWSSQSSources) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.AWSSQSSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(awssqssourcesResource, c.ns, name), &v1alpha1.AWSSQSSource{})
 
@@ -50,7 +52,7 @@ func (c *FakeAWSSQSSources) Get(name string, options v1.GetOptions) (result *v1a
 }
 
 // List takes label and field selectors, and returns the list of AWSSQSSources that match those selectors.
-func (c *FakeAWSSQSSources) List(opts v1.ListOptions) (result *v1alpha1.AWSSQSSourceList, err error) {
+func (c *FakeAWSSQSSources) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.AWSSQSSourceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(awssqssourcesResource, awssqssourcesKind, c.ns, opts), &v1alpha1.AWSSQSSourceList{})
 
@@ -72,14 +74,14 @@ func (c *FakeAWSSQSSources) List(opts v1.ListOptions) (result *v1alpha1.AWSSQSSo
 }
 
 // Watch returns a watch.Interface that watches the requested aWSSQSSources.
-func (c *FakeAWSSQSSources) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeAWSSQSSources) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(awssqssourcesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a aWSSQSSource and creates it.  Returns the server's representation of the aWSSQSSource, and an error, if there is any.
-func (c *FakeAWSSQSSources) Create(aWSSQSSource *v1alpha1.AWSSQSSource) (result *v1alpha1.AWSSQSSource, err error) {
+func (c *FakeAWSSQSSources) Create(ctx context.Context, aWSSQSSource *v1alpha1.AWSSQSSource, opts v1.CreateOptions) (result *v1alpha1.AWSSQSSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(awssqssourcesResource, c.ns, aWSSQSSource), &v1alpha1.AWSSQSSource{})
 
@@ -90,7 +92,7 @@ func (c *FakeAWSSQSSources) Create(aWSSQSSource *v1alpha1.AWSSQSSource) (result 
 }
 
 // Update takes the representation of a aWSSQSSource and updates it. Returns the server's representation of the aWSSQSSource, and an error, if there is any.
-func (c *FakeAWSSQSSources) Update(aWSSQSSource *v1alpha1.AWSSQSSource) (result *v1alpha1.AWSSQSSource, err error) {
+func (c *FakeAWSSQSSources) Update(ctx context.Context, aWSSQSSource *v1alpha1.AWSSQSSource, opts v1.UpdateOptions) (result *v1alpha1.AWSSQSSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(awssqssourcesResource, c.ns, aWSSQSSource), &v1alpha1.AWSSQSSource{})
 
@@ -102,7 +104,7 @@ func (c *FakeAWSSQSSources) Update(aWSSQSSource *v1alpha1.AWSSQSSource) (result 
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeAWSSQSSources) UpdateStatus(aWSSQSSource *v1alpha1.AWSSQSSource) (*v1alpha1.AWSSQSSource, error) {
+func (c *FakeAWSSQSSources) UpdateStatus(ctx context.Context, aWSSQSSource *v1alpha1.AWSSQSSource, opts v1.UpdateOptions) (*v1alpha1.AWSSQSSource, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(awssqssourcesResource, "status", c.ns, aWSSQSSource), &v1alpha1.AWSSQSSource{})
 
@@ -113,7 +115,7 @@ func (c *FakeAWSSQSSources) UpdateStatus(aWSSQSSource *v1alpha1.AWSSQSSource) (*
 }
 
 // Delete takes name of the aWSSQSSource and deletes it. Returns an error if one occurs.
-func (c *FakeAWSSQSSources) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeAWSSQSSources) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(awssqssourcesResource, c.ns, name), &v1alpha1.AWSSQSSource{})
 
@@ -121,15 +123,15 @@ func (c *FakeAWSSQSSources) Delete(name string, options *v1.DeleteOptions) error
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeAWSSQSSources) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(awssqssourcesResource, c.ns, listOptions)
+func (c *FakeAWSSQSSources) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(awssqssourcesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.AWSSQSSourceList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched aWSSQSSource.
-func (c *FakeAWSSQSSources) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.AWSSQSSource, err error) {
+func (c *FakeAWSSQSSources) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSSQSSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(awssqssourcesResource, c.ns, name, pt, data, subresources...), &v1alpha1.AWSSQSSource{})
 

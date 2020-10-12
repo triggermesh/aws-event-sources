@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var awscognitouserpoolsourcesResource = schema.GroupVersionResource{Group: "sour
 var awscognitouserpoolsourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSCognitoUserPoolSource"}
 
 // Get takes name of the aWSCognitoUserPoolSource, and returns the corresponding aWSCognitoUserPoolSource object, and an error if there is any.
-func (c *FakeAWSCognitoUserPoolSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
+func (c *FakeAWSCognitoUserPoolSources) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(awscognitouserpoolsourcesResource, c.ns, name), &v1alpha1.AWSCognitoUserPoolSource{})
 
@@ -50,7 +52,7 @@ func (c *FakeAWSCognitoUserPoolSources) Get(name string, options v1.GetOptions) 
 }
 
 // List takes label and field selectors, and returns the list of AWSCognitoUserPoolSources that match those selectors.
-func (c *FakeAWSCognitoUserPoolSources) List(opts v1.ListOptions) (result *v1alpha1.AWSCognitoUserPoolSourceList, err error) {
+func (c *FakeAWSCognitoUserPoolSources) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.AWSCognitoUserPoolSourceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(awscognitouserpoolsourcesResource, awscognitouserpoolsourcesKind, c.ns, opts), &v1alpha1.AWSCognitoUserPoolSourceList{})
 
@@ -72,14 +74,14 @@ func (c *FakeAWSCognitoUserPoolSources) List(opts v1.ListOptions) (result *v1alp
 }
 
 // Watch returns a watch.Interface that watches the requested aWSCognitoUserPoolSources.
-func (c *FakeAWSCognitoUserPoolSources) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeAWSCognitoUserPoolSources) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(awscognitouserpoolsourcesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a aWSCognitoUserPoolSource and creates it.  Returns the server's representation of the aWSCognitoUserPoolSource, and an error, if there is any.
-func (c *FakeAWSCognitoUserPoolSources) Create(aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
+func (c *FakeAWSCognitoUserPoolSources) Create(ctx context.Context, aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource, opts v1.CreateOptions) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(awscognitouserpoolsourcesResource, c.ns, aWSCognitoUserPoolSource), &v1alpha1.AWSCognitoUserPoolSource{})
 
@@ -90,7 +92,7 @@ func (c *FakeAWSCognitoUserPoolSources) Create(aWSCognitoUserPoolSource *v1alpha
 }
 
 // Update takes the representation of a aWSCognitoUserPoolSource and updates it. Returns the server's representation of the aWSCognitoUserPoolSource, and an error, if there is any.
-func (c *FakeAWSCognitoUserPoolSources) Update(aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
+func (c *FakeAWSCognitoUserPoolSources) Update(ctx context.Context, aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource, opts v1.UpdateOptions) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(awscognitouserpoolsourcesResource, c.ns, aWSCognitoUserPoolSource), &v1alpha1.AWSCognitoUserPoolSource{})
 
@@ -102,7 +104,7 @@ func (c *FakeAWSCognitoUserPoolSources) Update(aWSCognitoUserPoolSource *v1alpha
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeAWSCognitoUserPoolSources) UpdateStatus(aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource) (*v1alpha1.AWSCognitoUserPoolSource, error) {
+func (c *FakeAWSCognitoUserPoolSources) UpdateStatus(ctx context.Context, aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource, opts v1.UpdateOptions) (*v1alpha1.AWSCognitoUserPoolSource, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(awscognitouserpoolsourcesResource, "status", c.ns, aWSCognitoUserPoolSource), &v1alpha1.AWSCognitoUserPoolSource{})
 
@@ -113,7 +115,7 @@ func (c *FakeAWSCognitoUserPoolSources) UpdateStatus(aWSCognitoUserPoolSource *v
 }
 
 // Delete takes name of the aWSCognitoUserPoolSource and deletes it. Returns an error if one occurs.
-func (c *FakeAWSCognitoUserPoolSources) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeAWSCognitoUserPoolSources) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(awscognitouserpoolsourcesResource, c.ns, name), &v1alpha1.AWSCognitoUserPoolSource{})
 
@@ -121,15 +123,15 @@ func (c *FakeAWSCognitoUserPoolSources) Delete(name string, options *v1.DeleteOp
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeAWSCognitoUserPoolSources) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(awscognitouserpoolsourcesResource, c.ns, listOptions)
+func (c *FakeAWSCognitoUserPoolSources) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(awscognitouserpoolsourcesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.AWSCognitoUserPoolSourceList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched aWSCognitoUserPoolSource.
-func (c *FakeAWSCognitoUserPoolSources) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
+func (c *FakeAWSCognitoUserPoolSources) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(awscognitouserpoolsourcesResource, c.ns, name, pt, data, subresources...), &v1alpha1.AWSCognitoUserPoolSource{})
 

@@ -487,11 +487,6 @@ func failUpdateAdapterEvent(name, kind, resource string) string {
 		"inducing failure for update %s", kind, name, resource)
 }
 func badSinkEvent() string {
-	addrGVK := newAdressable().GetGroupVersionKind()
-
 	return eventtesting.Eventf(corev1.EventTypeWarning, common.ReasonBadSinkURI, "Could not resolve sink URI: "+
-		"failed to get ref &ObjectReference{Kind:%s,Namespace:%s,Name:%s,UID:,APIVersion:%s,ResourceVersion:,FieldPath:,}: "+
-		"%s %q not found",
-		addrGVK.Kind, tNs, tName, addrGVK.GroupVersion().String(),
-		eventing.BrokersResource, tName)
+		"%s %q not found", eventing.BrokersResource, tName)
 }

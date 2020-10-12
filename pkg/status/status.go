@@ -18,6 +18,7 @@ limitations under the License.
 package status
 
 import (
+	"context"
 	"strings"
 	"unicode"
 
@@ -46,7 +47,9 @@ const (
 func DeploymentPodsWaitingState(d *appsv1.Deployment,
 	pi coreclientv1.PodInterface) (*corev1.ContainerStateWaiting, error) {
 
-	pods, err := pi.List(metav1.ListOptions{LabelSelector: metav1.FormatLabelSelector(d.Spec.Selector)})
+	pods, err := pi.List(context.Background(), metav1.ListOptions{
+		LabelSelector: metav1.FormatLabelSelector(d.Spec.Selector),
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -78,7 +78,7 @@ func (r *GenericDeploymentReconciler) resolveSinkURL(ctx context.Context) (*apis
 		(*sinkRef).Namespace = src.GetNamespace()
 	}
 
-	return r.SinkResolver.URIFromDestinationV1(sink, src)
+	return r.SinkResolver.URIFromDestinationV1(ctx, sink, src)
 }
 
 // reconcileAdapter reconciles the state of the source's adapter.
@@ -108,7 +108,7 @@ func (r *GenericDeploymentReconciler) getOrCreateAdapter(ctx context.Context, de
 	adapter, err := r.FindAdapter(src)
 	switch {
 	case apierrors.IsNotFound(err):
-		adapter, err = r.Client(src.GetNamespace()).Create(desiredAdapter)
+		adapter, err = r.Client(src.GetNamespace()).Create(ctx, desiredAdapter, metav1.CreateOptions{})
 		if err != nil {
 			return nil, reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedAdapterCreate,
 				"Failed to create adapter Deployment %q: %s", desiredAdapter.Name, err)
@@ -147,7 +147,7 @@ func (r *GenericDeploymentReconciler) syncAdapterDeployment(ctx context.Context,
 	// (fake Clientset) preserve status to avoid resetting conditions
 	desiredAdapter.Status = currentAdapter.Status
 
-	adapter, err := r.Client(currentAdapter.Namespace).Update(desiredAdapter)
+	adapter, err := r.Client(currentAdapter.Namespace).Update(ctx, desiredAdapter, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedAdapterUpdate,
 			"Failed to update adapter Deployment %q: %s", desiredAdapter.Name, err)
@@ -190,7 +190,7 @@ func (r *GenericServiceReconciler) resolveSinkURL(ctx context.Context) (*apis.UR
 		(*sinkRef).Namespace = src.GetNamespace()
 	}
 
-	return r.SinkResolver.URIFromDestinationV1(sink, src)
+	return r.SinkResolver.URIFromDestinationV1(ctx, sink, src)
 }
 
 // reconcileAdapter reconciles the state of the source's adapter.
@@ -220,7 +220,7 @@ func (r *GenericServiceReconciler) getOrCreateAdapter(ctx context.Context, desir
 	adapter, err := r.FindAdapter(src)
 	switch {
 	case apierrors.IsNotFound(err):
-		adapter, err = r.Client(src.GetNamespace()).Create(desiredAdapter)
+		adapter, err = r.Client(src.GetNamespace()).Create(ctx, desiredAdapter, metav1.CreateOptions{})
 		if err != nil {
 			return nil, reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedAdapterCreate,
 				"Failed to create adapter Service %q: %s", desiredAdapter.Name, err)
@@ -266,7 +266,7 @@ func (r *GenericServiceReconciler) syncAdapterService(ctx context.Context,
 	// (fake Clientset) preserve status to avoid resetting conditions
 	desiredAdapter.Status = currentAdapter.Status
 
-	adapter, err := r.Client(currentAdapter.Namespace).Update(desiredAdapter)
+	adapter, err := r.Client(currentAdapter.Namespace).Update(ctx, desiredAdapter, metav1.UpdateOptions{})
 	if err != nil {
 		return nil, reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedAdapterUpdate,
 			"Failed to update adapter Service %q: %s", desiredAdapter.Name, err)

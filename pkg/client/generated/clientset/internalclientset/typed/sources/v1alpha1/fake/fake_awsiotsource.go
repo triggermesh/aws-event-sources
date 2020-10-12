@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var awsiotsourcesResource = schema.GroupVersionResource{Group: "sources.triggerm
 var awsiotsourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSIoTSource"}
 
 // Get takes name of the aWSIoTSource, and returns the corresponding aWSIoTSource object, and an error if there is any.
-func (c *FakeAWSIoTSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSIoTSource, err error) {
+func (c *FakeAWSIoTSources) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.AWSIoTSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(awsiotsourcesResource, c.ns, name), &v1alpha1.AWSIoTSource{})
 
@@ -50,7 +52,7 @@ func (c *FakeAWSIoTSources) Get(name string, options v1.GetOptions) (result *v1a
 }
 
 // List takes label and field selectors, and returns the list of AWSIoTSources that match those selectors.
-func (c *FakeAWSIoTSources) List(opts v1.ListOptions) (result *v1alpha1.AWSIoTSourceList, err error) {
+func (c *FakeAWSIoTSources) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.AWSIoTSourceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(awsiotsourcesResource, awsiotsourcesKind, c.ns, opts), &v1alpha1.AWSIoTSourceList{})
 
@@ -72,14 +74,14 @@ func (c *FakeAWSIoTSources) List(opts v1.ListOptions) (result *v1alpha1.AWSIoTSo
 }
 
 // Watch returns a watch.Interface that watches the requested aWSIoTSources.
-func (c *FakeAWSIoTSources) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeAWSIoTSources) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(awsiotsourcesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a aWSIoTSource and creates it.  Returns the server's representation of the aWSIoTSource, and an error, if there is any.
-func (c *FakeAWSIoTSources) Create(aWSIoTSource *v1alpha1.AWSIoTSource) (result *v1alpha1.AWSIoTSource, err error) {
+func (c *FakeAWSIoTSources) Create(ctx context.Context, aWSIoTSource *v1alpha1.AWSIoTSource, opts v1.CreateOptions) (result *v1alpha1.AWSIoTSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(awsiotsourcesResource, c.ns, aWSIoTSource), &v1alpha1.AWSIoTSource{})
 
@@ -90,7 +92,7 @@ func (c *FakeAWSIoTSources) Create(aWSIoTSource *v1alpha1.AWSIoTSource) (result 
 }
 
 // Update takes the representation of a aWSIoTSource and updates it. Returns the server's representation of the aWSIoTSource, and an error, if there is any.
-func (c *FakeAWSIoTSources) Update(aWSIoTSource *v1alpha1.AWSIoTSource) (result *v1alpha1.AWSIoTSource, err error) {
+func (c *FakeAWSIoTSources) Update(ctx context.Context, aWSIoTSource *v1alpha1.AWSIoTSource, opts v1.UpdateOptions) (result *v1alpha1.AWSIoTSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(awsiotsourcesResource, c.ns, aWSIoTSource), &v1alpha1.AWSIoTSource{})
 
@@ -102,7 +104,7 @@ func (c *FakeAWSIoTSources) Update(aWSIoTSource *v1alpha1.AWSIoTSource) (result 
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeAWSIoTSources) UpdateStatus(aWSIoTSource *v1alpha1.AWSIoTSource) (*v1alpha1.AWSIoTSource, error) {
+func (c *FakeAWSIoTSources) UpdateStatus(ctx context.Context, aWSIoTSource *v1alpha1.AWSIoTSource, opts v1.UpdateOptions) (*v1alpha1.AWSIoTSource, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(awsiotsourcesResource, "status", c.ns, aWSIoTSource), &v1alpha1.AWSIoTSource{})
 
@@ -113,7 +115,7 @@ func (c *FakeAWSIoTSources) UpdateStatus(aWSIoTSource *v1alpha1.AWSIoTSource) (*
 }
 
 // Delete takes name of the aWSIoTSource and deletes it. Returns an error if one occurs.
-func (c *FakeAWSIoTSources) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeAWSIoTSources) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(awsiotsourcesResource, c.ns, name), &v1alpha1.AWSIoTSource{})
 
@@ -121,15 +123,15 @@ func (c *FakeAWSIoTSources) Delete(name string, options *v1.DeleteOptions) error
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeAWSIoTSources) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(awsiotsourcesResource, c.ns, listOptions)
+func (c *FakeAWSIoTSources) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(awsiotsourcesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.AWSIoTSourceList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched aWSIoTSource.
-func (c *FakeAWSIoTSources) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.AWSIoTSource, err error) {
+func (c *FakeAWSIoTSources) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSIoTSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(awsiotsourcesResource, c.ns, name, pt, data, subresources...), &v1alpha1.AWSIoTSource{})
 

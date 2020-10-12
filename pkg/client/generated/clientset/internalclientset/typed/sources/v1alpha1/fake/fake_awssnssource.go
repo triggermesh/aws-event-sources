@@ -19,6 +19,8 @@ limitations under the License.
 package fake
 
 import (
+	"context"
+
 	v1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -39,7 +41,7 @@ var awssnssourcesResource = schema.GroupVersionResource{Group: "sources.triggerm
 var awssnssourcesKind = schema.GroupVersionKind{Group: "sources.triggermesh.io", Version: "v1alpha1", Kind: "AWSSNSSource"}
 
 // Get takes name of the aWSSNSSource, and returns the corresponding aWSSNSSource object, and an error if there is any.
-func (c *FakeAWSSNSSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSSNSSource, err error) {
+func (c *FakeAWSSNSSources) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.AWSSNSSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewGetAction(awssnssourcesResource, c.ns, name), &v1alpha1.AWSSNSSource{})
 
@@ -50,7 +52,7 @@ func (c *FakeAWSSNSSources) Get(name string, options v1.GetOptions) (result *v1a
 }
 
 // List takes label and field selectors, and returns the list of AWSSNSSources that match those selectors.
-func (c *FakeAWSSNSSources) List(opts v1.ListOptions) (result *v1alpha1.AWSSNSSourceList, err error) {
+func (c *FakeAWSSNSSources) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.AWSSNSSourceList, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewListAction(awssnssourcesResource, awssnssourcesKind, c.ns, opts), &v1alpha1.AWSSNSSourceList{})
 
@@ -72,14 +74,14 @@ func (c *FakeAWSSNSSources) List(opts v1.ListOptions) (result *v1alpha1.AWSSNSSo
 }
 
 // Watch returns a watch.Interface that watches the requested aWSSNSSources.
-func (c *FakeAWSSNSSources) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *FakeAWSSNSSources) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	return c.Fake.
 		InvokesWatch(testing.NewWatchAction(awssnssourcesResource, c.ns, opts))
 
 }
 
 // Create takes the representation of a aWSSNSSource and creates it.  Returns the server's representation of the aWSSNSSource, and an error, if there is any.
-func (c *FakeAWSSNSSources) Create(aWSSNSSource *v1alpha1.AWSSNSSource) (result *v1alpha1.AWSSNSSource, err error) {
+func (c *FakeAWSSNSSources) Create(ctx context.Context, aWSSNSSource *v1alpha1.AWSSNSSource, opts v1.CreateOptions) (result *v1alpha1.AWSSNSSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewCreateAction(awssnssourcesResource, c.ns, aWSSNSSource), &v1alpha1.AWSSNSSource{})
 
@@ -90,7 +92,7 @@ func (c *FakeAWSSNSSources) Create(aWSSNSSource *v1alpha1.AWSSNSSource) (result 
 }
 
 // Update takes the representation of a aWSSNSSource and updates it. Returns the server's representation of the aWSSNSSource, and an error, if there is any.
-func (c *FakeAWSSNSSources) Update(aWSSNSSource *v1alpha1.AWSSNSSource) (result *v1alpha1.AWSSNSSource, err error) {
+func (c *FakeAWSSNSSources) Update(ctx context.Context, aWSSNSSource *v1alpha1.AWSSNSSource, opts v1.UpdateOptions) (result *v1alpha1.AWSSNSSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateAction(awssnssourcesResource, c.ns, aWSSNSSource), &v1alpha1.AWSSNSSource{})
 
@@ -102,7 +104,7 @@ func (c *FakeAWSSNSSources) Update(aWSSNSSource *v1alpha1.AWSSNSSource) (result 
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeAWSSNSSources) UpdateStatus(aWSSNSSource *v1alpha1.AWSSNSSource) (*v1alpha1.AWSSNSSource, error) {
+func (c *FakeAWSSNSSources) UpdateStatus(ctx context.Context, aWSSNSSource *v1alpha1.AWSSNSSource, opts v1.UpdateOptions) (*v1alpha1.AWSSNSSource, error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewUpdateSubresourceAction(awssnssourcesResource, "status", c.ns, aWSSNSSource), &v1alpha1.AWSSNSSource{})
 
@@ -113,7 +115,7 @@ func (c *FakeAWSSNSSources) UpdateStatus(aWSSNSSource *v1alpha1.AWSSNSSource) (*
 }
 
 // Delete takes name of the aWSSNSSource and deletes it. Returns an error if one occurs.
-func (c *FakeAWSSNSSources) Delete(name string, options *v1.DeleteOptions) error {
+func (c *FakeAWSSNSSources) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
 		Invokes(testing.NewDeleteAction(awssnssourcesResource, c.ns, name), &v1alpha1.AWSSNSSource{})
 
@@ -121,15 +123,15 @@ func (c *FakeAWSSNSSources) Delete(name string, options *v1.DeleteOptions) error
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *FakeAWSSNSSources) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
-	action := testing.NewDeleteCollectionAction(awssnssourcesResource, c.ns, listOptions)
+func (c *FakeAWSSNSSources) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	action := testing.NewDeleteCollectionAction(awssnssourcesResource, c.ns, listOpts)
 
 	_, err := c.Fake.Invokes(action, &v1alpha1.AWSSNSSourceList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched aWSSNSSource.
-func (c *FakeAWSSNSSources) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.AWSSNSSource, err error) {
+func (c *FakeAWSSNSSources) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSSNSSource, err error) {
 	obj, err := c.Fake.
 		Invokes(testing.NewPatchSubresourceAction(awssnssourcesResource, c.ns, name, pt, data, subresources...), &v1alpha1.AWSSNSSource{})
 

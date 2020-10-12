@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	time "time"
 
 	sourcesv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -61,13 +62,13 @@ func NewFilteredAWSKinesisSourceInformer(client internalclientset.Interface, nam
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SourcesV1alpha1().AWSKinesisSources(namespace).List(options)
+				return client.SourcesV1alpha1().AWSKinesisSources(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SourcesV1alpha1().AWSKinesisSources(namespace).Watch(options)
+				return client.SourcesV1alpha1().AWSKinesisSources(namespace).Watch(context.TODO(), options)
 			},
 		},
 		&sourcesv1alpha1.AWSKinesisSource{},

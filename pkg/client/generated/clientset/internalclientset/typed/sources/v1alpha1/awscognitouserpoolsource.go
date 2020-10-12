@@ -19,6 +19,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"time"
 
 	v1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -37,15 +38,15 @@ type AWSCognitoUserPoolSourcesGetter interface {
 
 // AWSCognitoUserPoolSourceInterface has methods to work with AWSCognitoUserPoolSource resources.
 type AWSCognitoUserPoolSourceInterface interface {
-	Create(*v1alpha1.AWSCognitoUserPoolSource) (*v1alpha1.AWSCognitoUserPoolSource, error)
-	Update(*v1alpha1.AWSCognitoUserPoolSource) (*v1alpha1.AWSCognitoUserPoolSource, error)
-	UpdateStatus(*v1alpha1.AWSCognitoUserPoolSource) (*v1alpha1.AWSCognitoUserPoolSource, error)
-	Delete(name string, options *v1.DeleteOptions) error
-	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
-	Get(name string, options v1.GetOptions) (*v1alpha1.AWSCognitoUserPoolSource, error)
-	List(opts v1.ListOptions) (*v1alpha1.AWSCognitoUserPoolSourceList, error)
-	Watch(opts v1.ListOptions) (watch.Interface, error)
-	Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.AWSCognitoUserPoolSource, err error)
+	Create(ctx context.Context, aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource, opts v1.CreateOptions) (*v1alpha1.AWSCognitoUserPoolSource, error)
+	Update(ctx context.Context, aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource, opts v1.UpdateOptions) (*v1alpha1.AWSCognitoUserPoolSource, error)
+	UpdateStatus(ctx context.Context, aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource, opts v1.UpdateOptions) (*v1alpha1.AWSCognitoUserPoolSource, error)
+	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
+	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSCognitoUserPoolSource, error)
+	List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSCognitoUserPoolSourceList, error)
+	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSCognitoUserPoolSource, err error)
 	AWSCognitoUserPoolSourceExpansion
 }
 
@@ -64,20 +65,20 @@ func newAWSCognitoUserPoolSources(c *SourcesV1alpha1Client, namespace string) *a
 }
 
 // Get takes name of the aWSCognitoUserPoolSource, and returns the corresponding aWSCognitoUserPoolSource object, and an error if there is any.
-func (c *aWSCognitoUserPoolSources) Get(name string, options v1.GetOptions) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
+func (c *aWSCognitoUserPoolSources) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
 	result = &v1alpha1.AWSCognitoUserPoolSource{}
 	err = c.client.Get().
 		Namespace(c.ns).
 		Resource("awscognitouserpoolsources").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // List takes label and field selectors, and returns the list of AWSCognitoUserPoolSources that match those selectors.
-func (c *aWSCognitoUserPoolSources) List(opts v1.ListOptions) (result *v1alpha1.AWSCognitoUserPoolSourceList, err error) {
+func (c *aWSCognitoUserPoolSources) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.AWSCognitoUserPoolSourceList, err error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -88,13 +89,13 @@ func (c *aWSCognitoUserPoolSources) List(opts v1.ListOptions) (result *v1alpha1.
 		Resource("awscognitouserpoolsources").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Watch returns a watch.Interface that watches the requested aWSCognitoUserPoolSources.
-func (c *aWSCognitoUserPoolSources) Watch(opts v1.ListOptions) (watch.Interface, error) {
+func (c *aWSCognitoUserPoolSources) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
 	var timeout time.Duration
 	if opts.TimeoutSeconds != nil {
 		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
@@ -105,87 +106,90 @@ func (c *aWSCognitoUserPoolSources) Watch(opts v1.ListOptions) (watch.Interface,
 		Resource("awscognitouserpoolsources").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(ctx)
 }
 
 // Create takes the representation of a aWSCognitoUserPoolSource and creates it.  Returns the server's representation of the aWSCognitoUserPoolSource, and an error, if there is any.
-func (c *aWSCognitoUserPoolSources) Create(aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
+func (c *aWSCognitoUserPoolSources) Create(ctx context.Context, aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource, opts v1.CreateOptions) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
 	result = &v1alpha1.AWSCognitoUserPoolSource{}
 	err = c.client.Post().
 		Namespace(c.ns).
 		Resource("awscognitouserpoolsources").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(aWSCognitoUserPoolSource).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Update takes the representation of a aWSCognitoUserPoolSource and updates it. Returns the server's representation of the aWSCognitoUserPoolSource, and an error, if there is any.
-func (c *aWSCognitoUserPoolSources) Update(aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
+func (c *aWSCognitoUserPoolSources) Update(ctx context.Context, aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource, opts v1.UpdateOptions) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
 	result = &v1alpha1.AWSCognitoUserPoolSource{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("awscognitouserpoolsources").
 		Name(aWSCognitoUserPoolSource.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(aWSCognitoUserPoolSource).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // UpdateStatus was generated because the type contains a Status member.
 // Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *aWSCognitoUserPoolSources) UpdateStatus(aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
+func (c *aWSCognitoUserPoolSources) UpdateStatus(ctx context.Context, aWSCognitoUserPoolSource *v1alpha1.AWSCognitoUserPoolSource, opts v1.UpdateOptions) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
 	result = &v1alpha1.AWSCognitoUserPoolSource{}
 	err = c.client.Put().
 		Namespace(c.ns).
 		Resource("awscognitouserpoolsources").
 		Name(aWSCognitoUserPoolSource.Name).
 		SubResource("status").
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(aWSCognitoUserPoolSource).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
 
 // Delete takes name of the aWSCognitoUserPoolSource and deletes it. Returns an error if one occurs.
-func (c *aWSCognitoUserPoolSources) Delete(name string, options *v1.DeleteOptions) error {
+func (c *aWSCognitoUserPoolSources) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("awscognitouserpoolsources").
 		Name(name).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *aWSCognitoUserPoolSources) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *aWSCognitoUserPoolSources) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	var timeout time.Duration
-	if listOptions.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	if listOpts.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
 	}
 	return c.client.Delete().
 		Namespace(c.ns).
 		Resource("awscognitouserpoolsources").
-		VersionedParams(&listOptions, scheme.ParameterCodec).
+		VersionedParams(&listOpts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Body(options).
-		Do().
+		Body(&opts).
+		Do(ctx).
 		Error()
 }
 
 // Patch applies the patch and returns the patched aWSCognitoUserPoolSource.
-func (c *aWSCognitoUserPoolSources) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
+func (c *aWSCognitoUserPoolSources) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
 	result = &v1alpha1.AWSCognitoUserPoolSource{}
 	err = c.client.Patch(pt).
 		Namespace(c.ns).
 		Resource("awscognitouserpoolsources").
-		SubResource(subresources...).
 		Name(name).
+		SubResource(subresources...).
+		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(data).
-		Do().
+		Do(ctx).
 		Into(result)
 	return
 }
