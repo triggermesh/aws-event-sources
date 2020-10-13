@@ -82,6 +82,7 @@ export AWS_ACCESS_KEY_ID=<my_key_id>
 export AWS_SECRET_ACCESS_KEY=<my_secret_key>
 export NAME=my-awskinesissource
 export NAMESPACE=default
+export K_SINK=http://<url_of_event_sink>
 export K_LOGGING_CONFIG=''
 export K_METRICS_CONFIG='{"domain":"triggermesh.io/sources", "component":"awskinesissource", "configMap":{}}'
 ```
@@ -103,6 +104,7 @@ $ docker run --rm \
   -e AWS_SECRET_ACCESS_KEY=<my_secret_key> \
   -e NAME=my-awskinesissource \
   -e NAMESPACE=default \
+  -e K_SINK=http://<url_of_event_sink> \
   -e K_LOGGING_CONFIG='' \
   -e K_METRICS_CONFIG='{"domain":"triggermesh.io/sources", "component":"awskinesissource", "configMap":{}}' \
   gcr.io/triggermesh/awskinesissource:latest

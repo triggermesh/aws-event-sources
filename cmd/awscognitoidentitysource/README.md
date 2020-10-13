@@ -83,6 +83,7 @@ export AWS_ACCESS_KEY_ID=<my_key_id>
 export AWS_SECRET_ACCESS_KEY=<my_secret_key>
 export NAME=my-awscognitoidentitysource
 export NAMESPACE=default
+export K_SINK=http://<url_of_event_sink>
 export K_LOGGING_CONFIG=''
 export K_METRICS_CONFIG='{"domain":"triggermesh.io/sources", "component":"awscognitoidentitysource", "configMap":{}}'
 ```
@@ -104,6 +105,7 @@ $ docker run --rm \
   -e AWS_SECRET_ACCESS_KEY=<my_secret_key> \
   -e NAME=my-awscognitoidentitysource \
   -e NAMESPACE=default \
+  -e K_SINK=http://<url_of_event_sink> \
   -e K_LOGGING_CONFIG='' \
   -e K_METRICS_CONFIG='{"domain":"triggermesh.io/sources", "component":"awscognitoidentitysource", "configMap":{}}' \
   gcr.io/triggermesh/awscognitoidentitysource:latest
