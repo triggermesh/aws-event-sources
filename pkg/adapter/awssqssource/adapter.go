@@ -19,9 +19,12 @@ package awssqssource
 import (
 	"context"
 	"fmt"
+	"strings"
+	"sync"
 	"time"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 
@@ -37,6 +40,14 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
+
+// Highest possible value for the MaxNumberOfMessages request parameter.
+// https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ReceiveMessage.html
+const maxReceiveMsgBatchSize = 10
+
+// Highest possible duration of a long polling request.
+// https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-short-and-long-polling.html#sqs-long-polling
+const maxLongPollingWaitTimeSeconds = 20
 
 // envConfig is a set parameters sourced from the environment for the source's
 // adapter.
@@ -100,23 +111,25 @@ func (a *adapter) Start(ctx context.Context) error {
 	err = backoff.Run(ctx.Done(), func(ctx context.Context) (bool, error) {
 		messages, err := a.getMessages(queueURL)
 		if err != nil {
-			a.logger.Errorw("Failed to get messages from SQS queue", "error", err)
+			a.logger.Errorw("Failed to get messages from the SQS queue", zap.Error(err))
 			return false, nil
 		}
 
-		for _, message := range messages {
-			err = a.sendSQSEvent(message)
-			if err != nil {
-				a.logger.Errorw("Failed to send event", "error", err)
-				continue
-			}
+		if len(messages) == 0 {
+			return true, nil
+		}
 
-			// Delete message from queue if we pushed successfully
-			err = a.deleteMessage(queueURL, message.ReceiptHandle)
-			if err != nil {
-				a.logger.Errorw("Failed to delete message from SQS queue", "error", err)
-				continue
-			}
+		sent, err := a.sendSQSEvents(messages)
+		if err != nil {
+			// log the error but proceed with deleting the events
+			// that were successfully sent to the sink
+			a.logger.Errorw("Failed to send events to the sink", zap.Error(err))
+		}
+
+		err = a.deleteMessages(queueURL, sent)
+		if err != nil {
+			a.logger.Errorw("Failed to delete message from the SQS queue", zap.Error(err))
+			return false, nil
 		}
 
 		return true, nil
@@ -137,8 +150,10 @@ func (a *adapter) queueLookup(queueName string) (*sqs.GetQueueUrlOutput, error) 
 // occurs that error will be returned.
 func (a *adapter) getMessages(queueURL string) ([]*sqs.Message, error) {
 	params := sqs.ReceiveMessageInput{
-		AttributeNames: aws.StringSlice([]string{sqs.QueueAttributeNameAll}),
-		QueueUrl:       &queueURL,
+		AttributeNames:      aws.StringSlice([]string{sqs.QueueAttributeNameAll}),
+		QueueUrl:            &queueURL,
+		MaxNumberOfMessages: aws.Int64(maxReceiveMsgBatchSize),
+		WaitTimeSeconds:     aws.Int64(maxLongPollingWaitTimeSeconds),
 	}
 	resp, err := a.sqsClient.ReceiveMessage(&params)
 	if err != nil {
@@ -147,39 +162,142 @@ func (a *adapter) getMessages(queueURL string) ([]*sqs.Message, error) {
 	return resp.Messages, nil
 }
 
-func (a *adapter) sendSQSEvent(msg *sqs.Message) error {
-	a.logger.Infof("Processing message with ID: %s", *msg.MessageId)
+// sendSQSEvents sends SQS messages to the event sink.
+func (a *adapter) sendSQSEvents(msgs []*sqs.Message) (sent []*sqs.Message, err error) {
+	// NOTE(antoineco): the CloudEvents SDK for Go doesn't support the
+	// batched content mode, although it is defined in the spec.
+	// https://github.com/cloudevents/spec/blob/v1.0/http-protocol-binding.md#33-batched-content-mode
 
+	concurrentSent := concurrentMsgSlice{
+		msgs: make([]*sqs.Message, 0, len(msgs)),
+	}
+
+	errCh := make(chan error, len(msgs))
+	defer close(errCh)
+
+	for _, msg := range msgs {
+		a.logger.Debugf("Processing messages ID %s", *msg.MessageId)
+
+		go func(msg *sqs.Message) {
+			err := sendSQSEvent(a.ceClient, msg, a.arn)
+			if err != nil {
+				errCh <- fmt.Errorf("message ID %s: %w", *msg.MessageId, err)
+				return
+			}
+
+			concurrentSent.append(msg)
+
+			// always write to errCh to notify that sendSQSEvent returned
+			errCh <- err
+		}(msg)
+	}
+
+	var errs []error
+
+	for i := 0; i < cap(errCh); i++ {
+		if err := <-errCh; err != nil {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		err = &errList{errs: errs}
+	}
+
+	return concurrentSent.msgs, err
+}
+
+// concurrentMsgSlice protects writes to a slice of Messages using a mutex.
+type concurrentMsgSlice struct {
+	sync.Mutex
+	msgs []*sqs.Message
+}
+
+// append appends a new Message to the Messages slice in a thread-safe manner.
+func (ms *concurrentMsgSlice) append(msg *sqs.Message) {
+	ms.Lock()
+	ms.msgs = append(ms.msgs, msg)
+	ms.Unlock()
+}
+
+// sendSQSEvent sends a single SQS message to the event sink.
+func sendSQSEvent(cli cloudevents.Client, msg *sqs.Message, queueARN arn.ARN) error {
 	// TODO: work on CE attributes contract
 	subject, exist := msg.Attributes[sqs.MessageSystemAttributeNameSenderId]
 	if !exist {
 		subject = msg.MessageId
 	}
-	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSSQSGenericEventType))
+
+	event := cloudevents.NewEvent()
+	event.SetType(v1alpha1.AWSEventType(queueARN.Service, v1alpha1.AWSSQSGenericEventType))
 	event.SetSubject(*subject)
-	event.SetSource(a.arn.String())
+	event.SetSource(queueARN.String())
 	event.SetID(*msg.MessageId)
 	if err := event.SetData(cloudevents.ApplicationJSON, msg); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
 	}
 
-	if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
+	if result := cli.Send(context.Background(), event); !cloudevents.IsACK(result) {
 		return result
 	}
 	return nil
 }
 
-// deleteMessage deletes a message from the SQS queue.
-func (a *adapter) deleteMessage(queueURL string, receiptHandle *string) error {
-	deleteParams := &sqs.DeleteMessageInput{
-		QueueUrl:      &queueURL,
-		ReceiptHandle: receiptHandle,
+// deleteMessages deletes messages from the SQS queue.
+func (a *adapter) deleteMessages(queueURL string, msgs []*sqs.Message) error {
+	deleteEntries := make([]*sqs.DeleteMessageBatchRequestEntry, len(msgs))
+	for i, msg := range msgs {
+		deleteEntries[i] = &sqs.DeleteMessageBatchRequestEntry{
+			Id:            msg.MessageId,
+			ReceiptHandle: msg.ReceiptHandle,
+		}
 	}
-	if _, err := a.sqsClient.DeleteMessage(deleteParams); err != nil {
+
+	deleteParams := &sqs.DeleteMessageBatchInput{
+		QueueUrl: &queueURL,
+		Entries:  deleteEntries,
+	}
+	if _, err := a.sqsClient.DeleteMessageBatch(deleteParams); err != nil {
 		return err
 	}
 
-	a.logger.Debug("Message deleted")
+	if a.logger.Desugar().Core().Enabled(zapcore.DebugLevel) {
+		msgIds := make([]string, len(deleteEntries))
+		for i, msg := range deleteEntries {
+			msgIds[i] = *msg.Id
+		}
+		a.logger.Debugf("Deleted message IDs %v", msgIds)
+	}
+
 	return nil
+}
+
+type errList struct {
+	errs []error
+}
+
+var _ error = (*errList)(nil)
+
+// Error implements the error interface.
+func (e *errList) Error() string {
+	if e == nil || len(e.errs) == 0 {
+		return ""
+	}
+
+	if len(e.errs) == 1 {
+		return e.errs[0].Error()
+	}
+
+	var b strings.Builder
+
+	b.WriteByte('[')
+	for i, err := range e.errs {
+		b.WriteString(err.Error())
+		if i != len(e.errs)-1 {
+			b.WriteString(", ")
+		}
+	}
+	b.WriteByte(']')
+
+	return b.String()
 }
