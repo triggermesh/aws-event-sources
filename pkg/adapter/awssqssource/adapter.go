@@ -19,6 +19,7 @@ package awssqssource
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -94,14 +95,13 @@ func (a *adapter) Start(ctx context.Context) error {
 	queueURL := *url.QueueUrl
 	a.logger.Infof("Listening to SQS queue at URL: %s", queueURL)
 
-	backoff := common.NewBackoff()
+	backoff := common.NewBackoff(1 * time.Millisecond)
 
 	err = backoff.Run(ctx.Done(), func(ctx context.Context) (bool, error) {
-		resetBackoff := false
 		messages, err := a.getMessages(queueURL)
 		if err != nil {
 			a.logger.Errorw("Failed to get messages from SQS queue", "error", err)
-			return resetBackoff, nil
+			return false, nil
 		}
 
 		for _, message := range messages {
@@ -117,10 +117,9 @@ func (a *adapter) Start(ctx context.Context) error {
 				a.logger.Errorw("Failed to delete message from SQS queue", "error", err)
 				continue
 			}
-			resetBackoff = true
 		}
 
-		return resetBackoff, nil
+		return true, nil
 	})
 
 	return err

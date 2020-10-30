@@ -26,31 +26,32 @@ import (
 const (
 	expFactor = 2
 
-	minBackoff = 1 * time.Second
-	maxBackoff = 32 * time.Second
+	defaultMinBackoff = 1 * time.Second
+	defaultMaxBackoff = 32 * time.Second
 )
 
-// Backoff provides a simple exponential backoff mechanism
+// Backoff provides a simple exponential backoff mechanism.
 type Backoff struct {
 	step     int
 	factor   float64
 	min, max time.Duration
 }
 
-// RunFunc is a user function that polls data from a source and sends it as
-// a cloudevent to a sink.
-// RunFunc must return (bool, error) values where bool is true if poll backoff duration
-// must be reset and error is the result of function execution.
-type RunFunc func(context.Context) (bool, error)
+// RunFunc is a user function that polls data from a source and sends it as a
+// CloudEvent to a sink.
+// RunFunc must return (bool, error) values where bool is true if the poll
+// backoff duration must be reset, and error is the result of the function's
+// execution.
+type RunFunc func(context.Context) (bool /*reset*/, error /*exit*/)
 
-// NewBackoff accepts optional values for minimum and maximum wait period
-// and return new instance of Backoff structure
+// NewBackoff accepts optional values for minimum and maximum wait period and
+// returns a new instance of Backoff.
 func NewBackoff(args ...time.Duration) *Backoff {
 	backoff := &Backoff{
 		step:   0,
 		factor: expFactor,
-		min:    minBackoff,
-		max:    maxBackoff,
+		min:    defaultMinBackoff,
+		max:    defaultMaxBackoff,
 	}
 
 	switch len(args) {
@@ -68,9 +69,9 @@ func NewBackoff(args ...time.Duration) *Backoff {
 	return backoff
 }
 
-// Duration can be used to get exponential backoff duration calculated for each new step
+// Duration returns the exponential backoff duration calculated for the current step.
 func (b *Backoff) Duration() time.Duration {
-	dur := time.Duration(float64(b.min)*math.Pow(b.factor, float64(b.step)) - float64(1*time.Second))
+	dur := time.Duration(float64(b.min)*math.Pow(b.factor, float64(b.step)) - float64(b.min))
 
 	switch {
 	case dur < b.min:
@@ -84,12 +85,20 @@ func (b *Backoff) Duration() time.Duration {
 	}
 }
 
-// Run is a blocking function that executes RunFunc until stopCh receives the value
-// or function returns an error
+// Reset sets step counter to zero.
+func (b *Backoff) Reset() {
+	b.step = 0
+}
+
+// Run is a blocking function that executes RunFunc until stopCh receives a
+// value or fn returns an error.
 func (b *Backoff) Run(stopCh <-chan struct{}, fn RunFunc) error {
 	timer := time.NewTimer(0)
 	defer timer.Stop()
 
+	// FIXME(antoineco): never canceled until stopCh receives a value,
+	// after which the fn is never invoked again, so ctx does effectively
+	// nothing.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -97,20 +106,17 @@ func (b *Backoff) Run(stopCh <-chan struct{}, fn RunFunc) error {
 		select {
 		case <-stopCh:
 			return nil
+
 		case <-timer.C:
 			reset, err := fn(ctx)
 			if err != nil {
 				return err
 			}
+
 			if reset {
 				b.Reset()
 			}
 			timer.Reset(b.Duration())
 		}
 	}
-}
-
-// Reset sets step counter to zero.
-func (b *Backoff) Reset() {
-	b.step = 0
 }

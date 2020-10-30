@@ -18,7 +18,6 @@ package common
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -31,8 +30,8 @@ func TestNewBackoff(t *testing.T) {
 		gotMin, gotMax   time.Duration
 	}{
 		"defaults": {
-			gotMin: minBackoff,
-			gotMax: maxBackoff,
+			gotMin: defaultMinBackoff,
+			gotMax: defaultMaxBackoff,
 		},
 		"all correct": {
 			wantMin: time.Second,
@@ -42,14 +41,14 @@ func TestNewBackoff(t *testing.T) {
 		},
 		"min > default max": {
 			wantMin: time.Hour,
-			gotMin:  minBackoff,
-			gotMax:  maxBackoff,
+			gotMin:  defaultMinBackoff,
+			gotMax:  defaultMaxBackoff,
 		},
 		"min > max": {
 			wantMin: time.Hour,
-			gotMin:  minBackoff,
+			gotMin:  defaultMinBackoff,
 			wantMax: time.Minute,
-			gotMax:  maxBackoff,
+			gotMax:  defaultMaxBackoff,
 		},
 	}
 
@@ -109,15 +108,16 @@ func TestDuration(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	var counter int
-	start := time.Now()
-
 	testCases := map[string]struct {
 		fn         func(context.Context) (bool, error)
 		waitReturn bool
 		err        error
 	}{
-		"force stop with no errs": {
+		"force stop with no err": {
+			fn: func(ctx context.Context) (bool, error) {
+				// never terminates by itself
+				return true, nil
+			},
 			waitReturn: false,
 		},
 		"fn returns err": {
@@ -127,47 +127,83 @@ func TestRun(t *testing.T) {
 			waitReturn: true,
 			err:        assert.AnError,
 		},
-		"fn resets backoff duration": {
-			fn: func(ctx context.Context) (bool, error) {
-				counter++
-				if counter > 3 {
-					if time.Since(start).Round(time.Second) != 3*time.Second {
-						return true, fmt.Errorf("did we reset the backoff?")
-					}
-					// trigger Run() termination with expected error
-					return true, assert.AnError
-				}
-				// reset backoff duration to 1 sec for each iteration
-				return true, nil
-			},
-			waitReturn: true,
-			err:        assert.AnError,
-		},
 	}
-
-	errCh := make(chan error)
-	defer close(errCh)
 
 	for name, tc := range testCases {
-		stopCh := make(chan struct{})
 		t.Run(name, func(t *testing.T) {
-			bo := NewBackoff()
-			go func() {
-				err := bo.Run(stopCh, tc.fn)
-				errCh <- err
-			}()
-			if tc.waitReturn {
-				defer close(stopCh)
-			} else {
-				close(stopCh)
-			}
+			errCh := make(chan error)
+			defer close(errCh)
 
-			err := <-errCh
-			if tc.err != nil {
-				assert.EqualError(t, err, tc.err.Error())
-			} else {
-				assert.NoError(t, err)
-			}
+			stopCh := make(chan struct{})
+
+			t.Run(name, func(t *testing.T) {
+				bo := NewBackoff()
+				go func() {
+					err := bo.Run(stopCh, tc.fn)
+					errCh <- err
+				}()
+
+				if tc.waitReturn {
+					defer close(stopCh)
+				} else {
+					close(stopCh)
+				}
+
+				err := <-errCh
+				if tc.err != nil {
+					assert.EqualError(t, err, tc.err.Error())
+				} else {
+					assert.NoError(t, err)
+				}
+			})
 		})
 	}
+
+	t.Run("fn fails several times then resets backoff duration", func(t *testing.T) {
+		const minBackoff = 1 * time.Millisecond
+		const timesRunFnBeforeReset = 3
+
+		var returnVal bool
+
+		// latch is used to keep the function executions under control
+		// of the main test logic.
+		latch := make(chan struct{})
+
+		fn := func(ctx context.Context) (bool, error) {
+			latch <- struct{}{}
+			defer func() { latch <- struct{}{} }()
+
+			return returnVal, nil
+		}
+
+		bo := NewBackoff(minBackoff)
+
+		stopCh := make(chan struct{})
+		errCh := make(chan error)
+		defer close(errCh)
+
+		go func() {
+			errCh <- bo.Run(stopCh, fn)
+		}()
+
+		// cause timesRunFnBeforeReset fn executions
+		for i := 0; i < timesRunFnBeforeReset; i++ {
+			<-latch
+			<-latch
+		}
+		durationBeforeReset := bo.Duration()
+
+		returnVal = true // next run causes a reset
+		<-latch
+		<-latch
+
+		close(stopCh)
+		assert.NoError(t, <-errCh)
+		durationAfterReset := bo.Duration()
+
+		assert.Less(t, int64(durationAfterReset), int64(durationBeforeReset),
+			"Duration after reset is not less then before reset")
+
+		assert.Equal(t, durationAfterReset, minBackoff, "Backoff wasn't reset to its min value")
+	})
 }
