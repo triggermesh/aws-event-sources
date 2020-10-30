@@ -19,6 +19,7 @@ package common
 import (
 	"context"
 	"math"
+	"sync/atomic"
 	"time"
 )
 
@@ -32,7 +33,7 @@ const (
 
 // Backoff provides a simple exponential backoff mechanism.
 type Backoff struct {
-	step     int
+	step     *int32
 	factor   float64
 	min, max time.Duration
 }
@@ -48,7 +49,7 @@ type RunFunc func(context.Context) (bool /*reset*/, error /*exit*/)
 // returns a new instance of Backoff.
 func NewBackoff(args ...time.Duration) *Backoff {
 	backoff := &Backoff{
-		step:   0,
+		step:   new(int32),
 		factor: expFactor,
 		min:    defaultMinBackoff,
 		max:    defaultMaxBackoff,
@@ -71,23 +72,23 @@ func NewBackoff(args ...time.Duration) *Backoff {
 
 // Duration returns the exponential backoff duration calculated for the current step.
 func (b *Backoff) Duration() time.Duration {
-	dur := time.Duration(float64(b.min)*math.Pow(b.factor, float64(b.step)) - float64(b.min))
+	dur := time.Duration(float64(b.min)*math.Pow(b.factor, float64(atomic.LoadInt32(b.step))) - float64(b.min))
 
 	switch {
 	case dur < b.min:
-		b.step++
+		atomic.AddInt32(b.step, 1)
 		return b.min
 	case dur > b.max:
 		return b.max
 	default:
-		b.step++
+		atomic.AddInt32(b.step, 1)
 		return dur
 	}
 }
 
 // Reset sets step counter to zero.
 func (b *Backoff) Reset() {
-	b.step = 0
+	atomic.StoreInt32(b.step, 0)
 }
 
 // Run is a blocking function that executes RunFunc until stopCh receives a

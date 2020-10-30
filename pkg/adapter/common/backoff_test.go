@@ -18,6 +18,7 @@ package common
 
 import (
 	"context"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -69,25 +70,25 @@ func TestNewBackoff(t *testing.T) {
 
 func TestDuration(t *testing.T) {
 	testCases := map[string]struct {
-		step              int
+		step              int32
 		min, max, wantDur time.Duration
 	}{
 		"first step": {
 			step:    0,
 			min:     time.Second,
 			max:     time.Minute,
-			wantDur: time.Second,
+			wantDur: time.Second, // = min
 		},
 		"third step": {
 			step:    2,
 			min:     time.Second,
-			wantDur: 3 * time.Second,
+			wantDur: 3 * time.Second, // = 1s * factor(=2)^step(=2) - 1s
 		},
 		"tenth step": {
 			step:    9,
 			min:     time.Second,
 			max:     time.Minute,
-			wantDur: time.Minute,
+			wantDur: time.Minute, // = max
 		},
 	}
 
@@ -101,7 +102,7 @@ func TestDuration(t *testing.T) {
 				bo = NewBackoff(tc.min)
 			}
 
-			bo.step = tc.step
+			atomic.StoreInt32(bo.step, tc.step)
 			assert.Equal(t, tc.wantDur, bo.Duration())
 		})
 	}
