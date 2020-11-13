@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -29,6 +30,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
 	"github.com/aws/aws-sdk-go/service/dynamodbstreams/dynamodbstreamsiface"
 
@@ -37,6 +40,11 @@ import (
 
 	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+)
+
+const (
+	streamRecheckPeriod = 15 * time.Second
+	getRecordsPeriod    = 3 * time.Second
 )
 
 // envConfig is a set parameters sourced from the environment for the source's
@@ -51,11 +59,18 @@ type envConfig struct {
 type adapter struct {
 	logger *zap.SugaredLogger
 
-	dyndbClient dynamodbstreamsiface.DynamoDBStreamsAPI
-	ceClient    cloudevents.Client
+	dyndbClient    dynamodbiface.DynamoDBAPI
+	dyndbStrClient dynamodbstreamsiface.DynamoDBStreamsAPI
+	ceClient       cloudevents.Client
 
-	arn   arn.ARN
-	table string
+	arn arn.ARN
+
+	// tracker for running records processors
+	processors sync.Map
+	wg         sync.WaitGroup
+
+	lastStreamARN    *string
+	lastStreamStatus *string
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -72,165 +87,231 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	arn := common.MustParseARN(env.ARN)
 
 	cfg := session.Must(session.NewSession(aws.NewConfig().
-		WithRegion(arn.Region).
-		WithMaxRetries(5),
+		WithRegion(arn.Region),
 	))
 
 	return &adapter{
 		logger: logger,
 
-		dyndbClient: dynamodbstreams.New(cfg),
-		ceClient:    ceClient,
+		dyndbClient:    dynamodb.New(cfg),
+		dyndbStrClient: dynamodbstreams.New(cfg),
+		ceClient:       ceClient,
 
-		arn:   arn,
-		table: common.MustParseDynamoDBResource(arn.Resource),
+		arn: arn,
 	}
 }
 
 // Start implements adapter.Adapter.
 func (a *adapter) Start(ctx context.Context) error {
-	a.logger.Info("Listening to AWS DynamoDB streams for table: " + a.table)
+	a.logger.Info("Starting collection of DynamoDB records for table ", a.arn)
 
-	streams, err := a.getStreams()
-	if err != nil {
-		a.logger.Errorw("Failed to get Streams", zap.Error(err))
-		return err
-	}
+	t := time.NewTimer(0)
+	defer t.Stop()
 
-	if len(streams) == 0 {
-		err = fmt.Errorf("no streams associated with table %q", a.table)
-		a.logger.Error(err)
-		return err
-	}
+loop:
+	for {
+		select {
+		case <-ctx.Done():
+			break loop
 
-	a.logger.Debugf("Streams: %v", streams)
-
-	streamsDescriptions, err := a.getStreamsDescriptions(streams)
-	if err != nil {
-		a.logger.Errorw("Failed to get Streams descriptions", zap.Error(err))
-	}
-
-	a.logger.Debugf("Streams descriptions: %v", streamsDescriptions)
-
-	backoff := common.NewBackoff()
-
-	err = backoff.Run(ctx.Done(), func(ctx context.Context) (bool, error) {
-		resetBackoff := false
-		shardIterators, err := a.getShardIterators(streamsDescriptions)
-		if err != nil {
-			a.logger.Errorw("Failed to get shard iterators", zap.Error(err))
-		}
-
-		var records []*dynamodbstreams.Record
-		for _, shardIterator := range shardIterators {
-			shardRecords, err := a.processLatestRecords(shardIterator)
+		case <-t.C:
+			streamARN, err := a.getLatestStreamARN(ctx)
 			if err != nil {
-				a.logger.Errorw("Error while processing records for shard iterator "+
-					*shardIterator, zap.Error(err))
+				return fmt.Errorf("retrieving stream ARN for table %s: %w", a.arn, err)
 			}
-			records = append(records, shardRecords...)
-		}
 
-		for _, record := range records {
-			resetBackoff = true
-			if err := a.sendDynamoDBEvent(record); err != nil {
-				a.logger.Errorw("Failed to send CloudEvent", zap.Error(err))
+			if a.lastStreamARN != nil && *streamARN != *a.lastStreamARN {
+				a.logger.Warn("Active stream changed from ", *a.lastStreamARN, " to ", *streamARN)
+				a.lastStreamStatus = nil
 			}
-		}
-		return resetBackoff, nil
-	})
+			a.lastStreamARN = streamARN
 
-	return err
+			if err := a.recheckStream(ctx, streamARN); err != nil {
+				a.logger.Errorw("Error while re-checking stream "+*streamARN, zap.Error(err))
+			}
+
+			t.Reset(streamRecheckPeriod)
+		}
+	}
+
+	a.logger.Info("Waiting for termination of records processors")
+	a.wg.Wait()
+
+	return nil
 }
 
-func (a *adapter) getStreams() ([]*dynamodbstreams.Stream, error) {
-	streams := []*dynamodbstreams.Stream{}
+// errNoStream is an error type returned when a DynamoDB table doesn't have a
+// stream associated with it.
+type errNoStream /*table ARN*/ arn.ARN
 
-	listStreamsInput := dynamodbstreams.ListStreamsInput{
-		TableName: &a.table,
+// Error implements the error interface.
+func (e errNoStream) Error() string {
+	return fmt.Sprint("no stream is associated with table ", arn.ARN(e))
+}
+
+// getLatestStreamARN returns the ARN of the latest stream for the table.
+func (a *adapter) getLatestStreamARN(ctx context.Context) (*string, error) {
+	table, err := a.dyndbClient.DescribeTableWithContext(ctx, &dynamodb.DescribeTableInput{
+		TableName: aws.String(common.MustParseDynamoDBResource(a.arn.Resource)),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("retrieving table info: %w", err)
 	}
 
+	if table.Table.LatestStreamArn == nil {
+		return nil, errNoStream(a.arn)
+	}
+
+	return table.Table.LatestStreamArn, nil
+}
+
+// recheckStream ensures a records processor is running for each of the stream's shards.
+func (a *adapter) recheckStream(ctx context.Context, streamARN *string) error {
+	a.logger.Debug("Checking stream for new shards")
+
+	var lastEvaluatedShardID *string
+
 	for {
-		listStreamOutput, err := a.dyndbClient.ListStreams(&listStreamsInput)
+		stream, err := a.dyndbStrClient.DescribeStreamWithContext(ctx, &dynamodbstreams.DescribeStreamInput{
+			StreamArn:             streamARN,
+			ExclusiveStartShardId: lastEvaluatedShardID,
+		})
 		if err != nil {
-			return streams, err
+			return fmt.Errorf("describing stream: %w", err)
 		}
 
-		streams = append(streams, listStreamOutput.Streams...)
+		streamStatus := stream.StreamDescription.StreamStatus
 
-		listStreamsInput.ExclusiveStartStreamArn = listStreamOutput.LastEvaluatedStreamArn
+		switch {
+		case a.lastStreamStatus != nil && *streamStatus != *a.lastStreamStatus:
+			a.logger.Warn("Stream status changed from ", *a.lastStreamStatus, " to ", *streamStatus)
 
-		if listStreamOutput.LastEvaluatedStreamArn == nil {
+		case a.lastStreamStatus == nil && *streamStatus != dynamodbstreams.StreamStatusEnabled:
+			a.logger.Warn("Stream has status ", *streamStatus, ". No records collection will occur")
+		}
+
+		a.lastStreamStatus = streamStatus
+
+		if *streamStatus != dynamodbstreams.StreamStatusEnabled {
+			return nil
+		}
+
+		for _, s := range stream.StreamDescription.Shards {
+			a.ensureRecordsProcessor(ctx, streamARN, s.ShardId)
+		}
+
+		lastEvaluatedShardID = stream.StreamDescription.LastEvaluatedShardId
+
+		// If LastEvaluatedShardId is nil, then the "last page" of results has been
+		// processed and there is currently no more data to be retrieved.
+		if lastEvaluatedShardID == nil {
 			break
 		}
 	}
 
-	return streams, nil
+	return nil
 }
 
-func (a *adapter) getStreamsDescriptions(streams []*dynamodbstreams.Stream) ([]*dynamodbstreams.StreamDescription, error) {
-	streamsDescriptions := []*dynamodbstreams.StreamDescription{}
+// ensureRecordsProcessor ensures a records processor is running for the given shard.
+func (a *adapter) ensureRecordsProcessor(ctx context.Context, streamARN *string, shardID *string) {
+	if _, running := a.processors.LoadOrStore(*shardID, struct{}{}); running {
+		a.logger.Debug("Record processor already running for shard ID ", *shardID)
+		return
+	}
 
-	for _, stream := range streams {
-		describeStreamOutput, err := a.dyndbClient.DescribeStream(&dynamodbstreams.DescribeStreamInput{
-			StreamArn: stream.StreamArn,
-		})
+	a.wg.Add(1)
 
-		if err != nil {
-			return streamsDescriptions, err
+	go func() {
+		defer a.processors.Delete(*shardID)
+		defer a.wg.Done()
+
+		a.logger.Info("Starting records processor for shard ID ", *shardID)
+
+		if err := a.runRecordsProcessor(ctx, streamARN, shardID); err != nil {
+			a.logger.Errorw("Records processor for shard ID "+*shardID+" returned with error", zap.Error(err))
+			return
 		}
 
-		streamsDescriptions = append(streamsDescriptions, describeStreamOutput.StreamDescription)
-	}
-
-	return streamsDescriptions, nil
+		a.logger.Info("Records processor for shard ID " + *shardID + " has stopped")
+	}()
 }
 
-func (a *adapter) getShardIterators(streamsDescriptions []*dynamodbstreams.StreamDescription) ([]*string, error) {
-	shardIterators := []*string{}
-
-	for _, streamDescription := range streamsDescriptions {
-		for _, shard := range streamDescription.Shards {
-			getShardIteratorInput := dynamodbstreams.GetShardIteratorInput{
-				ShardId:           shard.ShardId,
-				ShardIteratorType: aws.String(dynamodbstreams.ShardIteratorTypeLatest),
-				StreamArn:         streamDescription.StreamArn,
-			}
-
-			result, err := a.dyndbClient.GetShardIterator(&getShardIteratorInput)
-			if err != nil {
-				return shardIterators, err
-			}
-
-			shardIterators = append(shardIterators, result.ShardIterator)
-		}
-	}
-
-	return shardIterators, nil
-}
-
-func (a *adapter) processLatestRecords(shardIterator *string) ([]*dynamodbstreams.Record, error) {
-	getRecordsInput := dynamodbstreams.GetRecordsInput{
-		ShardIterator: shardIterator,
-	}
-
-	getRecordsOutput, err := a.dyndbClient.GetRecords(&getRecordsInput)
+// runRecordsProcessor runs a records processor for the given shard.
+func (a *adapter) runRecordsProcessor(ctx context.Context, streamARN *string, shardID *string) error {
+	si, err := a.dyndbStrClient.GetShardIteratorWithContext(ctx, &dynamodbstreams.GetShardIteratorInput{
+		StreamArn:         streamARN,
+		ShardId:           shardID,
+		ShardIteratorType: aws.String(dynamodbstreams.ShardIteratorTypeLatest),
+	})
 	if err != nil {
-		return []*dynamodbstreams.Record{}, fmt.Errorf("failed to get records: %w", err)
+		return fmt.Errorf("getting shard iterator for shard ID %s: %w", *shardID, err)
 	}
 
-	return getRecordsOutput.Records, nil
+	// Use a timer to pace GetRecords API calls after all observed records
+	// have been processed.
+	// Each GetRecords API call is billed as a "streams read request" unit.
+	// The free tier includes 2,5M DynamoDB Streams read request units.
+	// https://aws.amazon.com/dynamodb/pricing/on-demand/
+	t := time.NewTimer(0)
+	defer t.Stop()
+
+	currentShardIter := si.ShardIterator
+
+loop:
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+
+		case <-t.C:
+			r, err := a.dyndbStrClient.GetRecordsWithContext(ctx, &dynamodbstreams.GetRecordsInput{
+				ShardIterator: currentShardIter,
+			})
+			if err != nil {
+				return fmt.Errorf("getting records from shard ID %s: %w", *shardID, err)
+			}
+
+			nextRequestDelay := getRecordsPeriod
+			if len(r.Records) > 0 {
+				// keep iterating immediately if any record was
+				// returned, so that bursts of new records are
+				// processed quickly
+				nextRequestDelay = 0
+			}
+
+			for _, r := range r.Records {
+				a.logger.Debug("Processing record ID: " + *r.EventID)
+
+				if err := a.sendDynamoDBEvent(r); err != nil {
+					return fmt.Errorf("sending CloudEvent: %w", err)
+				}
+			}
+
+			currentShardIter = r.NextShardIterator
+
+			// ShardIterator only becomes nil when the shard is
+			// sealed (marked as READ_ONLY), which happens on
+			// average every 4 hours.
+			if currentShardIter == nil {
+				a.logger.Info("Shard ID ", *shardID, " got sealed")
+				break loop
+			}
+
+			t.Reset(nextRequestDelay)
+		}
+	}
+
+	return nil
 }
 
-func (a *adapter) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
-	a.logger.Info("Processing record ID: " + *record.EventID)
-
+// sendDynamoDBEvent sends the given Record as a CloudEvent.
+func (a *adapter) sendDynamoDBEvent(r *dynamodbstreams.Record) error {
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSEventType(a.arn.Service, strings.ToLower(*record.EventName)))
-	event.SetSubject(asEventSubject(record))
+	event.SetType(v1alpha1.AWSEventType(a.arn.Service, strings.ToLower(*r.EventName)))
+	event.SetSubject(asEventSubject(r))
 	event.SetSource(a.arn.String())
-	event.SetID(*record.EventID)
-	if err := event.SetData(cloudevents.ApplicationJSON, record); err != nil {
+	event.SetID(*r.EventID)
+	if err := event.SetData(cloudevents.ApplicationJSON, r); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
 	}
 
@@ -241,8 +322,8 @@ func (a *adapter) sendDynamoDBEvent(record *dynamodbstreams.Record) error {
 }
 
 // asEventSubject returns an event subject corresponding to the given record.
-func asEventSubject(record *dynamodbstreams.Record) string {
-	if record == nil || record.Dynamodb == nil || record.Dynamodb.Keys == nil {
+func asEventSubject(r *dynamodbstreams.Record) string {
+	if r == nil || r.Dynamodb == nil || r.Dynamodb.Keys == nil {
 		return ""
 	}
 
@@ -251,10 +332,10 @@ func asEventSubject(record *dynamodbstreams.Record) string {
 	defer subject.Reset()
 
 	i := 0
-	for k := range record.Dynamodb.Keys {
+	for k := range r.Dynamodb.Keys {
 		subject.WriteString(k)
 		i++
-		if i < len(record.Dynamodb.Keys) {
+		if i < len(r.Dynamodb.Keys) {
 			subject.WriteByte(',')
 		}
 	}
