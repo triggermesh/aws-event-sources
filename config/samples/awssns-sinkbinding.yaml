@@ -71,7 +71,9 @@ spec:
             { "DeliveryPolicy":
               {
                 "healthyRetryPolicy": {
-                  "numRetries": 5
+                  "numRetries": 3,
+                  "minDelayTarget": 20,
+                  "maxDelayTarget": 20
                 }
               }
             }

@@ -20,7 +20,7 @@ endpoint is used to subscribe to the desired SNS topic on behalf of the user.
 
 * Register an AWS account
 * Create an [Access Key][doc-accesskey] in your AWS IAM dashboard.
-* Create a [SNS topic][doc-sns].
+* Create a Standard [SNS topic][doc-sns].
 
 ## Deployment to Kubernetes
 
