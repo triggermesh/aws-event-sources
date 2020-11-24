@@ -31,7 +31,7 @@ import (
 	clientgotesting "k8s.io/client-go/testing"
 
 	"knative.dev/eventing/pkg/apis/eventing"
-	eventingv1beta1 "knative.dev/eventing/pkg/apis/eventing/v1beta1"
+	eventingv1 "knative.dev/eventing/pkg/apis/eventing/v1"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/reconciler"
@@ -456,13 +456,13 @@ func bumpImage(object runtime.Object) {
 /* Event sink */
 
 // newAdressable returns a test Addressable to be used as a sink.
-func newAdressable() *eventingv1beta1.Broker {
-	return &eventingv1beta1.Broker{
+func newAdressable() *eventingv1.Broker {
+	return &eventingv1.Broker{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: tNs,
 			Name:      tName,
 		},
-		Status: eventingv1beta1.BrokerStatus{
+		Status: eventingv1.BrokerStatus{
 			Address: duckv1.Addressable{
 				URL: tSinkURI,
 			},

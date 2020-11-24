@@ -1,12 +1,12 @@
 ---
-apiVersion: sources.eventing.knative.dev/v1alpha1
+apiVersion: sources.eventing.knative.dev/v1
 kind: ContainerSource
 metadata:
   name: awsiotsource
 spec:
   image: gcr.io/triggermesh/awsiot:latest
   sink:
-    apiVersion: eventing.knative.dev/v1alpha1
+    apiVersion: eventing.knative.dev/v1
     kind: Channel
     name: default
   env:
