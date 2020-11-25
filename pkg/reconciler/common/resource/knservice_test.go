@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
@@ -40,6 +41,8 @@ func TestNewServiceWithDefaultContainer(t *testing.T) {
 		EnvVars(makeEnvVars(2, "MULTI_ENV", "val")...),
 		EnvVar("TEST_ENV2", "val2"),
 		Label("test.label/2", "val2"),
+		Requests(resource.MustParse("250m"), resource.MustParse("100Mi")),
+		Limits(resource.MustParse("250m"), resource.MustParse("100Mi")),
 	)
 
 	expectKsvc := &servingv1.Service{
@@ -87,6 +90,16 @@ func TestNewServiceWithDefaultContainer(t *testing.T) {
 										HTTPGet: &corev1.HTTPGetAction{
 											Path: "/health",
 										},
+									},
+								},
+								Resources: corev1.ResourceRequirements{
+									Requests: corev1.ResourceList{
+										corev1.ResourceCPU:    *resource.NewMilliQuantity(250, resource.DecimalSI),
+										corev1.ResourceMemory: *resource.NewQuantity(1024*1024*100, resource.BinarySI),
+									},
+									Limits: corev1.ResourceList{
+										corev1.ResourceCPU:    *resource.NewMilliQuantity(250, resource.DecimalSI),
+										corev1.ResourceMemory: *resource.NewQuantity(1024*1024*100, resource.BinarySI),
 									},
 								},
 							}},

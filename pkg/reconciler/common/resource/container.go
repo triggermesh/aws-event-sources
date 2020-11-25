@@ -19,6 +19,7 @@ package resource
 import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
@@ -164,6 +165,40 @@ func Probe(path, port string) ObjectOption {
 			},
 		}
 	}
+}
+
+// Requests sets the CPU and memory requests of a Deployment's first container.
+func Requests(cpu, mem resource.Quantity) ObjectOption {
+	return func(object interface{}) {
+		setResources(&resourcesFrom(object).Requests, cpu, mem)
+	}
+}
+
+// Limits sets the CPU and memory limits of a Deployment's first container.
+func Limits(cpu, mem resource.Quantity) ObjectOption {
+	return func(object interface{}) {
+		setResources(&resourcesFrom(object).Limits, cpu, mem)
+	}
+}
+
+func resourcesFrom(object interface{}) (resources *corev1.ResourceRequirements) {
+	switch o := object.(type) {
+	case *corev1.Container:
+		resources = &o.Resources
+	case *appsv1.Deployment, *servingv1.Service:
+		resources = &firstContainer(o).Resources
+	}
+
+	return
+}
+
+func setResources(res *corev1.ResourceList, cpu, mem resource.Quantity) {
+	if *res == nil {
+		*res = make(corev1.ResourceList, 2)
+	}
+
+	(*res)[corev1.ResourceCPU] = cpu
+	(*res)[corev1.ResourceMemory] = mem
 }
 
 // firstContainer returns a PodSpecable's first Container definition.

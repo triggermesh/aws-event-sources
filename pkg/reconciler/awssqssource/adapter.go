@@ -18,6 +18,7 @@ package awssqssource
 
 import (
 	appsv1 "k8s.io/api/apps/v1"
+	kr "k8s.io/apimachinery/pkg/api/resource"
 
 	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
@@ -73,6 +74,15 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSSQSSource, cfg *adapterConfig) co
 			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
 			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
+
+			resource.Requests(
+				*kr.NewMilliQuantity(90, kr.DecimalSI), // 90m
+				*kr.NewQuantity(1024*18, kr.BinarySI),  // 18Mi
+			),
+			resource.Limits(
+				*kr.NewMilliQuantity(120, kr.DecimalSI), // 120m
+				*kr.NewQuantity(1024*30, kr.BinarySI),   // 30Mi
+			),
 		)
 	}
 }

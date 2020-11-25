@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -35,6 +36,8 @@ func TestNewContainer(t *testing.T) {
 		EnvVar("TEST_ENV2", "val2"),
 		Probe("/health", "health"),
 		EnvVarFromSecret("TEST_ENV3", "test-secret", "someKey"),
+		Requests(resource.MustParse("250m"), resource.MustParse("100Mi")),
+		Limits(resource.MustParse("250m"), resource.MustParse("100Mi")),
 	)
 
 	expectCont := &corev1.Container{
@@ -76,6 +79,16 @@ func TestNewContainer(t *testing.T) {
 					Path: "/health",
 					Port: intstr.FromString("health"),
 				},
+			},
+		},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    *resource.NewMilliQuantity(250, resource.DecimalSI),
+				corev1.ResourceMemory: *resource.NewQuantity(1024*1024*100, resource.BinarySI),
+			},
+			Limits: corev1.ResourceList{
+				corev1.ResourceCPU:    *resource.NewMilliQuantity(250, resource.DecimalSI),
+				corev1.ResourceMemory: *resource.NewQuantity(1024*1024*100, resource.BinarySI),
 			},
 		},
 	}

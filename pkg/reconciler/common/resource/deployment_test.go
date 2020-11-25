@@ -23,6 +23,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -42,6 +43,8 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 		EnvVars(makeEnvVars(2, "MULTI_ENV", "val")...),
 		EnvVar("TEST_ENV2", "val2"),
 		Label("test.label/2", "val2"),
+		Requests(resource.MustParse("250m"), resource.MustParse("100Mi")),
+		Limits(resource.MustParse("250m"), resource.MustParse("100Mi")),
 	)
 
 	expectKsvc := &appsv1.Deployment{
@@ -99,6 +102,16 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 									Path: "/health",
 									Port: intstr.FromString("health"),
 								},
+							},
+						},
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(250, resource.DecimalSI),
+								corev1.ResourceMemory: *resource.NewQuantity(1024*1024*100, resource.BinarySI),
+							},
+							Limits: corev1.ResourceList{
+								corev1.ResourceCPU:    *resource.NewMilliQuantity(250, resource.DecimalSI),
+								corev1.ResourceMemory: *resource.NewQuantity(1024*1024*100, resource.BinarySI),
 							},
 						},
 					}},
