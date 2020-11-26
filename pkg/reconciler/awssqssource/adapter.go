@@ -76,12 +76,12 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSSQSSource, cfg *adapterConfig) co
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
 
 			resource.Requests(
-				*kr.NewMilliQuantity(90, kr.DecimalSI), // 90m
-				*kr.NewQuantity(1024*18, kr.BinarySI),  // 18Mi
+				*kr.NewMilliQuantity(90, kr.DecimalSI),     // 90m
+				*kr.NewQuantity(1024*1024*18, kr.BinarySI), // 18Mi
 			),
 			resource.Limits(
-				*kr.NewMilliQuantity(120, kr.DecimalSI), // 120m
-				*kr.NewQuantity(1024*30, kr.BinarySI),   // 30Mi
+				*kr.NewMilliQuantity(120, kr.DecimalSI),    // 120m
+				*kr.NewQuantity(1024*1024*30, kr.BinarySI), // 30Mi
 			),
 		)
 	}
