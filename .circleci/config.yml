@@ -1,6 +1,7 @@
 version: 2.1
 
 orbs:
+  build-tools: circleci/build-tools@2.7.0
   go: circleci/go@1
   gcp-cli: circleci/gcp-cli@1
   helm: circleci/helm@1
@@ -12,6 +13,16 @@ jobs:
       tag: '1.15'
     steps:
       - checkout
+      - run:
+          command: |
+            git branch
+            git --no-pager log --oneline
+      - build-tools/merge-with-parent:
+          parent: master
+      - run:
+          command: |
+            git branch
+            git --no-pager log --oneline
       - go/mod-download-cached
       - persist_to_workspace:
           root: ~/
@@ -26,6 +37,10 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/
+      - run:
+          command: |
+            git branch
+            git --no-pager log --oneline
       - run:
           name: Building package
           command: make build
@@ -42,6 +57,10 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/
+      - run:
+          command: |
+            git branch
+            git --no-pager log --oneline
       - run:
           name: Run fmt-test
           command: make fmt-test
@@ -168,64 +187,64 @@ workflows:
           filters:
             tags:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-      - build:
-          context: production
-          requires:
-            - checkout
-          filters:
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-      - test:
-          requires:
-            - checkout
-          filters:
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-      - publish-image:
-          context: production
-          requires:
-            - build
-            - test
-          filters:
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-            branches:
-              only: master
-      - publish-chart:
-          context: production
-          requires:
-            - publish-image
-          filters:
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-            branches:
-              only: master
-      - deploy:
-          name: update-staging-config
-          cluster: staging
-          requires:
-            - publish-image
-          filters:
-            branches:
-              only: master
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-      - deploy:
-          name: update-production-config
-          cluster: prod
-          requires:
-            - publish-image
-          filters:
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-            branches:
-              ignore: /.*/
-      - release:
-          context: production
-          requires:
-            - publish-image
-          filters:
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-            branches:
-              ignore: /.*/
+      # - build:
+      #     context: production
+      #     requires:
+      #       - checkout
+      #     filters:
+      #       tags:
+      #         only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+      # - test:
+      #     requires:
+      #       - checkout
+      #     filters:
+      #       tags:
+      #         only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+      # - publish-image:
+      #     context: production
+      #     requires:
+      #       - build
+      #       - test
+      #     filters:
+      #       tags:
+      #         only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+      #       branches:
+      #         only: master
+      # - publish-chart:
+      #     context: production
+      #     requires:
+      #       - publish-image
+      #     filters:
+      #       tags:
+      #         only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+      #       branches:
+      #         only: master
+      # - deploy:
+      #     name: update-staging-config
+      #     cluster: staging
+      #     requires:
+      #       - publish-image
+      #     filters:
+      #       branches:
+      #         only: master
+      #       tags:
+      #         only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+      # - deploy:
+      #     name: update-production-config
+      #     cluster: prod
+      #     requires:
+      #       - publish-image
+      #     filters:
+      #       tags:
+      #         only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+      #       branches:
+      #         ignore: /.*/
+      # - release:
+      #     context: production
+      #     requires:
+      #       - publish-image
+      #     filters:
+      #       tags:
+      #         only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
+      #       branches:
+      #         ignore: /.*/
