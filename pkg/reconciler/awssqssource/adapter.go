@@ -75,13 +75,15 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSSQSSource, cfg *adapterConfig) co
 			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
 
+			// CPU throttling can be observed below a limit of 1,
+			// although the CPU usage under load remains below 400m.
 			resource.Requests(
 				*kr.NewMilliQuantity(90, kr.DecimalSI),     // 90m
-				*kr.NewQuantity(1024*1024*18, kr.BinarySI), // 18Mi
+				*kr.NewQuantity(1024*1024*30, kr.BinarySI), // 30Mi
 			),
 			resource.Limits(
-				*kr.NewMilliQuantity(120, kr.DecimalSI),    // 120m
-				*kr.NewQuantity(1024*1024*30, kr.BinarySI), // 30Mi
+				*kr.NewMilliQuantity(1000, kr.DecimalSI),   // 1
+				*kr.NewQuantity(1024*1024*45, kr.BinarySI), // 45Mi
 			),
 		)
 	}
