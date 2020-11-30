@@ -80,7 +80,7 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSSQSSource, cfg *adapterConfig) co
 				*kr.NewQuantity(1024*1024*18, kr.BinarySI), // 18Mi
 			),
 			resource.Limits(
-				*kr.NewMilliQuantity(120, kr.DecimalSI),    // 120m
+				*kr.NewMilliQuantity(200, kr.DecimalSI),    // 200m
 				*kr.NewQuantity(1024*1024*30, kr.BinarySI), // 30Mi
 			),
 		)

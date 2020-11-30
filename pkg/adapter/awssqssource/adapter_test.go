@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -53,7 +54,7 @@ func TestAdapter(t *testing.T) {
 		numMsgs         int
 		queueBufSize    int
 		deleteMsgPeriod time.Duration
-		expectDeletes   int
+		expectDeletes   int32
 	}{
 		/* This test ensures a deletion of processed messages
 		   is triggered at the end of deleteMsgPeriod.
@@ -159,7 +160,7 @@ func TestAdapter(t *testing.T) {
 					t.Fatal("Timeout waiting for in-flight messages to be deleted")
 
 				case <-timer.C:
-					if sqsClient.callsDelete >= tc.expectDeletes {
+					if atomic.LoadInt32(&sqsClient.callsDelete) >= tc.expectDeletes {
 						startCancel()
 						break pollInFlight
 					}
@@ -212,7 +213,7 @@ type standardMockSQSClient struct {
 	availMsgs    []*sqs.Message
 	inFlightMsgs []*sqs.Message
 
-	callsDelete int
+	callsDelete int32
 }
 
 func (*standardMockSQSClient) GetQueueUrl(*sqs.GetQueueUrlInput) (*sqs.GetQueueUrlOutput, error) { //nolint:golint,stylecheck
@@ -248,7 +249,7 @@ func (c *standardMockSQSClient) DeleteMessageBatchWithContext(_ context.Context,
 	c.Lock()
 	defer c.Unlock()
 
-	c.callsDelete++
+	atomic.AddInt32(&c.callsDelete, 1)
 
 	inFlightIdx := make(map[ /*msg ID*/ string]int, len(c.inFlightMsgs))
 	for i, msg := range c.inFlightMsgs {
@@ -347,5 +348,5 @@ func TestDeleteMessageBatchWithContext(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.EqualValues(t, expect, sqsClient.inFlightMsgs)
-	assert.Equal(t, 1, sqsClient.callsDelete)
+	assert.Equal(t, int32(1), sqsClient.callsDelete)
 }
