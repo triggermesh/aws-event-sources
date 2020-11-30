@@ -17,16 +17,17 @@ limitations under the License.
 package awssqssource
 
 import (
-	"errors"
-	"sort"
+	"context"
+	"fmt"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
-	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 
@@ -34,218 +35,273 @@ import (
 	loggingtesting "knative.dev/pkg/logging/testing"
 )
 
-type mockedReceiveMsgs struct {
-	sqsiface.SQSAPI
-	resp *sqs.ReceiveMessageOutput
-	err  error
-}
+const (
+	tQueueArnResource = "MyQueue"
+	tQueueURL         = "https://sqs.us-fake-0.amazonaws.com/123456789012/MyQueue"
+	tMsgIDPrefix      = "00000000-0000-0000-0000-000000000" // + 3 digits appended for each msg
+	tSenderID         = "test"
+)
 
-type mockedDeleteMsgs struct {
-	sqsiface.SQSAPI
-	resp *sqs.DeleteMessageBatchOutput
-	err  error
-}
+func TestAdapter(t *testing.T) {
+	// The test's data is pre-populated so the flow of messages is
+	// uninterrupted until every message has been retrieved. We can
+	// therefore affirm something went wrong if the receiveMsgPeriod timer
+	// happens during a test.
+	const testTimeout = receiveMsgPeriod
 
-type mockedGetQueueURL struct {
-	sqsiface.SQSAPI
-	resp *sqs.GetQueueUrlOutput
-	err  error
-}
-
-func (m mockedReceiveMsgs) ReceiveMessage(in *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error) {
-	return m.resp, m.err
-}
-
-func (m mockedDeleteMsgs) DeleteMessageBatch(in *sqs.DeleteMessageBatchInput) (*sqs.DeleteMessageBatchOutput, error) {
-	return m.resp, m.err
-}
-
-func (m mockedGetQueueURL) GetQueueUrl(*sqs.GetQueueUrlInput) (*sqs.GetQueueUrlOutput, error) { //nolint:golint,stylecheck
-	return m.resp, m.err
-}
-
-func TestQueueLookup(t *testing.T) {
-	cases := []struct {
-		resp     *sqs.GetQueueUrlOutput
-		err      error
-		expected *string
+	testCases := map[string]struct {
+		numMsgs      int
+		queueBufSize int
 	}{
-		{ // Case 1, expect parsed responses
-			resp: &sqs.GetQueueUrlOutput{
-				QueueUrl: aws.String("testQueueURL"),
-			},
-			err:      nil,
-			expected: aws.String("testQueueURL"),
+		// These test cases ensure the implementation isn't reliant on
+		// specific buffer sizes.
+		"no queue buffer": {
+			numMsgs:      20,
+			queueBufSize: 0,
 		},
-		{ // Case 2, expect error
-			resp: &sqs.GetQueueUrlOutput{
-				QueueUrl: aws.String(""),
-			},
-			err:      errors.New("fake getQueueUrl error"),
-			expected: aws.String(""),
+		"small queue buffers": {
+			numMsgs:      20,
+			queueBufSize: 1,
 		},
-	}
-
-	for _, c := range cases {
-		a := &adapter{
-			logger: loggingtesting.TestLogger(t),
-			sqsClient: mockedGetQueueURL{
-				resp: c.resp,
-				err:  c.err,
-			},
-		}
-
-		url, err := a.queueLookup("")
-		assert.Equal(t, c.err, err)
-		assert.Equal(t, c.expected, url.QueueUrl)
-	}
-}
-
-func TestGetMessages(t *testing.T) {
-	const queueURL = "mockURL"
-
-	cases := []struct {
-		resp     *sqs.ReceiveMessageOutput
-		err      error
-		expected []*sqs.Message
-	}{
-		{ // Case 1, expect parsed responses
-			resp: &sqs.ReceiveMessageOutput{
-				Messages: make([]*sqs.Message, 2),
-			},
-			err:      nil,
-			expected: make([]*sqs.Message, 2),
-		},
-		{ // Case 2, no message returned
-			resp:     &sqs.ReceiveMessageOutput{},
-			err:      errors.New("no message found"),
-			expected: []*sqs.Message{},
+		"large queue buffers": {
+			numMsgs:      20,
+			queueBufSize: 100,
 		},
 	}
 
-	for _, c := range cases {
-		a := &adapter{
-			logger: loggingtesting.TestLogger(t),
-			sqsClient: mockedReceiveMsgs{
-				resp: c.resp,
-				err:  c.err},
-		}
+	for name, tc := range testCases {
+		//nolint:scopelint
+		t.Run(name, func(t *testing.T) {
+			ceCli := adaptertest.NewTestClient()
 
-		msgs, err := a.getMessages(queueURL)
-		assert.Equal(t, c.err, err)
-		assert.Equal(t, len(c.expected), len(msgs))
-	}
-}
+			sqsCli := &standardMockSQSClient{
+				availMsgs: makeMockMessages(tc.numMsgs),
+			}
 
-func TestSendEvents(t *testing.T) {
-	msgs := []*sqs.Message{
-		{
-			MessageId: aws.String("0001"),
-			Body:      aws.String("msg1"),
-		},
-		{
-			MessageId: aws.String("0002"),
-			Body:      aws.String("msg2"),
-		},
-	}
+			a := adapter{
+				logger: loggingtesting.TestLogger(t),
 
-	ceClient := adaptertest.NewTestClient()
+				sqsClient: sqsCli,
+				ceClient:  ceCli,
 
-	a := &adapter{
-		logger:   loggingtesting.TestLogger(t),
-		ceClient: ceClient,
-	}
+				arn: makeARN(tQueueArnResource),
 
-	sent, err := a.sendSQSEvents(msgs)
-	ceClientSentEvents := ceClient.Sent()
-	assert.NoError(t, err)
-	assert.Len(t, sent, len(msgs), "The function didn't return the expected number of messages")
-	require.Len(t, ceClientSentEvents, len(msgs), "The client didn't send the expected number of messages")
+				processQueue: make(chan *sqs.Message, tc.queueBufSize),
+				deleteQueue:  make(chan *sqs.Message, tc.queueBufSize),
 
-	sort.Sort(eventsByID(ceClientSentEvents))
+				deletePeriod: 5 * time.Millisecond,
+			}
 
-	for i, e := range ceClientSentEvents {
-		sentMsg := &sqs.Message{}
-		err := e.DataAs(sentMsg)
-		assert.NoError(t, err)
-		assert.EqualValues(t, msgs[i], sentMsg, "%d: sent payload differs from original message", i)
-	}
-}
+			testCtx, testCancel := context.WithTimeout(context.Background(), testTimeout)
+			defer testCancel()
 
-type eventsByID []cloudevents.Event
+			startCtx, startCancel := context.WithCancel(testCtx)
+			defer startCancel()
 
-func (ce eventsByID) Len() int           { return len(ce) }
-func (ce eventsByID) Less(i, j int) bool { return ce[i].ID() < ce[j].ID() }
-func (ce eventsByID) Swap(i, j int)      { ce[i], ce[j] = ce[j], ce[i] }
+			errCh := make(chan error)
+			defer close(errCh)
 
-func TestDeleteMessage(t *testing.T) {
-	const queueURL = "mockURL"
+			go func() {
+				errCh <- a.Start(startCtx)
+			}()
 
-	msgs := []*sqs.Message{
-		{
-			MessageId:     aws.String("0001"),
-			ReceiptHandle: aws.String("0001"),
-		},
-		{
-			MessageId:     aws.String("0002"),
-			ReceiptHandle: aws.String("0002"),
-		},
-	}
+			timer := time.NewTimer(0)
+			defer timer.Stop()
 
-	a := &adapter{
-		logger: loggingtesting.TestLogger(t),
-	}
+		poll:
+			for {
+				select {
+				case <-testCtx.Done():
+					assert.NoError(t, <-errCh)
+					t.Fatal("Timeout waiting for events")
 
-	a.sqsClient = mockedDeleteMsgs{
-		resp: &sqs.DeleteMessageBatchOutput{},
-		err:  nil,
-	}
+				case <-timer.C:
+					if len(ceCli.Sent()) >= tc.numMsgs {
+						startCancel()
+						break poll
+					}
+					timer.Reset(5 * time.Millisecond)
+				}
+			}
 
-	err := a.deleteMessages(queueURL, msgs)
-	assert.NoError(t, err)
+			// no matter what, Start() should always return after its context has
+			// been cancelled
+			select {
+			case <-testCtx.Done():
+				assert.NoError(t, <-errCh)
+				t.Fatal("Timeout waiting for Start to return")
 
-	a.sqsClient = mockedDeleteMsgs{
-		resp: &sqs.DeleteMessageBatchOutput{},
-		err:  errors.New("fake deleteMessage error"),
-	}
+			case err := <-errCh:
+				assert.NoError(t, err)
+			}
 
-	err = a.deleteMessages(queueURL, msgs)
-	assert.Error(t, err)
-}
+			// asserting a single event suffices since the entire data set is mocked
+			ev := ceCli.Sent()[0]
+			assert.Equal(t, ev.Type(), "com.amazon.sqs.message")
+			assert.Equal(t, "arn:aws:sqs:us-fake-0:123456789012:MyQueue", ev.Source())
+			assert.Equal(t, ev.Subject(), tSenderID)
 
-func TestErrList(t *testing.T) {
-	testCases := []struct {
-		name   string
-		errors []error
-		expect string
-	}{
-		{
-			name:   "no error",
-			errors: nil,
-			expect: "",
-		},
-		{
-			name: "one error",
-			errors: []error{
-				errors.New("err1"),
-			},
-			expect: "err1",
-		},
-		{
-			name: "multiple errors",
-			errors: []error{
-				errors.New("err1"),
-				errors.New("err2"),
-				errors.New("err3"),
-			},
-			expect: "[err1, err2, err3]",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			errs := &errList{errs: tc.errors}
-			assert.EqualError(t, errs, tc.expect)
+			// final assertions
+			assert.Len(t, ceCli.Sent(), tc.numMsgs, "Received more events than expected")
+			assert.Equal(t, tc.numMsgs, sqsCli.totalDeleted, "Not all processed messages were deleted")
+			assert.Empty(t, sqsCli.inFlightMsgs, "Found unprocessed in-flight messages")
 		})
 	}
+}
+
+// makeARN returns a fake SQS ARN for the given resource.
+func makeARN(resource string) arn.ARN {
+	return arn.ARN{
+		Partition: "aws",
+		Service:   "sqs",
+		Region:    "us-fake-0",
+		AccountID: "123456789012",
+		Resource:  resource,
+	}
+}
+
+// standardMockSQSClient is a mocked SQS client which returns a standard set of
+// responses and never errors.
+type standardMockSQSClient struct {
+	sqsiface.SQSAPI
+
+	sync.Mutex
+	availMsgs    []*sqs.Message
+	inFlightMsgs []*sqs.Message
+
+	totalDeleted int
+}
+
+func (*standardMockSQSClient) GetQueueUrl(*sqs.GetQueueUrlInput) (*sqs.GetQueueUrlOutput, error) { //nolint:golint,stylecheck
+	return &sqs.GetQueueUrlOutput{
+		QueueUrl: aws.String(tQueueURL),
+	}, nil
+}
+
+func (c *standardMockSQSClient) ReceiveMessageWithContext(_ context.Context,
+	in *sqs.ReceiveMessageInput, _ ...request.Option) (*sqs.ReceiveMessageOutput, error) {
+
+	c.Lock()
+	defer c.Unlock()
+
+	n := int(*in.MaxNumberOfMessages)
+	if l := len(c.availMsgs); l < n {
+		n = l
+	}
+
+	msgs := c.availMsgs[:n]
+
+	c.availMsgs = c.availMsgs[n:]
+	c.inFlightMsgs = append(c.inFlightMsgs, msgs...)
+
+	return &sqs.ReceiveMessageOutput{
+		Messages: msgs,
+	}, nil
+}
+
+func (c *standardMockSQSClient) DeleteMessageBatchWithContext(_ context.Context,
+	in *sqs.DeleteMessageBatchInput, _ ...request.Option) (*sqs.DeleteMessageBatchOutput, error) {
+
+	c.Lock()
+	defer c.Unlock()
+
+	inFlightIdx := make(map[ /*msg ID*/ string]int, len(c.inFlightMsgs))
+	for i, msg := range c.inFlightMsgs {
+		inFlightIdx[*msg.MessageId] = i
+	}
+
+	// mark processed messages by setting them to nil
+	for _, msg := range in.Entries {
+		if idx, ok := inFlightIdx[*msg.Id]; ok {
+			c.inFlightMsgs[idx] = nil
+			c.totalDeleted++
+		}
+	}
+
+	// filter nil entries in place
+	oldInFlightMsgs := c.inFlightMsgs
+	c.inFlightMsgs = c.inFlightMsgs[:0]
+	for _, msg := range oldInFlightMsgs {
+		if msg != nil {
+			c.inFlightMsgs = append(c.inFlightMsgs, msg)
+		}
+	}
+
+	return &sqs.DeleteMessageBatchOutput{}, nil
+}
+
+// makeMockMessages returns a set of mocked Messages.
+func makeMockMessages(n int) []*sqs.Message {
+	const receiptHandle = "dHJpZ2dlcm1lc2g="
+
+	msgs := make([]*sqs.Message, n)
+
+	for i := 0; i < n; i++ {
+		msgs[i] = &sqs.Message{
+			MessageId:     aws.String(fmt.Sprintf(tMsgIDPrefix+"%03d", i+1)),
+			ReceiptHandle: aws.String(receiptHandle),
+			Attributes: aws.StringMap(map[string]string{
+				sqs.MessageSystemAttributeNameSenderId: tSenderID,
+			}),
+		}
+	}
+
+	return msgs
+}
+
+// Test that our mock implementation does what we expect.
+func TestReceiveMessageWithContext(t *testing.T) {
+	const rcvMsgs = 3
+	const availMsgs = 4
+
+	sqsClient := &standardMockSQSClient{
+		availMsgs: makeMockMessages(availMsgs),
+	}
+
+	in := &sqs.ReceiveMessageInput{
+		MaxNumberOfMessages: aws.Int64(rcvMsgs),
+	}
+
+	expectRcv := availMsgs - rcvMsgs
+
+	expectInFlight := []*sqs.Message{
+		sqsClient.availMsgs[0],
+		sqsClient.availMsgs[1],
+		sqsClient.availMsgs[2],
+	}
+
+	_, err := sqsClient.ReceiveMessageWithContext(context.Background(), in)
+	assert.NoError(t, err)
+
+	assert.Len(t, sqsClient.availMsgs, expectRcv)
+	assert.EqualValues(t, expectInFlight, sqsClient.inFlightMsgs)
+}
+
+// Test that our mock implementation does what we expect.
+func TestDeleteMessageBatchWithContext(t *testing.T) {
+	const inFlightMsgs = 5
+
+	sqsClient := &standardMockSQSClient{
+		inFlightMsgs: makeMockMessages(inFlightMsgs),
+	}
+
+	in := &sqs.DeleteMessageBatchInput{
+		Entries: []*sqs.DeleteMessageBatchRequestEntry{{
+			Id: sqsClient.inFlightMsgs[1].MessageId,
+		}, {
+			Id: sqsClient.inFlightMsgs[2].MessageId,
+		}},
+	}
+
+	expect := []*sqs.Message{
+		sqsClient.inFlightMsgs[0],
+		sqsClient.inFlightMsgs[3],
+		sqsClient.inFlightMsgs[4],
+	}
+
+	_, err := sqsClient.DeleteMessageBatchWithContext(context.Background(), in)
+	assert.NoError(t, err)
+
+	assert.EqualValues(t, expect, sqsClient.inFlightMsgs)
+	assert.Equal(t, len(in.Entries), sqsClient.totalDeleted)
 }
