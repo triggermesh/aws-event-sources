@@ -90,15 +90,16 @@ var msgDequeuedDeleteCountM = stats.Int64(
 	stats.UnitDimensionless,
 )
 
-// registerStatsView registers an OpenCensus stats view for the source's metrics.
-func registerStatsView() error {
+// mustRegisterStatsView registers an OpenCensus stats view for the source's
+// metrics and panics in case of error.
+func mustRegisterStatsView() {
 	tagKeys := []tag.Key{
 		tagKeyResourceGroup,
 		tagKeyNamespace,
 		tagKeyName,
 	}
 
-	return view.Register(
+	err := view.Register(
 		&view.View{
 			Measure:     queueCapacityProcessM,
 			Description: queueCapacityProcessM.Description(),
@@ -136,6 +137,9 @@ func registerStatsView() error {
 			TagKeys:     tagKeys,
 		},
 	)
+	if err != nil {
+		panic(fmt.Errorf("error registering OpenCensus stats view: %w", err))
+	}
 }
 
 // statsReporter collects and reports stats about the event source.

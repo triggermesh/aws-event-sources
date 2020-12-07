@@ -77,6 +77,7 @@ func (a *adapter) runMessagesReceiver(ctx context.Context, queueURL string) {
 
 			for _, msg := range messages {
 				a.processQueue <- msg
+				a.sr.reportMessageEnqueuedProcessCount()
 			}
 
 			t.Reset(nextRequestDelay)

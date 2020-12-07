@@ -90,6 +90,8 @@ func (a *adapter) runMessagesDeleter(ctx context.Context, queueURL string) {
 			handleDeletion()
 
 		case msg := <-a.deleteQueue:
+			a.sr.reportMessageDequeuedDeleteCount()
+
 			delMsgBuf[*msg.MessageId] = *msg.ReceiptHandle
 
 			if len(delMsgBuf) == maxDeleteMsgBatchSize {

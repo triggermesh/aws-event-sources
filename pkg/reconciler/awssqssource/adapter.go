@@ -75,6 +75,8 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSSQSSource, cfg *adapterConfig) co
 			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
 
+			resource.Port("metrics", 9090),
+
 			// CPU throttling can be observed below a limit of 1,
 			// although the CPU usage under load remains below 400m.
 			resource.Requests(

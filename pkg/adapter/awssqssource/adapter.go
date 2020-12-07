@@ -37,6 +37,7 @@ import (
 	"knative.dev/pkg/logging"
 
 	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources"
 )
 
 const (
@@ -55,6 +56,9 @@ type envConfig struct {
 // adapter implements the source's adapter.
 type adapter struct {
 	logger *zap.SugaredLogger
+
+	mt *pkgadapter.MetricTag
+	sr *statsReporter
 
 	sqsClient sqsiface.SQSAPI
 	ceClient  cloudevents.Client
@@ -76,6 +80,14 @@ func NewEnvConfig() pkgadapter.EnvConfigAccessor {
 func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClient cloudevents.Client) pkgadapter.Adapter {
 	logger := logging.FromContext(ctx)
 
+	mustRegisterStatsView()
+
+	mt := &pkgadapter.MetricTag{
+		ResourceGroup: sources.AWSSQSSourceResource.String(),
+		Namespace:     envAcc.GetNamespace(),
+		Name:          envAcc.GetName(),
+	}
+
 	env := envAcc.(*envConfig)
 
 	arn := common.MustParseARN(env.ARN)
@@ -87,18 +99,26 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	// allocate generous buffer sizes to limit blocking on surges of new
 	// messages coming from receivers
 	const batchSizePerProc = 9
-	queueBufferSize := maxReceiveMsgBatchSize * runtime.GOMAXPROCS(-1) * batchSizePerProc
+	queueBufferSizeProcess := maxReceiveMsgBatchSize * runtime.GOMAXPROCS(-1) * batchSizePerProc
+	queueBufferSizeDelete := queueBufferSizeProcess
+
+	sr := mustNewStatsReporter(mt)
+	sr.reportQueueCapacityProcess(queueBufferSizeProcess)
+	sr.reportQueueCapacityDelete(queueBufferSizeDelete)
 
 	return &adapter{
 		logger: logger,
+
+		mt: mt,
+		sr: sr,
 
 		sqsClient: sqs.New(cfg),
 		ceClient:  ceClient,
 
 		arn: arn,
 
-		processQueue: make(chan *sqs.Message, queueBufferSize),
-		deleteQueue:  make(chan *sqs.Message, queueBufferSize),
+		processQueue: make(chan *sqs.Message, queueBufferSizeProcess),
+		deleteQueue:  make(chan *sqs.Message, queueBufferSizeDelete),
 
 		deletePeriod: maxDeleteMsgPeriod,
 	}
@@ -115,7 +135,7 @@ func (a *adapter) Start(ctx context.Context) error {
 	queueURL := *url.QueueUrl
 	a.logger.Infof("Listening to SQS queue at URL: %s", queueURL)
 
-	msgCtx, cancel := context.WithCancel(ctx)
+	msgCtx, cancel := context.WithCancel(pkgadapter.ContextWithMetricTag(ctx, a.mt))
 	defer cancel()
 
 	var wg sync.WaitGroup

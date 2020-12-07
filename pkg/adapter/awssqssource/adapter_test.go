@@ -31,6 +31,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"github.com/aws/aws-sdk-go/service/sqs/sqsiface"
 
+	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
 	loggingtesting "knative.dev/pkg/logging/testing"
 )
@@ -78,8 +79,13 @@ func TestAdapter(t *testing.T) {
 				availMsgs: makeMockMessages(tc.numMsgs),
 			}
 
+			mt := &pkgadapter.MetricTag{}
+
 			a := adapter{
 				logger: loggingtesting.TestLogger(t),
+
+				mt: mt,
+				sr: mustNewStatsReporter(mt),
 
 				sqsClient: sqsCli,
 				ceClient:  ceCli,

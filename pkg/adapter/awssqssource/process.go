@@ -39,6 +39,8 @@ func (a *adapter) runMessagesProcessor(ctx context.Context) {
 			return
 
 		case msg := <-a.processQueue:
+			a.sr.reportMessageDequeuedProcessCount()
+
 			a.logger.Debugw("Processing message", zap.String(logfieldMsgID, *msg.MessageId))
 
 			if err := sendSQSEvent(ctx, a.ceClient, &a.arn, msg); err != nil {
@@ -49,6 +51,7 @@ func (a *adapter) runMessagesProcessor(ctx context.Context) {
 			}
 
 			a.deleteQueue <- msg
+			a.sr.reportMessageEnqueuedDeleteCount()
 		}
 	}
 }
