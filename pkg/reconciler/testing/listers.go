@@ -94,6 +94,16 @@ func (l *Listers) GetServingObjects() []runtime.Object {
 	return l.sorter.ObjectsForSchemeFunc(fakeservingclient.AddToScheme)
 }
 
+// GetAWSCloudWatchSourceLister returns a Lister for AWSCloudWatchSource objects.
+func (l *Listers) GetAWSCloudWatchSourceLister() listersv1alpha1.AWSCloudWatchSourceLister {
+	return listersv1alpha1.NewAWSCloudWatchSourceLister(l.IndexerFor(&v1alpha1.AWSCloudWatchSource{}))
+}
+
+// GetAWSCloudWatchLogSourceLister returns a Lister for AWSCloudWatchSource objects.
+func (l *Listers) GetAWSCloudWatchLogSourceLister() listersv1alpha1.AWSCloudWatchLogSourceLister {
+	return listersv1alpha1.NewAWSCloudWatchLogSourceLister(l.IndexerFor(&v1alpha1.AWSCloudWatchLogSource{}))
+}
+
 // GetAWSCodeCommitSourceLister returns a Lister for AWSCodeCommitSource objects.
 func (l *Listers) GetAWSCodeCommitSourceLister() listersv1alpha1.AWSCodeCommitSourceLister {
 	return listersv1alpha1.NewAWSCodeCommitSourceLister(l.IndexerFor(&v1alpha1.AWSCodeCommitSource{}))

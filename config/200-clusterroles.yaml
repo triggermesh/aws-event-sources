@@ -51,6 +51,8 @@ rules:
 - apiGroups:
   - sources.triggermesh.io
   resources:
+  - awscloudwatchlogsources
+  - awscloudwatchsources
   - awscodecommitsources
   - awscognitoidentitysources
   - awscognitouserpoolsources
@@ -66,6 +68,8 @@ rules:
 - apiGroups:
   - sources.triggermesh.io
   resources:
+  - awscloudwatchlogsources/status
+  - awscloudwatchsources/status
   - awscodecommitsources/status
   - awscognitoidentitysources/status
   - awscognitouserpoolsources/status
@@ -82,6 +86,8 @@ rules:
 - apiGroups:
   - sources.triggermesh.io
   resources:
+  - awscloudwatchlogsources/finalizers
+  - awscloudwatchsources/finalizers
   - awscodecommitsources/finalizers
   - awscognitoidentitysources/finalizers
   - awscognitouserpoolsources/finalizers
@@ -138,6 +144,8 @@ rules:
 - apiGroups:
   - coordination.k8s.io
   resourceNames:
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscloudwatchlogsource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscloudwatchsource.reconciler.00-of-01
   - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscodecommitsource.reconciler.00-of-01
   - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscognitoidentitysource.reconciler.00-of-01
   - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscognitouserpoolsource.reconciler.00-of-01
@@ -174,6 +182,8 @@ rules:
 - apiGroups:
   - sources.triggermesh.io
   resources:
+  - awscloudwatchlogsources
+  - awscloudwatchsources
   - awscodecommitsources
   - awscognitoidentitysources
   - awscognitouserpoolsources

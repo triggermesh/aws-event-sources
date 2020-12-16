@@ -26,6 +26,8 @@ import (
 
 type SourcesV1alpha1Interface interface {
 	RESTClient() rest.Interface
+	AWSCloudWatchLogSourcesGetter
+	AWSCloudWatchSourcesGetter
 	AWSCodeCommitSourcesGetter
 	AWSCognitoIdentitySourcesGetter
 	AWSCognitoUserPoolSourcesGetter
@@ -39,6 +41,14 @@ type SourcesV1alpha1Interface interface {
 // SourcesV1alpha1Client is used to interact with features provided by the sources.triggermesh.io group.
 type SourcesV1alpha1Client struct {
 	restClient rest.Interface
+}
+
+func (c *SourcesV1alpha1Client) AWSCloudWatchLogSources(namespace string) AWSCloudWatchLogSourceInterface {
+	return newAWSCloudWatchLogSources(c, namespace)
+}
+
+func (c *SourcesV1alpha1Client) AWSCloudWatchSources(namespace string) AWSCloudWatchSourceInterface {
+	return newAWSCloudWatchSources(c, namespace)
 }
 
 func (c *SourcesV1alpha1Client) AWSCodeCommitSources(namespace string) AWSCodeCommitSourceInterface {

@@ -18,6 +18,22 @@ limitations under the License.
 
 package v1alpha1
 
+// AWSCloudWatchLogSourceListerExpansion allows custom methods to be added to
+// AWSCloudWatchLogSourceLister.
+type AWSCloudWatchLogSourceListerExpansion interface{}
+
+// AWSCloudWatchLogSourceNamespaceListerExpansion allows custom methods to be added to
+// AWSCloudWatchLogSourceNamespaceLister.
+type AWSCloudWatchLogSourceNamespaceListerExpansion interface{}
+
+// AWSCloudWatchSourceListerExpansion allows custom methods to be added to
+// AWSCloudWatchSourceLister.
+type AWSCloudWatchSourceListerExpansion interface{}
+
+// AWSCloudWatchSourceNamespaceListerExpansion allows custom methods to be added to
+// AWSCloudWatchSourceNamespaceLister.
+type AWSCloudWatchSourceNamespaceListerExpansion interface{}
+
 // AWSCodeCommitSourceListerExpansion allows custom methods to be added to
 // AWSCodeCommitSourceLister.
 type AWSCodeCommitSourceListerExpansion interface{}

@@ -1,0 +1,275 @@
+/*
+Copyright (c) 2019-2020 TriggerMesh Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package awscloudwatchsource
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"strconv"
+	"sync"
+	"time"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/cloudwatch"
+	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
+	"knative.dev/pkg/logging"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+)
+
+const (
+	metricEventType = "metrics"
+)
+
+// envConfig is a set parameters sourced from the environment for the source's
+// adapter.
+type envConfig struct {
+	pkgadapter.EnvConfig
+
+	AccessKey string `envconfig:"AWS_ACCESS_KEY_ID"`
+	SecretKey string `envconfig:"AWS_SECRET_ACCESS_KEY"`
+	Region    string `envconfig:"AWS_REGION"`
+
+	Query           string `envconfig:"QUERIES" required:"true"`          // JSON based array of name/query pairs
+	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"` // free tier is 5m
+}
+
+// adapter implements the source's adapter.
+type adapter struct {
+	logger *zap.SugaredLogger
+	name   string
+
+	ceClient cloudevents.Client
+	cwClient cloudwatchiface.CloudWatchAPI
+
+	metricQueries   []*cloudwatch.MetricDataQuery
+	pollingInterval time.Duration
+}
+
+// NewEnvConfig returns an accessor for the source's adapter envConfig.
+func NewEnvConfig() pkgadapter.EnvConfigAccessor {
+	return &envConfig{}
+}
+
+// NewAdapter returns a constructor for the source's adapter.
+func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClient cloudevents.Client) pkgadapter.Adapter {
+	var err error
+	logger := logging.FromContext(ctx)
+
+	env := envAcc.(*envConfig)
+
+	awsCfg := aws.NewConfig()
+	awsCfg.WithCredentials(credentials.NewStaticCredentials(env.AccessKey, env.SecretKey, ""))
+	cfg := session.Must(session.NewSession(awsCfg.
+		WithRegion(env.Region).
+		WithMaxRetries(5),
+	))
+
+	interval, err := time.ParseDuration(env.PollingInterval)
+	if err != nil {
+		logger.Panicf("Unable to parse interval duration: %v", zap.Error(err))
+	}
+
+	metricQueries, err := parseQueries(env.Query)
+	if err != nil {
+		logger.Panicf("unable to parse metric queries: %v", zap.Error(err))
+	}
+
+	return &adapter{
+		logger: logger,
+		name:   env.Name,
+
+		cwClient: cloudwatch.New(cfg),
+		ceClient: ceClient,
+
+		pollingInterval: interval,
+		metricQueries:   metricQueries,
+	}
+}
+
+// parseQueries - Take the JSON representation of the query as passed in, and
+// convert it into something useful to aws
+func parseQueries(rawQuery string) ([]*cloudwatch.MetricDataQuery, error) {
+	queries := make([]*cloudwatch.MetricDataQuery, 0)
+	rawQueries := make([]v1alpha1.AWSCloudWatchMetricQueries, 0)
+
+	err := json.Unmarshal([]byte(rawQuery), &rawQueries)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range rawQueries {
+		var q cloudwatch.MetricDataQuery
+
+		if v.Expression != nil {
+			q = cloudwatch.MetricDataQuery{
+				Expression: v.Expression,
+				Id:         &v.Name,
+			}
+		} else if v.Metric != nil {
+			q = cloudwatch.MetricDataQuery{
+				Id:         &v.Name,
+				MetricStat: transformQuery(v.Metric),
+			}
+		}
+
+		queries = append(queries, &q)
+	}
+	return queries, nil
+}
+
+func transformQuery(q *v1alpha1.AWSCloudWatchMetricStat) *cloudwatch.MetricStat {
+	dimensions := make([]*cloudwatch.Dimension, 0)
+
+	for _, v := range q.Metric.Dimensions {
+		dimensions = append(dimensions, &cloudwatch.Dimension{
+			Name:  &v.Name,
+			Value: &v.Value,
+		})
+	}
+
+	ms := cloudwatch.MetricStat{
+		Metric: &cloudwatch.Metric{
+			MetricName: &q.Metric.MetricName,
+			Namespace:  &q.Metric.Namespace,
+			Dimensions: dimensions,
+		},
+		Period: &q.Period,
+		Stat:   &q.Stat,
+	}
+
+	if q.Unit != "" {
+		ms.SetUnit(q.Unit)
+	}
+
+	return &ms
+}
+
+// Start implements adapter.Adapter.
+func (a *adapter) Start(ctx context.Context) error {
+	a.logger.Info("Enabling CloudWatch")
+
+	// Setup polling to retrieve metrics
+	poll := time.NewTicker(a.pollingInterval)
+	metricsCh := make(chan bool)
+	defer poll.Stop()
+	defer close(metricsCh)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Cleanup thread
+	go func() {
+		<-ctx.Done()
+		a.logger.Info("Shutdown signal received. Terminating")
+		metricsCh <- true
+		cancel()
+	}()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	// Primary execution thread. Wake up every pollintInterval, and retrieve the
+	// previous metrics
+	go func() {
+		for {
+			select {
+			case <-metricsCh:
+				wg.Done()
+				return
+			case t := <-poll.C:
+				go a.CollectMetrics(t)
+			}
+		}
+	}()
+
+	wg.Wait()
+	return nil
+}
+
+func (a *adapter) CollectMetrics(currentTime time.Time) {
+	a.logger.Debug("Firing metrics")
+	startInterval := currentTime.Add(-a.pollingInterval)
+
+	metricInput := cloudwatch.GetMetricDataInput{
+		EndTime:           &currentTime,
+		StartTime:         &startInterval,
+		MetricDataQueries: a.metricQueries,
+	}
+
+	err := a.cwClient.GetMetricDataPages(&metricInput, func(output *cloudwatch.GetMetricDataOutput, b bool) bool {
+		err := a.SendMetricEvent(output, a.name)
+		if err != nil {
+			a.logger.Errorf("error sending metrics: %v", zap.Error(err))
+			return false
+		}
+
+		// Ensure that we indicate if there's more work to do
+		return !b
+	})
+	if err != nil {
+		a.logger.Errorf("error retrieving metrics: %v", zap.Error(err))
+		return
+	}
+}
+
+func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput, name string) error {
+	id := uuid.New() // Send out multiple cloudevents depending on whether the metric output has
+	// multiple messages or messages and metric data, and insure the CloudEvent
+	// ID is common.
+
+	for i, v := range metricOutput.Messages {
+		event := cloudevents.NewEvent(cloudevents.VersionV1)
+		event.SetType(v1alpha1.AWSEventType(metricEventType, "message"))
+		event.SetSource(name + "-" + strconv.Itoa(i))
+		event.SetID(id.String())
+		err := event.SetData(cloudevents.ApplicationJSON, v)
+
+		if err != nil {
+			return fmt.Errorf("failed to set event data: %w", err)
+		}
+
+		if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
+			return result
+		}
+	}
+
+	for _, v := range metricOutput.MetricDataResults {
+		event := cloudevents.NewEvent(cloudevents.VersionV1)
+		event.SetType(v1alpha1.AWSEventType(metricEventType, "metric"))
+		event.SetSource(*v.Id)
+		event.SetID(id.String())
+		err := event.SetData(cloudevents.ApplicationJSON, v)
+
+		if err != nil {
+			return fmt.Errorf("failed to set event data: %w", err)
+		}
+
+		if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
+			return result
+		}
+	}
+
+	return nil
+}

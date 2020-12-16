@@ -23,6 +23,12 @@ const GroupName = "sources.triggermesh.io"
 
 var (
 	// AWSCodeCommitSourceResource respresents an event source for AWS CodeCommit.
+	AWSCloudWatchSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awscloudwatchsources",
+	}
+
+	// AWSCodeCommitSourceResource respresents an event source for AWS CodeCommit.
 	AWSCodeCommitSourceResource = schema.GroupResource{
 		Group:    GroupName,
 		Resource: "awscodecommitsources",
