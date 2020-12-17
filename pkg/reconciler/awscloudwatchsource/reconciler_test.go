@@ -19,6 +19,7 @@ package awscloudwatchsource
 import (
 	"context"
 	"testing"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,6 +29,7 @@ import (
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/resolver"
 
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	fakeinjectionclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client/fake"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscloudwatchsource"
@@ -73,12 +75,12 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 
 // newEventSource returns a populated source object.
 func newEventSource() *v1alpha1.AWSCloudWatchSource {
-	pollingFrequency := "5m"
+	pollingFrequency := apis.Duration(5 * time.Minute)
 
 	src := &v1alpha1.AWSCloudWatchSource{
 		Spec: v1alpha1.AWSCloudWatchSourceSpec{
 			Region: "us-west-2",
-			MetricQueries: &[]v1alpha1.AWSCloudWatchMetricQuery{{
+			MetricQueries: []v1alpha1.AWSCloudWatchMetricQuery{{
 				Name:       "testquery",
 				Expression: nil,
 				Metric: &v1alpha1.AWSCloudWatchMetricStat{
