@@ -19,7 +19,6 @@ package awscloudwatchlogsource
 import (
 	"context"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -131,38 +130,19 @@ func (a *adapter) Start(ctx context.Context) error {
 
 	// Setup polling to retrieve metrics
 	poll := time.NewTicker(a.pollingInterval)
-	metricsCh := make(chan bool)
 	defer poll.Stop()
-	defer close(metricsCh)
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	// Wake up every pollingInterval, and retrieve the logs
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
 
-	// Cleanup thread
-	go func() {
-		<-ctx.Done()
-		a.logger.Info("Shutdown signal received. Terminating")
-		metricsCh <- true
-		cancel()
-	}()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	// Primary execution thread. Wake up every pollintInterval, and retrieve the logs
-	go func() {
-		for {
-			select {
-			case <-metricsCh:
-				wg.Done()
-				return
-			case t := <-poll.C:
-				go a.CollectLogs(t)
-			}
+		case t := <-poll.C:
+			a.CollectLogs(t)
 		}
-	}()
+	}
 
-	wg.Wait()
 	return nil
 }
 
