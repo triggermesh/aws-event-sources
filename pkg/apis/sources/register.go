@@ -28,6 +28,12 @@ var (
 		Resource: "awscloudwatchsources",
 	}
 
+	// AWSCloudWatchLogSourceResource respresents an event source for AWS CloudWatch Logs.
+	AWSCloudWatchLogSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awscloudwatchlogsources",
+	}
+
 	// AWSCodeCommitSourceResource respresents an event source for AWS CodeCommit.
 	AWSCodeCommitSourceResource = schema.GroupResource{
 		Group:    GroupName,
