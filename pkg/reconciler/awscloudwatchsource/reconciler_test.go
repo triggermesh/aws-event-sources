@@ -78,7 +78,7 @@ func newEventSource() *v1alpha1.AWSCloudWatchSource {
 	src := &v1alpha1.AWSCloudWatchSource{
 		Spec: v1alpha1.AWSCloudWatchSourceSpec{
 			Region: "us-west-2",
-			MetricQueries: &[]v1alpha1.AWSCloudWatchMetricQueries{{
+			MetricQueries: &[]v1alpha1.AWSCloudWatchMetricQuery{{
 				Name:       "testquery",
 				Expression: nil,
 				Metric: &v1alpha1.AWSCloudWatchMetricStat{

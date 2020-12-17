@@ -105,7 +105,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 // convert it into something useful to aws
 func parseQueries(rawQuery string) ([]*cloudwatch.MetricDataQuery, error) {
 	queries := make([]*cloudwatch.MetricDataQuery, 0)
-	rawQueries := make([]v1alpha1.AWSCloudWatchMetricQueries, 0)
+	rawQueries := make([]v1alpha1.AWSCloudWatchMetricQuery, 0)
 
 	err := json.Unmarshal([]byte(rawQuery), &rawQueries)
 	if err != nil {
