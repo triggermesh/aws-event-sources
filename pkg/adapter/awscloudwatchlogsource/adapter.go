@@ -75,10 +75,10 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	env := envAcc.(*envConfig)
 
-	arn := common.MustParseARN(env.ARN)
+	a := common.MustParseARN(env.ARN)
 
 	cfg := session.Must(session.NewSession(aws.NewConfig().
-		WithRegion(arn.Region),
+		WithRegion(a.Region),
 	))
 
 	interval, err := time.ParseDuration(env.PollingInterval)
@@ -86,7 +86,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		logger.Panicf("Unable to parse interval duration: %v", zap.Error(err))
 	}
 
-	logGroup, logStream := ExtractLogDetails(arn.Resource)
+	logGroup, logStream := ExtractLogDetails(a.Resource)
 
 	return &adapter{
 		logger: logger,
@@ -94,7 +94,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		cwLogsClient: cloudwatchlogs.New(cfg),
 		ceClient:     ceClient,
 
-		arn: arn,
+		arn: a,
 
 		pollingInterval: interval,
 		logGroup:        logGroup,
