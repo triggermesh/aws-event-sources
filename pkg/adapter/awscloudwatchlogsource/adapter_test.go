@@ -20,14 +20,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
 	"github.com/stretchr/testify/assert"
+
 	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
 	loggingtesting "knative.dev/pkg/logging/testing"
-
-	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
+
+const tLogGroupArnResource = "2020/12/12/[$LATEST]e70494fac3ba43c7b859fc722b061d33"
 
 type mockedCloudWatchLogsClient struct {
 	cloudwatchlogsiface.CloudWatchLogsAPI
@@ -102,7 +105,7 @@ func TestAdapterCollectLogs(t *testing.T) {
 	startTime := now.Add(-time.Minute).Unix() * 1000
 	ceClient := adaptertest.NewTestClient()
 	duration, _ := time.ParseDuration("2m")
-	logStreamArn := "arn:aws:logs:us-west-2:043455440429:log-group:/aws/lambda/lambdadumper:log-stream:2020/12/15/[$LATEST]6b76c61acb68425f8e2f08156bc44e27"
+	logStreamArn := makeARN(tLogGroupArnResource)
 	logStreamName := "2020/12/15/[$LATEST]6b76c61acb68425f8e2f08156bc44e27"
 	testString := "hello world"
 
@@ -113,12 +116,13 @@ func TestAdapterCollectLogs(t *testing.T) {
 	}
 
 	a := &adapter{
-		logger:   loggingtesting.TestLogger(t),
+		logger: loggingtesting.TestLogger(t),
+
 		ceClient: ceClient,
 		cwLogsClient: mockedCloudWatchLogsClient{
 			StreamsResp: cloudwatchlogs.DescribeLogStreamsOutput{
 				LogStreams: []*cloudwatchlogs.LogStream{{
-					Arn:                 &logStreamArn,
+					Arn:                 aws.String(logStreamArn.String()),
 					CreationTime:        nil,
 					FirstEventTimestamp: &startTime,
 					LastEventTimestamp:  &startTime,
@@ -134,20 +138,33 @@ func TestAdapterCollectLogs(t *testing.T) {
 				NextForwardToken:  nil,
 			},
 		},
+
+		arn: logStreamArn,
+
 		pollingInterval: duration,
-		name:            "testlog",
 	}
 
 	a.CollectLogs(now)
 	events := ceClient.Sent()
 	assert.Len(t, events, 1)
 
-	assert.EqualValues(t, events[0].Type(), v1alpha1.AWSEventType(logEventType, "log"))
-	assert.EqualValues(t, events[0].Source(), a.name+a.logGroup+"/"+logStreamName+"/1")
+	assert.EqualValues(t, events[0].Type(), "com.amazon.logs.log")
+	assert.EqualValues(t, events[0].Source(), logStreamArn.String())
 
 	var logRecord []cloudwatchlogs.OutputLogEvent
 	err := events[0].DataAs(&logRecord)
 	assert.NoError(t, err)
 	assert.Len(t, logRecord, 1)
 	assert.EqualValues(t, outputEvent, logRecord[0])
+}
+
+// makeARN returns a fake CloudWatch Log Group ARN for the given resource.
+func makeARN(resource string) arn.ARN {
+	return arn.ARN{
+		Partition: "aws",
+		Service:   "logs",
+		Region:    "us-fake-0",
+		AccountID: "123456789012",
+		Resource:  resource,
+	}
 }

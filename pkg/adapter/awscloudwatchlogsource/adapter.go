@@ -55,16 +55,15 @@ type envConfig struct {
 // adapter implements the source's adapter.
 type adapter struct {
 	logger *zap.SugaredLogger
-	name   string
 
 	ceClient     cloudevents.Client
 	cwLogsClient cloudwatchlogsiface.CloudWatchLogsAPI
 
+	arn arn.ARN
+
 	pollingInterval time.Duration
 	logGroup        string
 	logStream       string
-
-	arn arn.ARN
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -96,7 +95,6 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	return &adapter{
 		logger: logger,
-		name:   env.Name,
 
 		pollingInterval: interval,
 		logGroup:        logGroup,

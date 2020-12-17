@@ -56,7 +56,6 @@ type envConfig struct {
 // adapter implements the source's adapter.
 type adapter struct {
 	logger      *zap.SugaredLogger
-	name        string
 	eventsource string
 
 	ceClient cloudevents.Client
@@ -99,7 +98,6 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	return &adapter{
 		logger:      logger,
-		name:        env.Name,
 		eventsource: eventsource,
 
 		cwClient: cloudwatch.New(cfg),
@@ -221,7 +219,7 @@ func (a *adapter) CollectMetrics(currentTime time.Time) {
 	}
 
 	err := a.cwClient.GetMetricDataPages(&metricInput, func(output *cloudwatch.GetMetricDataOutput, b bool) bool {
-		err := a.SendMetricEvent(output, a.name)
+		err := a.SendMetricEvent(output)
 		if err != nil {
 			a.logger.Errorf("error sending metrics: %v", zap.Error(err))
 			return false
@@ -236,7 +234,7 @@ func (a *adapter) CollectMetrics(currentTime time.Time) {
 	}
 }
 
-func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput, name string) error {
+func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput) error {
 	id := uuid.New() // Send out multiple cloudevents depending on whether the metric output has
 	// multiple messages or messages and metric data, and insure the CloudEvent
 	// ID is common.
