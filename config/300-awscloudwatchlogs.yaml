@@ -23,7 +23,7 @@ metadata:
   annotations:
     registry.knative.dev/eventTypes: |
       [
-        { "type": "com.amazon.cloudwatchlogs.log" }
+        { "type": "com.amazon.logs.log" }
       ]
 spec:
   group: sources.triggermesh.io

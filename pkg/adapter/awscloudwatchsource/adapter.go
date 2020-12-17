@@ -20,26 +20,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/google/uuid"
-	"go.uber.org/zap"
+
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-)
-
-const (
-	metricEventType = "metrics"
 )
 
 // envConfig is a set parameters sourced from the environment for the source's
@@ -57,8 +55,9 @@ type envConfig struct {
 
 // adapter implements the source's adapter.
 type adapter struct {
-	logger *zap.SugaredLogger
-	name   string
+	logger      *zap.SugaredLogger
+	name        string
+	eventsource string
 
 	ceClient cloudevents.Client
 	cwClient cloudwatchiface.CloudWatchAPI
@@ -76,6 +75,8 @@ func NewEnvConfig() pkgadapter.EnvConfigAccessor {
 func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClient cloudevents.Client) pkgadapter.Adapter {
 	var err error
 	logger := logging.FromContext(ctx)
+
+	eventsource := v1alpha1.AWSCloudWatchSourceName(envAcc.GetNamespace(), envAcc.GetName())
 
 	env := envAcc.(*envConfig)
 
@@ -97,8 +98,9 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	}
 
 	return &adapter{
-		logger: logger,
-		name:   env.Name,
+		logger:      logger,
+		name:        env.Name,
+		eventsource: eventsource,
 
 		cwClient: cloudwatch.New(cfg),
 		ceClient: ceClient,
@@ -239,10 +241,10 @@ func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput, 
 	// multiple messages or messages and metric data, and insure the CloudEvent
 	// ID is common.
 
-	for i, v := range metricOutput.Messages {
+	for _, v := range metricOutput.Messages {
 		event := cloudevents.NewEvent(cloudevents.VersionV1)
-		event.SetType(v1alpha1.AWSEventType(metricEventType, "message"))
-		event.SetSource(name + "-" + strconv.Itoa(i))
+		event.SetType(v1alpha1.AWSEventType(v1alpha1.ServiceCloudWatch, v1alpha1.AWSCloudWatchMessageEventType))
+		event.SetSource(a.eventsource)
 		event.SetID(id.String())
 		err := event.SetData(cloudevents.ApplicationJSON, v)
 
@@ -257,8 +259,8 @@ func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput, 
 
 	for _, v := range metricOutput.MetricDataResults {
 		event := cloudevents.NewEvent(cloudevents.VersionV1)
-		event.SetType(v1alpha1.AWSEventType(metricEventType, "metric"))
-		event.SetSource(*v.Id)
+		event.SetType(v1alpha1.AWSEventType(v1alpha1.ServiceCloudWatch, v1alpha1.AWSCloudWatchMetricEventType))
+		event.SetSource(a.eventsource)
 		event.SetID(id.String())
 		err := event.SetData(cloudevents.ApplicationJSON, v)
 

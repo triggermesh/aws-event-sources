@@ -18,10 +18,14 @@ package awscloudwatchlogsource
 
 import (
 	"context"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
@@ -29,18 +33,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/google/uuid"
-	"go.uber.org/zap"
+
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
 
 	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-)
-
-const (
-	logEventType = "logs"
 )
 
 // envConfig is a set parameters sourced from the environment for the source's
@@ -202,8 +200,8 @@ func (a *adapter) CollectLogs(currentTime time.Time) {
 			page := 1 // Indicate number of pages of events
 			err := a.cwLogsClient.GetLogEventsPages(logRequest, func(logOutput *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
 				event := cloudevents.NewEvent(cloudevents.VersionV1)
-				event.SetType(v1alpha1.AWSEventType(logEventType, "log"))
-				event.SetSource(a.name + a.logGroup + "/" + *logRequest.LogStreamName + "/" + strconv.Itoa(page))
+				event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSCloudWatchLogsGenericEventType))
+				event.SetSource(a.arn.String())
 				event.SetID(id.String())
 
 				// If there are no entries, then skip sending events
