@@ -53,7 +53,7 @@ type AWSCloudWatchLogSourceSpec struct {
 	ARN apis.ARN `json:"arn"`
 	// PollingFrequency in a duration format for how often to pull metrics data from. Default is 5m
 	// +optional
-	PollingFrequency *string `json:"pollingFrequency,omitempty"`
+	PollingFrequency *apis.Duration `json:"pollingFrequency,omitempty"`
 
 	// Credentials to interact with the AWS CloudWatch Logs API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

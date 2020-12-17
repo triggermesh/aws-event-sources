@@ -21,6 +21,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	apis "github.com/triggermesh/aws-event-sources/pkg/apis"
 	v1 "k8s.io/api/core/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
@@ -93,7 +94,7 @@ func (in *AWSCloudWatchLogSourceSpec) DeepCopyInto(out *AWSCloudWatchLogSourceSp
 	out.ARN = in.ARN
 	if in.PollingFrequency != nil {
 		in, out := &in.PollingFrequency, &out.PollingFrequency
-		*out = new(string)
+		*out = new(apis.Duration)
 		**out = **in
 	}
 	in.Credentials.DeepCopyInto(&out.Credentials)
@@ -268,7 +269,7 @@ func (in *AWSCloudWatchSourceSpec) DeepCopyInto(out *AWSCloudWatchSourceSpec) {
 	}
 	if in.PollingFrequency != nil {
 		in, out := &in.PollingFrequency, &out.PollingFrequency
-		*out = new(string)
+		*out = new(apis.Duration)
 		**out = **in
 	}
 	in.Credentials.DeepCopyInto(&out.Credentials)

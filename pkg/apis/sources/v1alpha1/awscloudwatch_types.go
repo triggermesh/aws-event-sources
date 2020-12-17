@@ -21,6 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // +genclient
@@ -53,7 +55,7 @@ type AWSCloudWatchSourceSpec struct {
 	MetricQueries *[]AWSCloudWatchMetricQueries `json:"metricQueries,omitempty"`
 	// PollingFrequency in a duration format for how often to pull metrics data from. Default is 5m
 	// +optional
-	PollingFrequency *string `json:"pollingFrequency,omitempty"`
+	PollingFrequency *apis.Duration `json:"pollingFrequency,omitempty"`
 
 	// Credentials to interact with the AWS CloudWatch API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
