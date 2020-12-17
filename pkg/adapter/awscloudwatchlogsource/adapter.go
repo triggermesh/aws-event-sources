@@ -18,20 +18,20 @@ package awscloudwatchlogsource
 
 import (
 	"context"
-	"strconv"
 	"strings"
-	"sync"
 	"time"
+
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/google/uuid"
-	"go.uber.org/zap"
+
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
 
@@ -39,34 +39,28 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
-const (
-	logEventType = "logs"
-)
-
 // envConfig is a set parameters sourced from the environment for the source's
 // adapter.
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	ARN             string `envconfig:"ARN"`
-	AccessKey       string `envconfig:"AWS_ACCESS_KEY_ID"`
-	SecretKey       string `envconfig:"AWS_SECRET_ACCESS_KEY"`
+	ARN string `envconfig:"ARN"`
+
 	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"` // free tier is 5m
 }
 
 // adapter implements the source's adapter.
 type adapter struct {
 	logger *zap.SugaredLogger
-	name   string
 
-	ceClient     cloudevents.Client
 	cwLogsClient cloudwatchlogsiface.CloudWatchLogsAPI
+	ceClient     cloudevents.Client
+
+	arn arn.ARN
 
 	pollingInterval time.Duration
 	logGroup        string
 	logStream       string
-
-	arn arn.ARN
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -80,13 +74,11 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	logger := logging.FromContext(ctx)
 
 	env := envAcc.(*envConfig)
+
 	a := common.MustParseARN(env.ARN)
 
-	awsCfg := aws.NewConfig()
-	awsCfg.WithCredentials(credentials.NewStaticCredentials(env.AccessKey, env.SecretKey, ""))
-	cfg := session.Must(session.NewSession(awsCfg.
-		WithRegion(a.Region).
-		WithMaxRetries(5),
+	cfg := session.Must(session.NewSession(aws.NewConfig().
+		WithRegion(a.Region),
 	))
 
 	interval, err := time.ParseDuration(env.PollingInterval)
@@ -98,15 +90,15 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	return &adapter{
 		logger: logger,
-		name:   env.Name,
+
+		cwLogsClient: cloudwatchlogs.New(cfg),
+		ceClient:     ceClient,
+
+		arn: a,
 
 		pollingInterval: interval,
 		logGroup:        logGroup,
 		logStream:       logStream,
-
-		cwLogsClient: cloudwatchlogs.New(cfg),
-		ceClient:     ceClient,
-		arn:          a,
 	}
 }
 
@@ -135,38 +127,19 @@ func (a *adapter) Start(ctx context.Context) error {
 
 	// Setup polling to retrieve metrics
 	poll := time.NewTicker(a.pollingInterval)
-	metricsCh := make(chan bool)
 	defer poll.Stop()
-	defer close(metricsCh)
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	// Wake up every pollingInterval, and retrieve the logs
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
 
-	// Cleanup thread
-	go func() {
-		<-ctx.Done()
-		a.logger.Info("Shutdown signal received. Terminating")
-		metricsCh <- true
-		cancel()
-	}()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	// Primary execution thread. Wake up every pollintInterval, and retrieve the logs
-	go func() {
-		for {
-			select {
-			case <-metricsCh:
-				wg.Done()
-				return
-			case t := <-poll.C:
-				go a.CollectLogs(t)
-			}
+		case t := <-poll.C:
+			a.CollectLogs(t)
 		}
-	}()
+	}
 
-	wg.Wait()
 	return nil
 }
 
@@ -202,8 +175,8 @@ func (a *adapter) CollectLogs(currentTime time.Time) {
 			page := 1 // Indicate number of pages of events
 			err := a.cwLogsClient.GetLogEventsPages(logRequest, func(logOutput *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
 				event := cloudevents.NewEvent(cloudevents.VersionV1)
-				event.SetType(v1alpha1.AWSEventType(logEventType, "log"))
-				event.SetSource(a.name + a.logGroup + "/" + *logRequest.LogStreamName + "/" + strconv.Itoa(page))
+				event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSCloudWatchLogsGenericEventType))
+				event.SetSource(a.arn.String())
 				event.SetID(id.String())
 
 				// If there are no entries, then skip sending events

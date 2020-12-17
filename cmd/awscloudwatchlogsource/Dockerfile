@@ -24,7 +24,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN BIN_OUTPUT_DIR=/bin make awscloudlogwatch && \
+RUN BIN_OUTPUT_DIR=/bin make awscloudwatchlogsource && \
     mkdir /kodata && \
     mv .git/* /kodata/ && \
     rm -rf ${GOPATH} && \

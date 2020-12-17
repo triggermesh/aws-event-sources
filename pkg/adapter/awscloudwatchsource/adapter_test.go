@@ -20,13 +20,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
 	"github.com/stretchr/testify/assert"
+
 	adaptertest "knative.dev/eventing/pkg/adapter/v2/test"
 	loggingtesting "knative.dev/pkg/logging/testing"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+)
+
+const (
+	tNs   = "test-namespace"
+	tName = "test-source"
 )
 
 type mockCloudWatchClient struct {
@@ -44,30 +51,32 @@ func (m mockCloudWatchClient) GetMetricDataPages(input *cloudwatch.GetMetricData
 
 // TestParseQueries Given a query string, ensure that
 func TestParseQueries(t *testing.T) {
-	queryStr := "[{\"name\":\"testquery\",\"metric\":{\"period\":60,\"stat\":\"Sum\",\"metric\":{\"dimensions\":[{\"name\":\"FunctionName\",\"value\":\"makemoney\"}],\"metricName\":\"Duration\",\"namespace\":\"AWS/Lambda\"}}}]"
+	const (
+		queryStr = "[{\"name\":\"testquery\",\"metric\":{\"period\":60,\"stat\":\"Sum\",\"metric\":{\"dimensions\":[{\"name\":\"FunctionName\",\"value\":\"makemoney\"}],\"metricName\":\"Duration\",\"namespace\":\"AWS/Lambda\"}}}]"
 
-	name := "testquery"
-	period := int64(60)
-	stat := "Sum"
-	metricName := "Duration"
-	metricNamespace := "AWS/Lambda"
-	dimensionName := "FunctionName"
-	dimensionValue := "makemoney"
+		name            = "testquery"
+		period          = int64(60)
+		stat            = "Sum"
+		metricName      = "Duration"
+		metricNamespace = "AWS/Lambda"
+		dimensionName   = "FunctionName"
+		dimensionValue  = "makemoney"
+	)
 
 	metricQuery := cloudwatch.MetricDataQuery{
 		Expression: nil,
-		Id:         &name,
+		Id:         aws.String(name),
 		MetricStat: &cloudwatch.MetricStat{
 			Metric: &cloudwatch.Metric{
 				Dimensions: []*cloudwatch.Dimension{{
-					Name:  &dimensionName,
-					Value: &dimensionValue,
+					Name:  aws.String(dimensionName),
+					Value: aws.String(dimensionValue),
 				}},
-				MetricName: &metricName,
-				Namespace:  &metricNamespace,
+				MetricName: aws.String(metricName),
+				Namespace:  aws.String(metricNamespace),
 			},
-			Period: &period,
-			Stat:   &stat,
+			Period: aws.Int64(period),
+			Stat:   aws.String(stat),
 		},
 	}
 
@@ -81,65 +90,74 @@ func TestParseQueries(t *testing.T) {
 func TestCollectMetrics(t *testing.T) {
 	ceClient := adaptertest.NewTestClient()
 
-	metricId := "testmetrics"
-	metricNamespace := "AWS/Lambda"
-	metricLabel := "Duration"
-	metricStatusCode := "Complete"
-	ts, _ := time.Parse(time.RFC3339, time.Now().String())
-	val := float64(37.566818845509246)
-	pollingInterval, _ := time.ParseDuration("1m")
+	const (
+		metricId         = "testmetrics"
+		metricNamespace  = "AWS/Lambda"
+		metricLabel      = "Duration"
+		metricStatusCode = "Complete"
+		val              = float64(37.566818845509246)
+	)
 
-	dimensionName := "FunctionName"
-	dimensionValue := "makemoney"
-	period := int64(60)
-	stat := "Sum"
+	ts := time.Unix(0, 0)
+
+	const (
+		dimensionName  = "FunctionName"
+		dimensionValue = "makemoney"
+		period         = int64(60)
+		stat           = "Sum"
+	)
+
+	const pollingInterval = time.Minute
 
 	a := &adapter{
-		logger:          loggingtesting.TestLogger(t),
-		pollingInterval: pollingInterval,
-		ceClient:        ceClient,
+		logger:      loggingtesting.TestLogger(t),
+		eventsource: v1alpha1.AWSCloudWatchSourceName(tNs, tName),
+
+		ceClient: ceClient,
 		metricQueries: []*cloudwatch.MetricDataQuery{{
 			Expression: nil,
-			Id:         &metricId,
+			Id:         aws.String(metricId),
 			MetricStat: &cloudwatch.MetricStat{
 				Metric: &cloudwatch.Metric{
 					Dimensions: []*cloudwatch.Dimension{{
-						Name:  &dimensionName,
-						Value: &dimensionValue,
+						Name:  aws.String(dimensionName),
+						Value: aws.String(dimensionValue),
 					}},
-					MetricName: &metricLabel,
-					Namespace:  &metricNamespace,
+					MetricName: aws.String(metricLabel),
+					Namespace:  aws.String(metricNamespace),
 				},
-				Period: &period,
-				Stat:   &stat,
+				Period: aws.Int64(period),
+				Stat:   aws.String(stat),
 			},
 		}},
 		cwClient: mockCloudWatchClient{
 			Resp: cloudwatch.GetMetricDataOutput{
 				Messages: nil,
 				MetricDataResults: []*cloudwatch.MetricDataResult{{
-					Id:         &metricId,
-					Label:      &metricLabel,
+					Id:         aws.String(metricId),
+					Label:      aws.String(metricLabel),
 					Messages:   nil,
-					StatusCode: &metricStatusCode,
+					StatusCode: aws.String(metricStatusCode),
 					Timestamps: []*time.Time{&ts},
-					Values:     []*float64{&val},
+					Values:     []*float64{aws.Float64(val)},
 				}},
 				NextToken: nil,
 			},
 			err: nil,
 		},
+
+		pollingInterval: pollingInterval,
 	}
 
 	metricOutput := cloudwatch.GetMetricDataOutput{
 		Messages: nil,
 		MetricDataResults: []*cloudwatch.MetricDataResult{{
-			Id:         &metricId,
-			Label:      &metricLabel,
+			Id:         aws.String(metricId),
+			Label:      aws.String(metricLabel),
 			Messages:   nil,
-			StatusCode: &metricStatusCode,
+			StatusCode: aws.String(metricStatusCode),
 			Timestamps: []*time.Time{&ts},
-			Values:     []*float64{&val},
+			Values:     []*float64{aws.Float64(val)},
 		}},
 		NextToken: nil,
 	}
@@ -149,8 +167,8 @@ func TestCollectMetrics(t *testing.T) {
 	events := ceClient.Sent()
 	assert.Len(t, events, 1)
 
-	assert.EqualValues(t, events[0].Type(), v1alpha1.AWSEventType(metricEventType, "metric"))
-	assert.EqualValues(t, events[0].Source(), "testmetrics")
+	assert.EqualValues(t, events[0].Type(), "com.amazon.cloudwatch.metrics.metric")
+	assert.EqualValues(t, events[0].Source(), "io.triggermesh.awscloudwatchsource.test-namespace.test-source")
 
 	var metricRecord cloudwatch.MetricDataResult
 	err := events[0].DataAs(&metricRecord)
@@ -163,36 +181,40 @@ func TestSendMetricEvent(t *testing.T) {
 	ceClient := adaptertest.NewTestClient()
 
 	a := &adapter{
-		logger:   loggingtesting.TestLogger(t),
-		ceClient: ceClient,
+		logger:      loggingtesting.TestLogger(t),
+		eventsource: v1alpha1.AWSCloudWatchSourceName(tNs, tName),
+		ceClient:    ceClient,
 	}
 
-	metricId := "testmetrics"
-	metricLabel := "Duration"
-	metricStatusCode := "Complete"
-	ts, _ := time.Parse(time.RFC3339, time.Now().String())
-	val := float64(37.566818845509246) // must keep this cast to ensure proper [de]serialization
+	const (
+		metricId         = "testmetrics"
+		metricLabel      = "Duration"
+		metricStatusCode = "Complete"
+		val              = float64(37.566818845509246) // must keep this cast to ensure proper [de]serialization
+	)
+
+	ts := time.Unix(0, 0)
 
 	metricOutput := cloudwatch.GetMetricDataOutput{
 		Messages: nil,
 		MetricDataResults: []*cloudwatch.MetricDataResult{{
-			Id:         &metricId,
-			Label:      &metricLabel,
+			Id:         aws.String(metricId),
+			Label:      aws.String(metricLabel),
 			Messages:   nil,
-			StatusCode: &metricStatusCode,
+			StatusCode: aws.String(metricStatusCode),
 			Timestamps: []*time.Time{&ts},
-			Values:     []*float64{&val},
+			Values:     []*float64{aws.Float64(val)},
 		}},
 		NextToken: nil,
 	}
 
-	err := a.SendMetricEvent(&metricOutput, "testname")
+	err := a.SendMetricEvent(&metricOutput)
 	assert.NoError(t, err)
 	events := ceClient.Sent()
 	assert.Len(t, events, 1)
 
-	assert.EqualValues(t, events[0].Type(), v1alpha1.AWSEventType(metricEventType, "metric"))
-	assert.EqualValues(t, events[0].Source(), "testmetrics")
+	assert.EqualValues(t, events[0].Type(), "com.amazon.cloudwatch.metrics.metric")
+	assert.EqualValues(t, events[0].Source(), "io.triggermesh.awscloudwatchsource.test-namespace.test-source")
 
 	var metricRecord cloudwatch.MetricDataResult
 	err = events[0].DataAs(&metricRecord)
@@ -205,8 +227,9 @@ func TestSendMessageEvent(t *testing.T) {
 	ceClient := adaptertest.NewTestClient()
 
 	a := &adapter{
-		logger:   loggingtesting.TestLogger(t),
-		ceClient: ceClient,
+		logger:      loggingtesting.TestLogger(t),
+		eventsource: v1alpha1.AWSCloudWatchSourceName(tNs, tName),
+		ceClient:    ceClient,
 	}
 
 	msgCode := "Success"
@@ -220,13 +243,13 @@ func TestSendMessageEvent(t *testing.T) {
 		NextToken: nil,
 	}
 
-	err := a.SendMetricEvent(&metricOutput, "testname")
+	err := a.SendMetricEvent(&metricOutput)
 	assert.NoError(t, err)
 	events := ceClient.Sent()
 	assert.Len(t, events, 1)
 
-	assert.EqualValues(t, events[0].Type(), v1alpha1.AWSEventType(metricEventType, "message"))
-	assert.EqualValues(t, events[0].Source(), "testname-0")
+	assert.EqualValues(t, events[0].Type(), "com.amazon.cloudwatch.metrics.message")
+	assert.EqualValues(t, events[0].Source(), "io.triggermesh.awscloudwatchsource.test-namespace.test-source")
 
 	var metricRecord cloudwatch.MessageData
 	err = events[0].DataAs(&metricRecord)

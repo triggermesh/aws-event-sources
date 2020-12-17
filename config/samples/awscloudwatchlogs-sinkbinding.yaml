@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Sample SinkBinding for the AWS CloudWatch event source.
+# Sample SinkBinding for the AWS CloudWatch Logs event source.
 
 apiVersion: sources.knative.dev/v1alpha2
 kind: SinkBinding
 metadata:
-  name: &srcname awscloudwatch-source
+  name: &srcname awscloudwatchlogs-source
 spec:
   subject:
     apiVersion: apps/v1
@@ -49,19 +49,16 @@ spec:
     spec:
       containers:
       - name: source
-        image: gcr.io/triggermesh/awscloudwatchsource:latest
+        image: gcr.io/triggermesh/awscloudwatchlogssource:latest
 
         env:
 
-        # Region to instrument metrics
-        - name: AWS_REGION
-          value: us-west-2
+        # Log Group
+        - name: ARN
+          value: 'arn:aws:logs:us-west-2:123456789012:log-group:/aws/lambda/lambdadumper:*'
 
         - name: POLLING_INTERVAL
           value: 5m
-
-        - name: QUERIES
-          value: '[{"name":"testmetrics","metric":{"period":60,"stat":"p90","metric":{"dimensions":[{"name":"FunctionName","value":"lambdadumper"}],"metricName":"Duration","namespace":"AWS/Lambda"}}}]'
 
         # AWS credentials
         - name: AWS_ACCESS_KEY_ID
@@ -88,6 +85,6 @@ spec:
           value: |
             {
               "domain": "triggermesh.io/sources",
-              "component": "awscloudwatchsource",
+              "component": "awscloudwatchlogssource",
               "configMap": {}
             }

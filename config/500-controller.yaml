@@ -55,10 +55,10 @@ spec:
         - name: METRICS_DOMAIN
           value: triggermesh.io/sources
         # Source adapters
-        - name: AWSCLOUDWATCHLOGSOURCE_IMAGE
-          value: ko://github.com/triggermesh/aws-event-sources/cmd/awscloudwatchlogsource
         - name: AWSCLOUDWATCHSOURCE_IMAGE
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awscloudwatchsource
+        - name: AWSCLOUDWATCHLOGSOURCE_IMAGE
+          value: ko://github.com/triggermesh/aws-event-sources/cmd/awscloudwatchlogsource
         - name: AWSCODECOMMITSOURCE_IMAGE
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awscodecommitsource
         - name: AWSCOGNITOIDENTITYSOURCE_IMAGE

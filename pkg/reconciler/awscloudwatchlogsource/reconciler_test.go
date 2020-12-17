@@ -19,6 +19,7 @@ package awscloudwatchlogsource
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 
@@ -31,6 +32,7 @@ import (
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/resolver"
 
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	fakeinjectionclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client/fake"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscloudwatchlogsource"
@@ -76,7 +78,7 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 
 // newEventSource returns a populated source object.
 func newEventSource() *v1alpha1.AWSCloudWatchLogSource {
-	pollingFrequency := "5m"
+	pollingFrequency := apis.Duration(5 * time.Minute)
 
 	src := &v1alpha1.AWSCloudWatchLogSource{
 		Spec: v1alpha1.AWSCloudWatchLogSourceSpec{

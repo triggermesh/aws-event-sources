@@ -17,6 +17,8 @@ limitations under the License.
 package awscloudwatchlogsource
 
 import (
+	"time"
+
 	appsv1 "k8s.io/api/apps/v1"
 	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
@@ -27,15 +29,15 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/resource"
 )
 
-const (
-	envPollingInterval = "POLLING_INTERVAL"
-)
+const envPollingInterval = "POLLING_INTERVAL"
+
+const defaultPollingInterval = 5 * time.Minute
 
 // adapterConfig contains properties used to configure the source's adapter.
 // These are automatically populated by envconfig.
 type adapterConfig struct {
 	// Container image
-	Image string `default:"gcr.io/triggermesh/awscloudwatchsource"`
+	Image string `default:"gcr.io/triggermesh/awscloudwatchlogssource"`
 	// Configuration accessor for logging/metrics/tracing
 	configs source.ConfigAccessor
 }
@@ -53,12 +55,9 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCloudWatchLogSource, cfg *adapter
 			sinkURIStr = sinkURI.String()
 		}
 
-		var pollingInterval string
-		if src.Spec.PollingFrequency != nil {
-			pollingInterval = *src.Spec.PollingFrequency
-		} else {
-			// Defaulting to 5m which should keep things within the free tier
-			pollingInterval = "5m"
+		pollingInterval := defaultPollingInterval
+		if f := src.Spec.PollingFrequency; f != nil && time.Duration(*f).Nanoseconds() > 0 {
+			pollingInterval = time.Duration(*f)
 		}
 
 		return resource.NewDeployment(src.Namespace, name,
@@ -82,7 +81,7 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCloudWatchLogSource, cfg *adapter
 			resource.EnvVar(common.EnvNamespace, src.Namespace),
 			resource.EnvVar(common.EnvSink, sinkURIStr),
 			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
-			resource.EnvVar(envPollingInterval, pollingInterval),
+			resource.EnvVar(envPollingInterval, pollingInterval.String()),
 			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
 		)

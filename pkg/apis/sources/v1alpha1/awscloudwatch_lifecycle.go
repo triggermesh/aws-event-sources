@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"strings"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"knative.dev/pkg/apis"
@@ -24,12 +26,12 @@ import (
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
-func (s *AWSCloudWatchSource) GetGroupVersionKind() schema.GroupVersionKind {
+func (*AWSCloudWatchSource) GetGroupVersionKind() schema.GroupVersionKind {
 	return SchemeGroupVersion.WithKind("AWSCloudWatchSource")
 }
 
 // GetConditionSet implements duckv1.KRShaped.
-func (s *AWSCloudWatchSource) GetConditionSet() apis.ConditionSet {
+func (*AWSCloudWatchSource) GetConditionSet() apis.ConditionSet {
 	return eventSourceConditionSet
 }
 
@@ -51,16 +53,32 @@ func (s *AWSCloudWatchSource) GetStatusManager() *EventSourceStatusManager {
 	}
 }
 
-// GetEventTypes implements EventSource.
-func (s *AWSCloudWatchSource) GetEventTypes() []string {
-	types := make([]string, 2)
-	types[0] = AWSEventType("metrics", "metric")
-	types[1] = AWSEventType("metrics", "message")
+// Supported event types
+const (
+	AWSCloudWatchMetricEventType  = "metrics.metric"
+	AWSCloudWatchMessageEventType = "metrics.message"
+)
 
-	return types
+// Name of the CloudWatch service, as exposed in ARNs.
+// https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncloudwatch.html#amazoncloudwatch-resources-for-iam-policies
+const ServiceCloudWatch = "cloudwatch"
+
+// GetEventTypes implements EventSource.
+func (*AWSCloudWatchSource) GetEventTypes() []string {
+	return []string{
+		AWSEventType(ServiceCloudWatch, AWSCloudWatchMetricEventType),
+		AWSEventType(ServiceCloudWatch, AWSCloudWatchMessageEventType),
+	}
 }
 
 // AsEventSource implements EventSource.
 func (s *AWSCloudWatchSource) AsEventSource() string {
-	return s.Spec.Region + "." + s.Name
+	return AWSCloudWatchSourceName(s.Namespace, s.Name)
+}
+
+// AWSCloudWatchSourceName returns a unique reference to the source suitable
+// for use as as a CloudEvent source.
+func AWSCloudWatchSourceName(ns, name string) string {
+	kind := strings.ToLower((*AWSCloudWatchSource)(nil).GetGroupVersionKind().Kind)
+	return "io.triggermesh." + kind + "." + ns + "." + name
 }

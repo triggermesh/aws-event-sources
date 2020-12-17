@@ -48,14 +48,14 @@ var (
 type AWSCloudWatchLogSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// ARN for Logs
-	// https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncloudwatchlogs.html
+	// ARN for Log Group
+	// https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncloudwatchlogs.html#amazoncloudwatchlogs-resources-for-iam-policies
 	ARN apis.ARN `json:"arn"`
 	// PollingFrequency in a duration format for how often to pull metrics data from. Default is 5m
 	// +optional
-	PollingFrequency *string `json:"pollingFrequency,omitempty"`
+	PollingFrequency *apis.Duration `json:"pollingFrequency,omitempty"`
 
-	// Credentials to interact with the AWS CodeCommit API.
+	// Credentials to interact with the AWS CloudWatch Logs API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 

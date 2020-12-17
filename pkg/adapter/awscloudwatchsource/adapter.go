@@ -20,26 +20,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
-	"sync"
 	"time"
 
+	"github.com/google/uuid"
+	"go.uber.org/zap"
+
+	cloudevents "github.com/cloudevents/sdk-go/v2"
+
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
-	cloudevents "github.com/cloudevents/sdk-go/v2"
-	"github.com/google/uuid"
-	"go.uber.org/zap"
+
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-)
-
-const (
-	metricEventType = "metrics"
 )
 
 // envConfig is a set parameters sourced from the environment for the source's
@@ -47,9 +43,7 @@ const (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	AccessKey string `envconfig:"AWS_ACCESS_KEY_ID"`
-	SecretKey string `envconfig:"AWS_SECRET_ACCESS_KEY"`
-	Region    string `envconfig:"AWS_REGION"`
+	Region string `envconfig:"AWS_REGION"`
 
 	Query           string `envconfig:"QUERIES" required:"true"`          // JSON based array of name/query pairs
 	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"` // free tier is 5m
@@ -57,11 +51,11 @@ type envConfig struct {
 
 // adapter implements the source's adapter.
 type adapter struct {
-	logger *zap.SugaredLogger
-	name   string
+	logger      *zap.SugaredLogger
+	eventsource string
 
-	ceClient cloudevents.Client
 	cwClient cloudwatchiface.CloudWatchAPI
+	ceClient cloudevents.Client
 
 	metricQueries   []*cloudwatch.MetricDataQuery
 	pollingInterval time.Duration
@@ -77,13 +71,12 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	var err error
 	logger := logging.FromContext(ctx)
 
+	eventsource := v1alpha1.AWSCloudWatchSourceName(envAcc.GetNamespace(), envAcc.GetName())
+
 	env := envAcc.(*envConfig)
 
-	awsCfg := aws.NewConfig()
-	awsCfg.WithCredentials(credentials.NewStaticCredentials(env.AccessKey, env.SecretKey, ""))
-	cfg := session.Must(session.NewSession(awsCfg.
-		WithRegion(env.Region).
-		WithMaxRetries(5),
+	cfg := session.Must(session.NewSession(aws.NewConfig().
+		WithRegion(env.Region),
 	))
 
 	interval, err := time.ParseDuration(env.PollingInterval)
@@ -97,8 +90,8 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	}
 
 	return &adapter{
-		logger: logger,
-		name:   env.Name,
+		logger:      logger,
+		eventsource: eventsource,
 
 		cwClient: cloudwatch.New(cfg),
 		ceClient: ceClient,
@@ -112,7 +105,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 // convert it into something useful to aws
 func parseQueries(rawQuery string) ([]*cloudwatch.MetricDataQuery, error) {
 	queries := make([]*cloudwatch.MetricDataQuery, 0)
-	rawQueries := make([]v1alpha1.AWSCloudWatchMetricQueries, 0)
+	rawQueries := make([]v1alpha1.AWSCloudWatchMetricQuery, 0)
 
 	err := json.Unmarshal([]byte(rawQuery), &rawQueries)
 	if err != nil {
@@ -172,39 +165,19 @@ func (a *adapter) Start(ctx context.Context) error {
 
 	// Setup polling to retrieve metrics
 	poll := time.NewTicker(a.pollingInterval)
-	metricsCh := make(chan bool)
 	defer poll.Stop()
-	defer close(metricsCh)
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	// Wake up every pollingInterval, and retrieve the logs
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
 
-	// Cleanup thread
-	go func() {
-		<-ctx.Done()
-		a.logger.Info("Shutdown signal received. Terminating")
-		metricsCh <- true
-		cancel()
-	}()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	// Primary execution thread. Wake up every pollintInterval, and retrieve the
-	// previous metrics
-	go func() {
-		for {
-			select {
-			case <-metricsCh:
-				wg.Done()
-				return
-			case t := <-poll.C:
-				go a.CollectMetrics(t)
-			}
+		case t := <-poll.C:
+			a.CollectMetrics(t)
 		}
-	}()
+	}
 
-	wg.Wait()
 	return nil
 }
 
@@ -219,7 +192,7 @@ func (a *adapter) CollectMetrics(currentTime time.Time) {
 	}
 
 	err := a.cwClient.GetMetricDataPages(&metricInput, func(output *cloudwatch.GetMetricDataOutput, b bool) bool {
-		err := a.SendMetricEvent(output, a.name)
+		err := a.SendMetricEvent(output)
 		if err != nil {
 			a.logger.Errorf("error sending metrics: %v", zap.Error(err))
 			return false
@@ -234,15 +207,15 @@ func (a *adapter) CollectMetrics(currentTime time.Time) {
 	}
 }
 
-func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput, name string) error {
+func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput) error {
 	id := uuid.New() // Send out multiple cloudevents depending on whether the metric output has
 	// multiple messages or messages and metric data, and insure the CloudEvent
 	// ID is common.
 
-	for i, v := range metricOutput.Messages {
+	for _, v := range metricOutput.Messages {
 		event := cloudevents.NewEvent(cloudevents.VersionV1)
-		event.SetType(v1alpha1.AWSEventType(metricEventType, "message"))
-		event.SetSource(name + "-" + strconv.Itoa(i))
+		event.SetType(v1alpha1.AWSEventType(v1alpha1.ServiceCloudWatch, v1alpha1.AWSCloudWatchMessageEventType))
+		event.SetSource(a.eventsource)
 		event.SetID(id.String())
 		err := event.SetData(cloudevents.ApplicationJSON, v)
 
@@ -257,8 +230,8 @@ func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput, 
 
 	for _, v := range metricOutput.MetricDataResults {
 		event := cloudevents.NewEvent(cloudevents.VersionV1)
-		event.SetType(v1alpha1.AWSEventType(metricEventType, "metric"))
-		event.SetSource(*v.Id)
+		event.SetType(v1alpha1.AWSEventType(v1alpha1.ServiceCloudWatch, v1alpha1.AWSCloudWatchMetricEventType))
+		event.SetSource(a.eventsource)
 		event.SetID(id.String())
 		err := event.SetData(cloudevents.ApplicationJSON, v)
 

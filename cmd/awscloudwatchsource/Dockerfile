@@ -24,7 +24,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN BIN_OUTPUT_DIR=/bin make awscloudwatch && \
+RUN BIN_OUTPUT_DIR=/bin make awscloudwatchsource && \
     mkdir /kodata && \
     mv .git/* /kodata/ && \
     rm -rf ${GOPATH} && \
@@ -39,7 +39,7 @@ LABEL vendor "Triggermesh"
 LABEL version "$VERSION"
 LABEL release "1"
 LABEL summary "The Triggermesh CloudWatch Source"
-LABEL description "This is the Triggermesh Knative Event Source for AWS CloudWatch Metrics and Logs"
+LABEL description "This is the Triggermesh Knative Event Source for AWS CloudWatch Metrics"
 
 # Emulate ko builds
 # https://github.com/google/ko/blob/v0.5.0/README.md#including-static-assets

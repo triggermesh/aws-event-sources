@@ -21,6 +21,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+
+	"github.com/triggermesh/aws-event-sources/pkg/apis"
 )
 
 // +genclient
@@ -50,21 +52,24 @@ type AWSCloudWatchSourceSpec struct {
 	Region string `json:"region"`
 	// List of metric queries
 	// +optional
-	MetricQueries *[]AWSCloudWatchMetricQueries `json:"metricQueries,omitempty"`
+	MetricQueries []AWSCloudWatchMetricQuery `json:"metricQueries,omitempty"`
 	// PollingFrequency in a duration format for how often to pull metrics data from. Default is 5m
 	// +optional
-	PollingFrequency *string `json:"pollingFrequency,omitempty"`
+	PollingFrequency *apis.Duration `json:"pollingFrequency,omitempty"`
 
-	// Credentials to interact with the AWS CodeCommit API.
+	// Credentials to interact with the AWS CloudWatch API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
 // Define the metric to return. Consult the AWS CloudWatch API Guide for details:
 // https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/Welcome.html
-type AWSCloudWatchMetricQueries struct {
+type AWSCloudWatchMetricQuery struct {
 	// Unique short-name identify the query
 	Name string `json:"name"`
-	// Math expression for calculating metrics. Can have this or a metric
+
+	// Optional: no more than one of the following may be specified.
+
+	// Math expression for calculating metrics
 	// +optional
 	Expression *string `json:"expression,omitempty"`
 	// Metric for retrieving specific metrics
