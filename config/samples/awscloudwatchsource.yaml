@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Sample AWSCloudWatchLogSource object.
+# Sample AWSCloudWatchSource object.
 
 apiVersion: sources.triggermesh.io/v1alpha1
 kind: AWSCloudWatchSource
@@ -20,19 +20,20 @@ metadata:
   name: sample
 spec:
   region: us-west-2
-  pollingFrequency: 2m # The polling interval is considered optional
+  pollingFrequency: 2m
+
   metricQueries:
-    - name: testquery
+  - name: testquery
+    metric:
+      period: 60
+      stat: p90
+      unit: Milliseconds
       metric:
-        period: 60
-        stat: p90
-        unit: Milliseconds
-        metric:
-          metricName: Duration
-          namespace: AWS/Lambda
-          dimensions:
-            - name: FunctionName
-              value: lambdadumper
+        metricName: Duration
+        namespace: AWS/Lambda
+        dimensions:
+        - name: FunctionName
+          value: lambdadumper
 
   credentials:
     accessKeyID:

@@ -55,7 +55,7 @@ type AWSCloudWatchSourceSpec struct {
 	// +optional
 	PollingFrequency *string `json:"pollingFrequency,omitempty"`
 
-	// Credentials to interact with the AWS CodeCommit API.
+	// Credentials to interact with the AWS CloudWatch API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
