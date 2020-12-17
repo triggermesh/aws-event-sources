@@ -28,7 +28,6 @@ import (
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
@@ -44,9 +43,7 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	AccessKey string `envconfig:"AWS_ACCESS_KEY_ID"`
-	SecretKey string `envconfig:"AWS_SECRET_ACCESS_KEY"`
-	Region    string `envconfig:"AWS_REGION"`
+	Region string `envconfig:"AWS_REGION"`
 
 	Query           string `envconfig:"QUERIES" required:"true"`          // JSON based array of name/query pairs
 	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"` // free tier is 5m
@@ -57,8 +54,8 @@ type adapter struct {
 	logger      *zap.SugaredLogger
 	eventsource string
 
-	ceClient cloudevents.Client
 	cwClient cloudwatchiface.CloudWatchAPI
+	ceClient cloudevents.Client
 
 	metricQueries   []*cloudwatch.MetricDataQuery
 	pollingInterval time.Duration
@@ -78,11 +75,8 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	env := envAcc.(*envConfig)
 
-	awsCfg := aws.NewConfig()
-	awsCfg.WithCredentials(credentials.NewStaticCredentials(env.AccessKey, env.SecretKey, ""))
-	cfg := session.Must(session.NewSession(awsCfg.
-		WithRegion(env.Region).
-		WithMaxRetries(5),
+	cfg := session.Must(session.NewSession(aws.NewConfig().
+		WithRegion(env.Region),
 	))
 
 	interval, err := time.ParseDuration(env.PollingInterval)

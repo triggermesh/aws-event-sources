@@ -28,7 +28,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs/cloudwatchlogsiface"
@@ -45,9 +44,8 @@ import (
 type envConfig struct {
 	pkgadapter.EnvConfig
 
-	ARN             string `envconfig:"ARN"`
-	AccessKey       string `envconfig:"AWS_ACCESS_KEY_ID"`
-	SecretKey       string `envconfig:"AWS_SECRET_ACCESS_KEY"`
+	ARN string `envconfig:"ARN"`
+
 	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"` // free tier is 5m
 }
 
@@ -55,8 +53,8 @@ type envConfig struct {
 type adapter struct {
 	logger *zap.SugaredLogger
 
-	ceClient     cloudevents.Client
 	cwLogsClient cloudwatchlogsiface.CloudWatchLogsAPI
+	ceClient     cloudevents.Client
 
 	arn arn.ARN
 
@@ -76,13 +74,11 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	logger := logging.FromContext(ctx)
 
 	env := envAcc.(*envConfig)
-	a := common.MustParseARN(env.ARN)
 
-	awsCfg := aws.NewConfig()
-	awsCfg.WithCredentials(credentials.NewStaticCredentials(env.AccessKey, env.SecretKey, ""))
-	cfg := session.Must(session.NewSession(awsCfg.
-		WithRegion(a.Region).
-		WithMaxRetries(5),
+	arn := common.MustParseARN(env.ARN)
+
+	cfg := session.Must(session.NewSession(aws.NewConfig().
+		WithRegion(arn.Region),
 	))
 
 	interval, err := time.ParseDuration(env.PollingInterval)
@@ -90,18 +86,19 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		logger.Panicf("Unable to parse interval duration: %v", zap.Error(err))
 	}
 
-	logGroup, logStream := ExtractLogDetails(a.Resource)
+	logGroup, logStream := ExtractLogDetails(arn.Resource)
 
 	return &adapter{
 		logger: logger,
 
+		cwLogsClient: cloudwatchlogs.New(cfg),
+		ceClient:     ceClient,
+
+		arn: arn,
+
 		pollingInterval: interval,
 		logGroup:        logGroup,
 		logStream:       logStream,
-
-		cwLogsClient: cloudwatchlogs.New(cfg),
-		ceClient:     ceClient,
-		arn:          a,
 	}
 }
 
