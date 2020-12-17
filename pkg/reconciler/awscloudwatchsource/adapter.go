@@ -67,7 +67,7 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCloudWatchSource, cfg *adapterCon
 		}
 
 		var queries string
-		if src.Spec.MetricQueries != nil {
+		if len(src.Spec.MetricQueries) > 0 {
 			q, err := json.Marshal(src.Spec.MetricQueries)
 			if err != nil {
 				logging.FromContext(cfg.context).Errorw("Unable to obtain metrics: ", zap.Error(err))

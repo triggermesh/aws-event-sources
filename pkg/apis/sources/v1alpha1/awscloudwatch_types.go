@@ -52,7 +52,7 @@ type AWSCloudWatchSourceSpec struct {
 	Region string `json:"region"`
 	// List of metric queries
 	// +optional
-	MetricQueries *[]AWSCloudWatchMetricQueries `json:"metricQueries,omitempty"`
+	MetricQueries []AWSCloudWatchMetricQueries `json:"metricQueries,omitempty"`
 	// PollingFrequency in a duration format for how often to pull metrics data from. Default is 5m
 	// +optional
 	PollingFrequency *apis.Duration `json:"pollingFrequency,omitempty"`
@@ -66,7 +66,10 @@ type AWSCloudWatchSourceSpec struct {
 type AWSCloudWatchMetricQueries struct {
 	// Unique short-name identify the query
 	Name string `json:"name"`
-	// Math expression for calculating metrics. Can have this or a metric
+
+	// Optional: no more than one of the following may be specified.
+
+	// Math expression for calculating metrics
 	// +optional
 	Expression *string `json:"expression,omitempty"`
 	// Metric for retrieving specific metrics

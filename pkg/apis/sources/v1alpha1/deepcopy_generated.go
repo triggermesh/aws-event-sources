@@ -258,13 +258,9 @@ func (in *AWSCloudWatchSourceSpec) DeepCopyInto(out *AWSCloudWatchSourceSpec) {
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
 	if in.MetricQueries != nil {
 		in, out := &in.MetricQueries, &out.MetricQueries
-		*out = new([]AWSCloudWatchMetricQueries)
-		if **in != nil {
-			in, out := *in, *out
-			*out = make([]AWSCloudWatchMetricQueries, len(*in))
-			for i := range *in {
-				(*in)[i].DeepCopyInto(&(*out)[i])
-			}
+		*out = make([]AWSCloudWatchMetricQueries, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
 	if in.PollingFrequency != nil {
