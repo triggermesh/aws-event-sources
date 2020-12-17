@@ -17,19 +17,19 @@
 apiVersion: sources.knative.dev/v1alpha2
 kind: ContainerSource
 metadata:
-  name: &srcname awscloudwatchlog-source
+  name: &srcname awscloudwatchlogs-source
 spec:
   template:
     spec:
       containers:
       - name: source
-        image: gcr.io/triggermesh/awscloudwatchlogsource:latest
+        image: gcr.io/triggermesh/awscloudwatchlogssource:latest
 
         env:
 
         # Log Group
         - name: ARN
-          value: 'arn:aws:logs:us-west-2:043455440429:log-group:/aws/lambda/lambdadumper:*'
+          value: 'arn:aws:logs:us-west-2:123456789012:log-group:/aws/lambda/lambdadumper:*'
 
         - name: POLLING_INTERVAL
           value: 5m
@@ -59,7 +59,7 @@ spec:
           value: |
             {
               "domain": "triggermesh.io/sources",
-              "component": "awscloudwatchlogsource",
+              "component": "awscloudwatchlogssource",
               "configMap": {}
             }
 

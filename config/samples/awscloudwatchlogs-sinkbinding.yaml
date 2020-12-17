@@ -12,24 +12,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Sample ContainerSource for the AWS CloudWatch Logs event source.
+# Sample SinkBinding for the AWS CloudWatch Logs event source.
 
 apiVersion: sources.knative.dev/v1alpha2
-kind: ContainerSource
+kind: SinkBinding
 metadata:
-  name: &srcname awscloudwatchlog-source
+  name: &srcname awscloudwatchlogs-source
 spec:
+  subject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: *srcname
+
+  sink:
+    ref:
+      apiVersion: eventing.knative.dev/v1
+      kind: Broker
+      name: default
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: &srcname awscodecommit-source
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: *srcname
+
   template:
+    metadata:
+      labels:
+        app: *srcname
+
     spec:
       containers:
       - name: source
-        image: gcr.io/triggermesh/awscloudwatchlogsource:latest
+        image: gcr.io/triggermesh/awscloudwatchlogssource:latest
 
         env:
 
         # Log Group
         - name: ARN
-          value: 'arn:aws:logs:us-west-2:043455440429:log-group:/aws/lambda/lambdadumper:*'
+          value: 'arn:aws:logs:us-west-2:123456789012:log-group:/aws/lambda/lambdadumper:*'
 
         - name: POLLING_INTERVAL
           value: 5m
@@ -59,12 +85,6 @@ spec:
           value: |
             {
               "domain": "triggermesh.io/sources",
-              "component": "awscloudwatchlogsource",
+              "component": "awscloudwatchlogssource",
               "configMap": {}
             }
-
-  sink:
-    ref:
-      apiVersion: eventing.knative.dev/v1
-      kind: Broker
-      name: default

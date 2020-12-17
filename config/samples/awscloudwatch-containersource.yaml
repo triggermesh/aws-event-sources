@@ -34,6 +34,9 @@ spec:
         - name: POLLING_INTERVAL
           value: 5m
 
+        - name: QUERIES
+          value: '[{"name":"testmetrics","metric":{"period":60,"stat":"p90","metric":{"dimensions":[{"name":"FunctionName","value":"lambdadumper"}],"metricName":"Duration","namespace":"AWS/Lambda"}}}]'
+
         # AWS credentials
         - name: AWS_ACCESS_KEY_ID
           valueFrom:

@@ -12,14 +12,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Sample ContainerSource for the AWS CloudWatch event source.
+# Sample SinkBinding for the AWS CloudWatch event source.
 
 apiVersion: sources.knative.dev/v1alpha2
-kind: ContainerSource
+kind: SinkBinding
 metadata:
   name: &srcname awscloudwatch-source
 spec:
+  subject:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: *srcname
+
+  sink:
+    ref:
+      apiVersion: eventing.knative.dev/v1
+      kind: Broker
+      name: default
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: &srcname awscodecommit-source
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: *srcname
+
   template:
+    metadata:
+      labels:
+        app: *srcname
+
     spec:
       containers:
       - name: source
@@ -65,9 +91,3 @@ spec:
               "component": "awscloudwatchsource",
               "configMap": {}
             }
-
-  sink:
-    ref:
-      apiVersion: eventing.knative.dev/v1
-      kind: Broker
-      name: default
