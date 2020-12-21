@@ -78,12 +78,12 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 
 // newEventSource returns a populated source object.
 func newEventSource() *v1alpha1.AWSCloudWatchLogsSource {
-	pollingFrequency := apis.Duration(5 * time.Minute)
+	pollingInterval := apis.Duration(5 * time.Minute)
 
 	src := &v1alpha1.AWSCloudWatchLogsSource{
 		Spec: v1alpha1.AWSCloudWatchLogsSourceSpec{
-			ARN:              NewARN(cloudwatch.ServiceName, "triggermeshtest"),
-			PollingFrequency: &pollingFrequency,
+			ARN:             NewARN(cloudwatch.ServiceName, "triggermeshtest"),
+			PollingInterval: &pollingInterval,
 			Credentials: v1alpha1.AWSSecurityCredentials{
 				AccessKeyID: v1alpha1.ValueFromField{
 					ValueFromSecret: &corev1.SecretKeySelector{

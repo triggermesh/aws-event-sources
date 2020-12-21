@@ -52,7 +52,7 @@ spec:
             properties:
               region:
                 type: string
-              pollingFrequency:
+              pollingInterval:
                 type: string
               metricQueries:
                 type: array

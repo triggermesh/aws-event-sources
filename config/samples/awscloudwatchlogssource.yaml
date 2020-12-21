@@ -20,7 +20,7 @@ metadata:
   name: sample
 spec:
   arn: 'arn:aws:logs:us-west-2:123456789012:log-group:/aws/lambda/lambdadumper:*'
-  pollingFrequency: 5m
+  pollingInterval: 5m
 
   credentials:
     accessKeyID:

@@ -162,7 +162,7 @@ func TestCollectMetrics(t *testing.T) {
 		NextToken: nil,
 	}
 
-	a.CollectMetrics(time.Now())
+	a.CollectMetrics(nil, time.Now())
 
 	events := ceClient.Sent()
 	assert.Len(t, events, 1)

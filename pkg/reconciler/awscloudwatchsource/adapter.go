@@ -17,14 +17,10 @@ limitations under the License.
 package awscloudwatchsource
 
 import (
-	"context"
 	"encoding/json"
 	"time"
 
-	"go.uber.org/zap"
 	appsv1 "k8s.io/api/apps/v1"
-	"knative.dev/pkg/logging"
-
 	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/kmeta"
@@ -49,8 +45,6 @@ type adapterConfig struct {
 	Image string `default:"gcr.io/triggermesh/awscloudwatchsource"`
 	// Configuration accessor for logging/metrics/tracing
 	configs source.ConfigAccessor
-	// Context for logging
-	context context.Context
 }
 
 // adapterDeploymentBuilder returns an AdapterDeploymentBuilderFunc for the
@@ -68,16 +62,12 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCloudWatchSource, cfg *adapterCon
 
 		var queries string
 		if len(src.Spec.MetricQueries) > 0 {
-			q, err := json.Marshal(src.Spec.MetricQueries)
-			if err != nil {
-				logging.FromContext(cfg.context).Errorw("Unable to obtain metrics: ", zap.Error(err))
-			}
-
+			q, _ := json.Marshal(src.Spec.MetricQueries)
 			queries = string(q)
 		}
 
 		pollingInterval := defaultPollingInterval
-		if f := src.Spec.PollingFrequency; f != nil && time.Duration(*f).Nanoseconds() > 0 {
+		if f := src.Spec.PollingInterval; f != nil && time.Duration(*f).Nanoseconds() > 0 {
 			pollingInterval = time.Duration(*f)
 		}
 

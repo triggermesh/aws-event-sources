@@ -53,9 +53,9 @@ type AWSCloudWatchSourceSpec struct {
 	// List of metric queries
 	// +optional
 	MetricQueries []AWSCloudWatchMetricQuery `json:"metricQueries,omitempty"`
-	// PollingFrequency in a duration format for how often to pull metrics data from. Default is 5m
+	// PollingInterval in a duration format for how often to pull metrics data from. Default is 5m
 	// +optional
-	PollingFrequency *apis.Duration `json:"pollingFrequency,omitempty"`
+	PollingInterval *apis.Duration `json:"pollingInterval,omitempty"`
 
 	// Credentials to interact with the AWS CloudWatch API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

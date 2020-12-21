@@ -56,7 +56,7 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCloudWatchLogsSource, cfg *adapte
 		}
 
 		pollingInterval := defaultPollingInterval
-		if f := src.Spec.PollingFrequency; f != nil && time.Duration(*f).Nanoseconds() > 0 {
+		if f := src.Spec.PollingInterval; f != nil && time.Duration(*f).Nanoseconds() > 0 {
 			pollingInterval = time.Duration(*f)
 		}
 

@@ -52,7 +52,7 @@ spec:
               arn:
                 type: string
                 pattern: '^arn:aws(-cn|-us-gov)?:logs:[a-z]{2}(-gov)?-[a-z]+-\d:\d{12}:.+$'
-              pollingFrequency:
+              pollingInterval:
                 type: string
               credentials:
                 type: object

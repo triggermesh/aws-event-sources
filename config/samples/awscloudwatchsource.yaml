@@ -20,7 +20,7 @@ metadata:
   name: sample
 spec:
   region: us-west-2
-  pollingFrequency: 2m
+  pollingInterval: 2m
 
   metricQueries:
   - name: testquery

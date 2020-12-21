@@ -92,8 +92,8 @@ func (in *AWSCloudWatchLogsSourceSpec) DeepCopyInto(out *AWSCloudWatchLogsSource
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
 	out.ARN = in.ARN
-	if in.PollingFrequency != nil {
-		in, out := &in.PollingFrequency, &out.PollingFrequency
+	if in.PollingInterval != nil {
+		in, out := &in.PollingInterval, &out.PollingInterval
 		*out = new(apis.Duration)
 		**out = **in
 	}
@@ -263,8 +263,8 @@ func (in *AWSCloudWatchSourceSpec) DeepCopyInto(out *AWSCloudWatchSourceSpec) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.PollingFrequency != nil {
-		in, out := &in.PollingFrequency, &out.PollingFrequency
+	if in.PollingInterval != nil {
+		in, out := &in.PollingInterval, &out.PollingInterval
 		*out = new(apis.Duration)
 		**out = **in
 	}

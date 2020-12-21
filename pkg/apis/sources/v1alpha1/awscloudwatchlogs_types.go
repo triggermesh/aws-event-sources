@@ -51,9 +51,9 @@ type AWSCloudWatchLogsSourceSpec struct {
 	// ARN for Log Group
 	// https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncloudwatchlogs.html#amazoncloudwatchlogs-resources-for-iam-policies
 	ARN apis.ARN `json:"arn"`
-	// PollingFrequency in a duration format for how often to pull metrics data from. Default is 5m
+	// PollingInterval in a duration format for how often to pull metrics data from. Default is 5m
 	// +optional
-	PollingFrequency *apis.Duration `json:"pollingFrequency,omitempty"`
+	PollingInterval *apis.Duration `json:"pollingInterval,omitempty"`
 
 	// Credentials to interact with the AWS CloudWatch Logs API.
 	Credentials AWSSecurityCredentials `json:"credentials"`

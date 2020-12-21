@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
@@ -168,22 +167,26 @@ func (a *adapter) Start(ctx context.Context) error {
 	defer poll.Stop()
 
 	// Wake up every pollingInterval, and retrieve the logs
+	var priorTime *time.Time
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 
 		case t := <-poll.C:
-			a.CollectMetrics(t)
+			go a.CollectMetrics(priorTime, t)
+			priorTime = &t
 		}
 	}
-
-	return nil
 }
 
-func (a *adapter) CollectMetrics(currentTime time.Time) {
+func (a *adapter) CollectMetrics(priorTime *time.Time, currentTime time.Time) {
 	a.logger.Debug("Firing metrics")
 	startInterval := currentTime.Add(-a.pollingInterval)
+
+	if priorTime != nil {
+		startInterval = *priorTime
+	}
 
 	metricInput := cloudwatch.GetMetricDataInput{
 		EndTime:           &currentTime,
@@ -208,7 +211,6 @@ func (a *adapter) CollectMetrics(currentTime time.Time) {
 }
 
 func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput) error {
-	id := uuid.New() // Send out multiple cloudevents depending on whether the metric output has
 	// multiple messages or messages and metric data, and insure the CloudEvent
 	// ID is common.
 
@@ -216,7 +218,6 @@ func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput) 
 		event := cloudevents.NewEvent(cloudevents.VersionV1)
 		event.SetType(v1alpha1.AWSEventType(v1alpha1.ServiceCloudWatch, v1alpha1.AWSCloudWatchMessageEventType))
 		event.SetSource(a.eventsource)
-		event.SetID(id.String())
 		err := event.SetData(cloudevents.ApplicationJSON, v)
 
 		if err != nil {
@@ -232,7 +233,6 @@ func (a *adapter) SendMetricEvent(metricOutput *cloudwatch.GetMetricDataOutput) 
 		event := cloudevents.NewEvent(cloudevents.VersionV1)
 		event.SetType(v1alpha1.AWSEventType(v1alpha1.ServiceCloudWatch, v1alpha1.AWSCloudWatchMetricEventType))
 		event.SetSource(a.eventsource)
-		event.SetID(id.String())
 		err := event.SetData(cloudevents.ApplicationJSON, v)
 
 		if err != nil {

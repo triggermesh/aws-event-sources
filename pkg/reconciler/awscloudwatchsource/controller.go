@@ -44,7 +44,6 @@ func NewController(
 	// (uppercased) to the Go field name, e.g. MYSOURCE_IMAGE.
 	adapterCfg := &adapterConfig{
 		configs: source.WatchConfigurations(ctx, app, cmw, source.WithLogging, source.WithMetrics),
-		context: ctx,
 	}
 	envconfig.MustProcess(app, adapterCfg)
 
