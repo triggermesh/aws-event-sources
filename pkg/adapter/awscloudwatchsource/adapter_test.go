@@ -98,7 +98,7 @@ func TestCollectMetrics(t *testing.T) {
 		val              = float64(37.566818845509246)
 	)
 
-	ts := time.Unix(0, 0)
+	ts := time.Date(1970, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	const (
 		dimensionName  = "FunctionName"
@@ -193,7 +193,7 @@ func TestSendMetricEvent(t *testing.T) {
 		val              = float64(37.566818845509246) // must keep this cast to ensure proper [de]serialization
 	)
 
-	ts := time.Unix(0, 0)
+	ts := time.Date(1970, 1, 1, 12, 0, 0, 0, time.UTC)
 
 	metricOutput := cloudwatch.GetMetricDataOutput{
 		Messages: nil,
