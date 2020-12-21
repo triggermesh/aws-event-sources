@@ -29,23 +29,23 @@ import (
 // +genreconciler
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AWSCloudWatchSource is the Schema for the event source.
-type AWSCloudWatchLogSource struct {
+// AWSCloudWatchLogsSource is the Schema for the event source.
+type AWSCloudWatchLogsSource struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   AWSCloudWatchLogSourceSpec `json:"spec,omitempty"`
-	Status EventSourceStatus          `json:"status,omitempty"`
+	Spec   AWSCloudWatchLogsSourceSpec `json:"spec,omitempty"`
+	Status EventSourceStatus           `json:"status,omitempty"`
 }
 
 // Check the interfaces the event source should be implementing.
 var (
-	_ runtime.Object = (*AWSCloudWatchLogSource)(nil)
-	_ EventSource    = (*AWSCloudWatchLogSource)(nil)
+	_ runtime.Object = (*AWSCloudWatchLogsSource)(nil)
+	_ EventSource    = (*AWSCloudWatchLogsSource)(nil)
 )
 
 // AWSCloudWatchSourceSpec defines the desired state of the event source.
-type AWSCloudWatchLogSourceSpec struct {
+type AWSCloudWatchLogsSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
 	// ARN for Log Group
@@ -61,9 +61,9 @@ type AWSCloudWatchLogSourceSpec struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AWSCloudWatchLogSourceList contains a list of event sources.
-type AWSCloudWatchLogSourceList struct {
+// AWSCloudWatchLogsSourceList contains a list of event sources.
+type AWSCloudWatchLogsSourceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []AWSCloudWatchLogSource `json:"items"`
+	Items           []AWSCloudWatchLogsSource `json:"items"`
 }

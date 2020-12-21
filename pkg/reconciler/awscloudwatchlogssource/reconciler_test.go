@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awscloudwatchlogsource
+package awscloudwatchlogssource
 
 import (
 	"context"
@@ -35,7 +35,7 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	fakeinjectionclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client/fake"
-	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscloudwatchlogsource"
+	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscloudwatchlogssource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
 )
@@ -55,7 +55,7 @@ func TestReconcileSource(t *testing.T) {
 	TestReconcile(t, ctor, src, adapterFn)
 }
 
-// reconcilerCtor returns a Ctor for a AWSCloudWatchLogSource Reconciler.
+// reconcilerCtor returns a Ctor for a AWSCloudWatchLogsSource Reconciler.
 func reconcilerCtor(cfg *adapterConfig) Ctor {
 	return func(t *testing.T, ctx context.Context, ls *Listers) controller.Reconciler {
 		base := common.GenericDeploymentReconciler{
@@ -71,17 +71,17 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 		}
 
 		return reconcilerv1alpha1.NewReconciler(ctx, logging.FromContext(ctx),
-			fakeinjectionclient.Get(ctx), ls.GetAWSCloudWatchLogSourceLister(),
+			fakeinjectionclient.Get(ctx), ls.GetAWSCloudWatchLogsSourceLister(),
 			controller.GetEventRecorder(ctx), r)
 	}
 }
 
 // newEventSource returns a populated source object.
-func newEventSource() *v1alpha1.AWSCloudWatchLogSource {
+func newEventSource() *v1alpha1.AWSCloudWatchLogsSource {
 	pollingFrequency := apis.Duration(5 * time.Minute)
 
-	src := &v1alpha1.AWSCloudWatchLogSource{
-		Spec: v1alpha1.AWSCloudWatchLogSourceSpec{
+	src := &v1alpha1.AWSCloudWatchLogsSource{
+		Spec: v1alpha1.AWSCloudWatchLogsSourceSpec{
 			ARN:              NewARN(cloudwatch.ServiceName, "triggermeshtest"),
 			PollingFrequency: &pollingFrequency,
 			Credentials: v1alpha1.AWSSecurityCredentials{

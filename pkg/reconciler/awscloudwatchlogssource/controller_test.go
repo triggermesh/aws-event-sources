@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awscloudwatchlogsource
+package awscloudwatchlogssource
 
 import (
 	"testing"
@@ -22,7 +22,7 @@ import (
 	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
 
 	// Link fake informers accessed by our controller
-	_ "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awscloudwatchlogsource/fake"
+	_ "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awscloudwatchlogssource/fake"
 	_ "knative.dev/pkg/client/injection/ducks/duck/v1/addressable/fake"
 	_ "knative.dev/pkg/client/injection/kube/informers/apps/v1/deployment/fake"
 	_ "knative.dev/pkg/injection/clients/dynamicclient/fake"

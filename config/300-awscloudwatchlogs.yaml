@@ -15,7 +15,7 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: awscloudwatchlogsources.sources.triggermesh.io
+  name: awscloudwatchlogssources.sources.triggermesh.io
   labels:
     eventing.knative.dev/source: 'true'
     duck.knative.dev/source: 'true'
@@ -29,8 +29,8 @@ spec:
   group: sources.triggermesh.io
   scope: Namespaced
   names:
-    kind: AWSCloudWatchLogSource
-    plural: awscloudwatchlogsources
+    kind: awscloudwatchlogssource
+    plural: awscloudwatchlogssources
     categories:
     - all
     - knative

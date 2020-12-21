@@ -24,8 +24,8 @@ import (
 
 // Interface provides access to all the informers in this group version.
 type Interface interface {
-	// AWSCloudWatchLogSources returns a AWSCloudWatchLogSourceInformer.
-	AWSCloudWatchLogSources() AWSCloudWatchLogSourceInformer
+	// AWSCloudWatchLogsSources returns a AWSCloudWatchLogsSourceInformer.
+	AWSCloudWatchLogsSources() AWSCloudWatchLogsSourceInformer
 	// AWSCloudWatchSources returns a AWSCloudWatchSourceInformer.
 	AWSCloudWatchSources() AWSCloudWatchSourceInformer
 	// AWSCodeCommitSources returns a AWSCodeCommitSourceInformer.
@@ -57,9 +57,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 	return &version{factory: f, namespace: namespace, tweakListOptions: tweakListOptions}
 }
 
-// AWSCloudWatchLogSources returns a AWSCloudWatchLogSourceInformer.
-func (v *version) AWSCloudWatchLogSources() AWSCloudWatchLogSourceInformer {
-	return &aWSCloudWatchLogSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+// AWSCloudWatchLogsSources returns a AWSCloudWatchLogsSourceInformer.
+func (v *version) AWSCloudWatchLogsSources() AWSCloudWatchLogsSourceInformer {
+	return &aWSCloudWatchLogsSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // AWSCloudWatchSources returns a AWSCloudWatchSourceInformer.

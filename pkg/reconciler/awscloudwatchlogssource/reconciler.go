@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awscloudwatchlogsource
+package awscloudwatchlogssource
 
 import (
 	"context"
@@ -22,7 +22,7 @@ import (
 	"knative.dev/pkg/reconciler"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscloudwatchlogsource"
+	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscloudwatchlogssource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 )
 
@@ -36,7 +36,7 @@ type Reconciler struct {
 var _ reconcilerv1alpha1.Interface = (*Reconciler)(nil)
 
 // ReconcileKind implements Interface.ReconcileKind.
-func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSCloudWatchLogSource) reconciler.Event {
+func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSCloudWatchLogsSource) reconciler.Event {
 	// inject source into context for usage in reconciliation logic
 	ctx = v1alpha1.WithSource(ctx, src)
 

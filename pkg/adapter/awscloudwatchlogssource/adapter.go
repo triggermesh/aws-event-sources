@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awscloudwatchlogsource
+package awscloudwatchlogssource
 
 import (
 	"context"
@@ -130,23 +130,28 @@ func (a *adapter) Start(ctx context.Context) error {
 	defer poll.Stop()
 
 	// Wake up every pollingInterval, and retrieve the logs
+	var priorTime *time.Time
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 
 		case t := <-poll.C:
-			a.CollectLogs(t)
+			go a.CollectLogs(priorTime, t)
+			priorTime = &t
 		}
 	}
-
-	return nil
 }
 
-func (a *adapter) CollectLogs(currentTime time.Time) {
+func (a *adapter) CollectLogs(priorTime *time.Time, currentTime time.Time) {
 	id := uuid.New() // In case multiple pages of log events need to be sent, keep the id consistent
 	a.logger.Debug("Firing logs")
 	startTime := currentTime.Add(-a.pollingInterval).Unix() * 1000
+
+	if priorTime != nil {
+		startTime = (*priorTime).Unix() * 1000
+	}
+
 	endTime := currentTime.Unix() * 1000
 
 	logStreams := cloudwatchlogs.DescribeLogStreamsInput{

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awscloudwatchlogsource
+package awscloudwatchlogssource
 
 import (
 	"time"
@@ -44,7 +44,7 @@ type adapterConfig struct {
 
 // adapterDeploymentBuilder returns an AdapterDeploymentBuilderFunc for the
 // given source object and adapter config.
-func adapterDeploymentBuilder(src *v1alpha1.AWSCloudWatchLogSource, cfg *adapterConfig) common.AdapterDeploymentBuilderFunc {
+func adapterDeploymentBuilder(src *v1alpha1.AWSCloudWatchLogsSource, cfg *adapterConfig) common.AdapterDeploymentBuilderFunc {
 	adapterName := common.AdapterName(src)
 
 	return func(sinkURI *apis.URL) *appsv1.Deployment {

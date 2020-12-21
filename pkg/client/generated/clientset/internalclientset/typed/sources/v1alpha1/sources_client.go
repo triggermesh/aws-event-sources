@@ -26,7 +26,7 @@ import (
 
 type SourcesV1alpha1Interface interface {
 	RESTClient() rest.Interface
-	AWSCloudWatchLogSourcesGetter
+	AWSCloudWatchLogsSourcesGetter
 	AWSCloudWatchSourcesGetter
 	AWSCodeCommitSourcesGetter
 	AWSCognitoIdentitySourcesGetter
@@ -43,8 +43,8 @@ type SourcesV1alpha1Client struct {
 	restClient rest.Interface
 }
 
-func (c *SourcesV1alpha1Client) AWSCloudWatchLogSources(namespace string) AWSCloudWatchLogSourceInterface {
-	return newAWSCloudWatchLogSources(c, namespace)
+func (c *SourcesV1alpha1Client) AWSCloudWatchLogsSources(namespace string) AWSCloudWatchLogsSourceInterface {
+	return newAWSCloudWatchLogsSources(c, namespace)
 }
 
 func (c *SourcesV1alpha1Client) AWSCloudWatchSources(namespace string) AWSCloudWatchSourceInterface {

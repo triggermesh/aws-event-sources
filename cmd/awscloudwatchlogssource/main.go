@@ -19,9 +19,9 @@ package main
 import (
 	"knative.dev/eventing/pkg/adapter/v2"
 
-	"github.com/triggermesh/aws-event-sources/pkg/adapter/awscloudwatchlogsource"
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/awscloudwatchlogssource"
 )
 
 func main() {
-	adapter.Main("awscloudwatchlogsource", awscloudwatchlogsource.NewEnvConfig, awscloudwatchlogsource.NewAdapter)
+	adapter.Main("awscloudwatchlogssource", awscloudwatchlogssource.NewEnvConfig, awscloudwatchlogssource.NewAdapter)
 }

@@ -22,12 +22,12 @@ import (
 	context "context"
 
 	fake "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/factory/fake"
-	awscloudwatchlogsource "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awscloudwatchlogsource"
+	awscloudwatchlogssource "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awscloudwatchlogssource"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
 )
 
-var Get = awscloudwatchlogsource.Get
+var Get = awscloudwatchlogssource.Get
 
 func init() {
 	injection.Fake.RegisterInformer(withInformer)
@@ -35,6 +35,6 @@ func init() {
 
 func withInformer(ctx context.Context) (context.Context, controller.Informer) {
 	f := fake.Get(ctx)
-	inf := f.Sources().V1alpha1().AWSCloudWatchLogSources()
-	return context.WithValue(ctx, awscloudwatchlogsource.Key{}, inf), inf.Informer()
+	inf := f.Sources().V1alpha1().AWSCloudWatchLogsSources()
+	return context.WithValue(ctx, awscloudwatchlogssource.Key{}, inf), inf.Informer()
 }

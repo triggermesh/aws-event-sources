@@ -37,7 +37,7 @@ var (
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&AWSCloudWatchSource{}, &AWSCloudWatchSourceList{},
-		&AWSCloudWatchLogSource{}, &AWSCloudWatchLogSourceList{},
+		&AWSCloudWatchLogsSource{}, &AWSCloudWatchLogsSourceList{},
 		&AWSCodeCommitSource{}, &AWSCodeCommitSourceList{},
 		&AWSCognitoIdentitySource{}, &AWSCognitoUserPoolSourceList{},
 		&AWSCognitoUserPoolSource{}, &AWSCognitoUserPoolSourceList{},

@@ -18,13 +18,13 @@ ENV CGO_ENABLED 0
 ENV GOOS linux
 ENV GOARCH amd64
 
-WORKDIR /go/src/awscloudwatchlogsource
+WORKDIR /go/src/awscloudwatchlogssource
 
 COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN BIN_OUTPUT_DIR=/bin make awscloudwatchlogsource && \
+RUN BIN_OUTPUT_DIR=/bin make awscloudwatchlogssource && \
     mkdir /kodata && \
     mv .git/* /kodata/ && \
     rm -rf ${GOPATH} && \
@@ -46,7 +46,7 @@ LABEL description "This is the Triggermesh Knative Event Source for AWS CloudWat
 ENV KO_DATA_PATH /kodata
 
 COPY --from=builder /kodata/ ${KO_DATA_PATH}/
-COPY --from=builder /bin/awscloudwatchlogsource /
+COPY --from=builder /bin/awscloudwatchlogssource /
 COPY licenses/ /licenses/
 
-ENTRYPOINT ["/awscloudwatchlogsource"]
+ENTRYPOINT ["/awscloudwatchlogssource"]

@@ -99,9 +99,9 @@ func (l *Listers) GetAWSCloudWatchSourceLister() listersv1alpha1.AWSCloudWatchSo
 	return listersv1alpha1.NewAWSCloudWatchSourceLister(l.IndexerFor(&v1alpha1.AWSCloudWatchSource{}))
 }
 
-// GetAWSCloudWatchLogSourceLister returns a Lister for AWSCloudWatchSource objects.
-func (l *Listers) GetAWSCloudWatchLogSourceLister() listersv1alpha1.AWSCloudWatchLogSourceLister {
-	return listersv1alpha1.NewAWSCloudWatchLogSourceLister(l.IndexerFor(&v1alpha1.AWSCloudWatchLogSource{}))
+// GetAWSCloudWatchLogsSourceLister returns a Lister for AWSCloudWatchSource objects.
+func (l *Listers) GetAWSCloudWatchLogsSourceLister() listersv1alpha1.AWSCloudWatchLogsSourceLister {
+	return listersv1alpha1.NewAWSCloudWatchLogsSourceLister(l.IndexerFor(&v1alpha1.AWSCloudWatchLogsSource{}))
 }
 
 // GetAWSCodeCommitSourceLister returns a Lister for AWSCodeCommitSource objects.

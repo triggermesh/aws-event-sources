@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awscloudwatchlogsource
+package awscloudwatchlogssource
 
 import (
 	"testing"
@@ -95,7 +95,7 @@ func TestAdapterCollectLogsBaseCase(t *testing.T) {
 		pollingInterval: duration,
 	}
 
-	a.CollectLogs(now)
+	a.CollectLogs(nil, now)
 	events := ceClient.Sent()
 	assert.Len(t, events, 0)
 }
@@ -144,7 +144,7 @@ func TestAdapterCollectLogs(t *testing.T) {
 		pollingInterval: duration,
 	}
 
-	a.CollectLogs(now)
+	a.CollectLogs(nil, now)
 	events := ceClient.Sent()
 	assert.Len(t, events, 1)
 

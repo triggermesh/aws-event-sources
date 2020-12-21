@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Sample AWSCloudWatchLogSource object.
+# Sample awscloudwatchlogssource object.
 
 apiVersion: sources.triggermesh.io/v1alpha1
-kind: AWSCloudWatchLogSource
+kind: awscloudwatchlogssource
 metadata:
   name: sample
 spec:

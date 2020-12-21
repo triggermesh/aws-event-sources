@@ -32,59 +32,59 @@ import (
 	cache "k8s.io/client-go/tools/cache"
 )
 
-// AWSCloudWatchLogSourceInformer provides access to a shared informer and lister for
-// AWSCloudWatchLogSources.
-type AWSCloudWatchLogSourceInformer interface {
+// AWSCloudWatchLogsSourceInformer provides access to a shared informer and lister for
+// AWSCloudWatchLogsSources.
+type AWSCloudWatchLogsSourceInformer interface {
 	Informer() cache.SharedIndexInformer
-	Lister() v1alpha1.AWSCloudWatchLogSourceLister
+	Lister() v1alpha1.AWSCloudWatchLogsSourceLister
 }
 
-type aWSCloudWatchLogSourceInformer struct {
+type aWSCloudWatchLogsSourceInformer struct {
 	factory          internalinterfaces.SharedInformerFactory
 	tweakListOptions internalinterfaces.TweakListOptionsFunc
 	namespace        string
 }
 
-// NewAWSCloudWatchLogSourceInformer constructs a new informer for AWSCloudWatchLogSource type.
+// NewAWSCloudWatchLogsSourceInformer constructs a new informer for AWSCloudWatchLogsSource type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewAWSCloudWatchLogSourceInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
-	return NewFilteredAWSCloudWatchLogSourceInformer(client, namespace, resyncPeriod, indexers, nil)
+func NewAWSCloudWatchLogsSourceInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers) cache.SharedIndexInformer {
+	return NewFilteredAWSCloudWatchLogsSourceInformer(client, namespace, resyncPeriod, indexers, nil)
 }
 
-// NewFilteredAWSCloudWatchLogSourceInformer constructs a new informer for AWSCloudWatchLogSource type.
+// NewFilteredAWSCloudWatchLogsSourceInformer constructs a new informer for AWSCloudWatchLogsSource type.
 // Always prefer using an informer factory to get a shared informer instead of getting an independent
 // one. This reduces memory footprint and number of connections to the server.
-func NewFilteredAWSCloudWatchLogSourceInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
+func NewFilteredAWSCloudWatchLogsSourceInformer(client internalclientset.Interface, namespace string, resyncPeriod time.Duration, indexers cache.Indexers, tweakListOptions internalinterfaces.TweakListOptionsFunc) cache.SharedIndexInformer {
 	return cache.NewSharedIndexInformer(
 		&cache.ListWatch{
 			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SourcesV1alpha1().AWSCloudWatchLogSources(namespace).List(context.TODO(), options)
+				return client.SourcesV1alpha1().AWSCloudWatchLogsSources(namespace).List(context.TODO(), options)
 			},
 			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SourcesV1alpha1().AWSCloudWatchLogSources(namespace).Watch(context.TODO(), options)
+				return client.SourcesV1alpha1().AWSCloudWatchLogsSources(namespace).Watch(context.TODO(), options)
 			},
 		},
-		&sourcesv1alpha1.AWSCloudWatchLogSource{},
+		&sourcesv1alpha1.AWSCloudWatchLogsSource{},
 		resyncPeriod,
 		indexers,
 	)
 }
 
-func (f *aWSCloudWatchLogSourceInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
-	return NewFilteredAWSCloudWatchLogSourceInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
+func (f *aWSCloudWatchLogsSourceInformer) defaultInformer(client internalclientset.Interface, resyncPeriod time.Duration) cache.SharedIndexInformer {
+	return NewFilteredAWSCloudWatchLogsSourceInformer(client, f.namespace, resyncPeriod, cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}, f.tweakListOptions)
 }
 
-func (f *aWSCloudWatchLogSourceInformer) Informer() cache.SharedIndexInformer {
-	return f.factory.InformerFor(&sourcesv1alpha1.AWSCloudWatchLogSource{}, f.defaultInformer)
+func (f *aWSCloudWatchLogsSourceInformer) Informer() cache.SharedIndexInformer {
+	return f.factory.InformerFor(&sourcesv1alpha1.AWSCloudWatchLogsSource{}, f.defaultInformer)
 }
 
-func (f *aWSCloudWatchLogSourceInformer) Lister() v1alpha1.AWSCloudWatchLogSourceLister {
-	return v1alpha1.NewAWSCloudWatchLogSourceLister(f.Informer().GetIndexer())
+func (f *aWSCloudWatchLogsSourceInformer) Lister() v1alpha1.AWSCloudWatchLogsSourceLister {
+	return v1alpha1.NewAWSCloudWatchLogsSourceLister(f.Informer().GetIndexer())
 }

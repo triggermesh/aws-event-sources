@@ -53,8 +53,8 @@ func (f *genericInformer) Lister() cache.GenericLister {
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
 	// Group=sources.triggermesh.io, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithResource("awscloudwatchlogsources"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSCloudWatchLogSources().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("awscloudwatchlogssources"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSCloudWatchLogsSources().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("awscloudwatchsources"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Sources().V1alpha1().AWSCloudWatchSources().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("awscodecommitsources"):

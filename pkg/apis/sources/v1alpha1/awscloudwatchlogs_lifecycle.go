@@ -24,27 +24,27 @@ import (
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable.
-func (*AWSCloudWatchLogSource) GetGroupVersionKind() schema.GroupVersionKind {
-	return SchemeGroupVersion.WithKind("AWSCloudWatchLogSource")
+func (*AWSCloudWatchLogsSource) GetGroupVersionKind() schema.GroupVersionKind {
+	return SchemeGroupVersion.WithKind("AWSCloudWatchLogsSource")
 }
 
 // GetConditionSet implements duckv1.KRShaped.
-func (*AWSCloudWatchLogSource) GetConditionSet() apis.ConditionSet {
+func (*AWSCloudWatchLogsSource) GetConditionSet() apis.ConditionSet {
 	return eventSourceConditionSet
 }
 
 // GetStatus implements duckv1.KRShaped.
-func (s *AWSCloudWatchLogSource) GetStatus() *duckv1.Status {
+func (s *AWSCloudWatchLogsSource) GetStatus() *duckv1.Status {
 	return &s.Status.Status
 }
 
 // GetSink implements EventSource.
-func (s *AWSCloudWatchLogSource) GetSink() *duckv1.Destination {
+func (s *AWSCloudWatchLogsSource) GetSink() *duckv1.Destination {
 	return &s.Spec.Sink
 }
 
 // GetStatusManager implements EventSource.
-func (s *AWSCloudWatchLogSource) GetStatusManager() *EventSourceStatusManager {
+func (s *AWSCloudWatchLogsSource) GetStatusManager() *EventSourceStatusManager {
 	return &EventSourceStatusManager{
 		ConditionSet:      s.GetConditionSet(),
 		EventSourceStatus: &s.Status,
@@ -57,13 +57,13 @@ const (
 )
 
 // GetEventTypes implements EventSource.
-func (s *AWSCloudWatchLogSource) GetEventTypes() []string {
+func (s *AWSCloudWatchLogsSource) GetEventTypes() []string {
 	return []string{
 		AWSEventType(s.Spec.ARN.Service, AWSCloudWatchLogsGenericEventType),
 	}
 }
 
 // AsEventSource implements EventSource.
-func (s *AWSCloudWatchLogSource) AsEventSource() string {
+func (s *AWSCloudWatchLogsSource) AsEventSource() string {
 	return s.Spec.ARN.String()
 }

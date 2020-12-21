@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package awscloudwatchlogsource
+package awscloudwatchlogssource
 
 import (
 	"context"
@@ -26,8 +26,8 @@ import (
 	"knative.dev/pkg/controller"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
-	informerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awscloudwatchlogsource"
-	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscloudwatchlogsource"
+	informerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awscloudwatchlogssource"
+	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awscloudwatchlogssource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 )
 
@@ -37,7 +37,7 @@ func NewController(
 	cmw configmap.Watcher,
 ) *controller.Impl {
 
-	typ := (*v1alpha1.AWSCloudWatchLogSource)(nil)
+	typ := (*v1alpha1.AWSCloudWatchLogsSource)(nil)
 	app := common.AdapterName(typ)
 
 	// Calling envconfig.Process() with a prefix appends that prefix
