@@ -151,11 +151,10 @@ func TestAdapterCollectLogs(t *testing.T) {
 	assert.EqualValues(t, events[0].Type(), "com.amazon.logs.log")
 	assert.EqualValues(t, events[0].Source(), logStreamArn.String())
 
-	var logRecord []cloudwatchlogs.OutputLogEvent
+	var logRecord cloudwatchlogs.OutputLogEvent
 	err := events[0].DataAs(&logRecord)
 	assert.NoError(t, err)
-	assert.Len(t, logRecord, 1)
-	assert.EqualValues(t, outputEvent, logRecord[0])
+	assert.EqualValues(t, outputEvent, logRecord)
 }
 
 // makeARN returns a fake CloudWatch Log Group ARN for the given resource.

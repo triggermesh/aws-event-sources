@@ -21,7 +21,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
@@ -144,7 +143,6 @@ func (a *adapter) Start(ctx context.Context) error {
 }
 
 func (a *adapter) CollectLogs(priorTime *time.Time, currentTime time.Time) {
-	id := uuid.New() // In case multiple pages of log events need to be sent, keep the id consistent
 	a.logger.Debug("Firing logs")
 	startTime := currentTime.Add(-a.pollingInterval).Unix() * 1000
 
@@ -177,13 +175,8 @@ func (a *adapter) CollectLogs(priorTime *time.Time, currentTime time.Time) {
 				continue
 			}
 
-			page := 1 // Indicate number of pages of events
+			// Send out an event for every entry
 			err := a.cwLogsClient.GetLogEventsPages(logRequest, func(logOutput *cloudwatchlogs.GetLogEventsOutput, lastPage bool) bool {
-				event := cloudevents.NewEvent(cloudevents.VersionV1)
-				event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSCloudWatchLogsGenericEventType))
-				event.SetSource(a.arn.String())
-				event.SetID(id.String())
-
 				// If there are no entries, then skip sending events
 				if len(logOutput.Events) == 0 {
 					a.logger.Debug("no log events sent")
@@ -198,18 +191,23 @@ func (a *adapter) CollectLogs(priorTime *time.Time, currentTime time.Time) {
 					}
 				}
 
-				err := event.SetData(cloudevents.ApplicationJSON, logOutput.Events)
-				if err != nil {
-					a.logger.Errorf("failed to set event data: %v", err)
-					return false
+				for _, v := range trimmedLogOutput {
+					event := cloudevents.NewEvent(cloudevents.VersionV1)
+					event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSCloudWatchLogsGenericEventType))
+					event.SetSource(a.arn.String())
+
+					err := event.SetData(cloudevents.ApplicationJSON, v)
+					if err != nil {
+						a.logger.Errorf("failed to set event data: %v", err)
+						return false
+					}
+
+					if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
+						a.logger.Errorf("failed to send event data: %v", err)
+						return false
+					}
 				}
 
-				if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
-					a.logger.Errorf("failed to send event data: %v", err)
-					return false
-				}
-
-				page++
 				return !lastPage
 			})
 
