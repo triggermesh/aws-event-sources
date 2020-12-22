@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"sync"
 	"time"
 
 	"go.uber.org/zap"
@@ -95,17 +94,6 @@ const (
 
 // Start implements adapter.Adapter.
 func (a *adapter) Start(ctx context.Context) error {
-	// ctx gets canceled to stop goroutines
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	// handle stop signals
-	go func() {
-		<-ctx.Done()
-		a.logger.Info("Shutdown signal received. Terminating")
-		cancel()
-	}()
-
 	http.HandleFunc("/", a.handleNotification)
 	http.HandleFunc("/health", healthCheckHandler)
 
@@ -113,13 +101,9 @@ func (a *adapter) Start(ctx context.Context) error {
 	serverErrCh := make(chan error)
 	defer close(serverErrCh)
 
-	var wg sync.WaitGroup
-
-	wg.Add(1)
 	go func() {
 		a.logger.Info("Serving on port " + serverPort)
 		serverErrCh <- server.ListenAndServe()
-		wg.Done()
 	}()
 
 	var err error
@@ -129,14 +113,13 @@ func (a *adapter) Start(ctx context.Context) error {
 		if serverErr != nil {
 			err = fmt.Errorf("failure during runtime of SNS notification handler: %w", serverErr)
 		}
-		cancel()
 
 	case <-ctx.Done():
 		a.logger.Info("Shutting server down")
 
-		shutdownCtx, cancelTimeout := context.WithTimeout(ctx, serverShutdownGracePeriod)
-		defer cancelTimeout()
-		if shutdownErr := server.Shutdown(shutdownCtx); shutdownErr != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), serverShutdownGracePeriod)
+		defer cancel()
+		if shutdownErr := server.Shutdown(ctx); shutdownErr != nil {
 			err = fmt.Errorf("error during server shutdown: %w", shutdownErr)
 		}
 
@@ -144,7 +127,6 @@ func (a *adapter) Start(ctx context.Context) error {
 		<-serverErrCh
 	}
 
-	wg.Wait()
 	return err
 }
 
