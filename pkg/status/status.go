@@ -189,7 +189,7 @@ func isResourceMissingError(reason, msg string) (bool, string /*resource type*/)
 			}
 			continue
 		}
-		// break on the first occurence of a non-letter char
+		// break on the first occurrence of a non-letter char
 		typeBeginningIdx = i
 		break
 	}
