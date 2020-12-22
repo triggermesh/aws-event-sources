@@ -18,6 +18,10 @@ limitations under the License.
 
 package v1alpha1
 
+type AWSCloudWatchLogsSourceExpansion interface{}
+
+type AWSCloudWatchSourceExpansion interface{}
+
 type AWSCodeCommitSourceExpansion interface{}
 
 type AWSCognitoIdentitySourceExpansion interface{}

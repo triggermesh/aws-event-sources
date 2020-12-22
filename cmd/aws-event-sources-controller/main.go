@@ -19,6 +19,8 @@ package main
 import (
 	"knative.dev/pkg/injection/sharedmain"
 
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscloudwatchlogssource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscloudwatchsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscodecommitsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitoidentitysource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitouserpoolsource"
@@ -31,6 +33,8 @@ import (
 
 func main() {
 	sharedmain.Main("aws-event-sources-controller",
+		awscloudwatchlogssource.NewController,
+		awscloudwatchsource.NewController,
 		awscodecommitsource.NewController,
 		awscognitoidentitysource.NewController,
 		awscognitouserpoolsource.NewController,

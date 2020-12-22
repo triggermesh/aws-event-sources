@@ -22,6 +22,18 @@ import "k8s.io/apimachinery/pkg/runtime/schema"
 const GroupName = "sources.triggermesh.io"
 
 var (
+	// AWSCodeCommitSourceResource respresents an event source for AWS CloudWatch.
+	AWSCloudWatchSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awscloudwatchsources",
+	}
+
+	// AWSCloudWatchLogsSourceResource respresents an event source for AWS CloudWatch Logs.
+	AWSCloudWatchLogsSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awscloudwatchlogssources",
+	}
+
 	// AWSCodeCommitSourceResource respresents an event source for AWS CodeCommit.
 	AWSCodeCommitSourceResource = schema.GroupResource{
 		Group:    GroupName,

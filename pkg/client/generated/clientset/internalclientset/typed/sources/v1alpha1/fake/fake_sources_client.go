@@ -28,6 +28,14 @@ type FakeSourcesV1alpha1 struct {
 	*testing.Fake
 }
 
+func (c *FakeSourcesV1alpha1) AWSCloudWatchLogsSources(namespace string) v1alpha1.AWSCloudWatchLogsSourceInterface {
+	return &FakeAWSCloudWatchLogsSources{c, namespace}
+}
+
+func (c *FakeSourcesV1alpha1) AWSCloudWatchSources(namespace string) v1alpha1.AWSCloudWatchSourceInterface {
+	return &FakeAWSCloudWatchSources{c, namespace}
+}
+
 func (c *FakeSourcesV1alpha1) AWSCodeCommitSources(namespace string) v1alpha1.AWSCodeCommitSourceInterface {
 	return &FakeAWSCodeCommitSources{c, namespace}
 }

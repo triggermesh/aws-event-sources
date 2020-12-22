@@ -36,6 +36,8 @@ var (
 // addKnownTypes adds all this custom API's types to Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
+		&AWSCloudWatchSource{}, &AWSCloudWatchSourceList{},
+		&AWSCloudWatchLogsSource{}, &AWSCloudWatchLogsSourceList{},
 		&AWSCodeCommitSource{}, &AWSCodeCommitSourceList{},
 		&AWSCognitoIdentitySource{}, &AWSCognitoUserPoolSourceList{},
 		&AWSCognitoUserPoolSource{}, &AWSCognitoUserPoolSourceList{},

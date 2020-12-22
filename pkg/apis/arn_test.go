@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMarshalString(t *testing.T) {
+func TestStringARN(t *testing.T) {
 	in := ARN{
 		Partition: "aws",
 		Service:   "some-service",
@@ -109,10 +109,10 @@ func TestUnmarshalARN(t *testing.T) {
 	for _, tc := range testCases {
 		//nolint:scopelint
 		t.Run(tc.name, func(t *testing.T) {
-			resID := &ARN{}
-			err := json.Unmarshal([]byte(tc.input), resID)
+			arn := &ARN{}
+			err := json.Unmarshal([]byte(tc.input), arn)
 
-			assert.Equal(t, tc.expectOutput, *resID)
+			assert.Equal(t, tc.expectOutput, *arn)
 
 			if errStr := tc.expectErrContains; errStr != "" {
 				assert.Contains(t, err.Error(), errStr)
