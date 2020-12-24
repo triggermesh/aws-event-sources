@@ -29,7 +29,7 @@ spec:
   group: sources.triggermesh.io
   scope: Namespaced
   names:
-    kind: awscloudwatchlogssource
+    kind: AWSCloudWatchLogsSource
     plural: awscloudwatchlogssources
     categories:
     - all
