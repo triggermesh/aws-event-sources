@@ -37,6 +37,8 @@ type adapterConfig struct {
 	configs source.ConfigAccessor
 }
 
+const healthPortName = "health"
+
 // adapterDeploymentBuilder returns an AdapterDeploymentBuilderFunc for the
 // given source object and adapter config.
 func adapterDeploymentBuilder(src *v1alpha1.AWSCognitoUserPoolSource, cfg *adapterConfig) common.AdapterDeploymentBuilderFunc {
@@ -73,6 +75,9 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCognitoUserPoolSource, cfg *adapt
 			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
 			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
+
+			resource.Port(healthPortName, 8080),
+			resource.Probe("/health", healthPortName),
 		)
 	}
 }

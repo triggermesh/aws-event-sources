@@ -40,6 +40,10 @@ func (m mockedCognitoUserPoolClient) ListUsers(in *cognitoidentityprovider.ListU
 	return &m.listUsersOutput, nil
 }
 
+func (mockedCognitoUserPoolClient) DescribeUserPool(*cognitoidentityprovider.DescribeUserPoolInput) (*cognitoidentityprovider.DescribeUserPoolOutput, error) {
+	return &cognitoidentityprovider.DescribeUserPoolOutput{}, nil
+}
+
 func TestListUsers(t *testing.T) {
 	user := cognitoidentityprovider.UserType{
 		UserLastModifiedDate: aws.Time(time.Now()),

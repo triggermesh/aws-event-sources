@@ -36,6 +36,7 @@ import (
 	"knative.dev/pkg/logging"
 
 	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/common/health"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
@@ -89,6 +90,14 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 // Start implements adapter.Adapter.
 func (a *adapter) Start(ctx context.Context) error {
+	go health.Start(ctx)
+
+	if err := validatePool(a.cgnIdentityClient, a.userPoolID); err != nil {
+		return fmt.Errorf("validating user pool: %w", err)
+	}
+
+	health.MarkReady()
+
 	a.logger.Infof("Listening to AWS Cognito User Pool: %s", a.userPoolID)
 
 	var latestTimestamp time.Time
@@ -167,4 +176,12 @@ func (a *adapter) sendCognitoEvent(user *cognitoidentityprovider.UserType) error
 		return result
 	}
 	return nil
+}
+
+// validatePool ensures the pool with the given ID exists.
+func validatePool(cli cognitoidentityprovideriface.CognitoIdentityProviderAPI, poolID string) error {
+	_, err := cli.DescribeUserPool(&cognitoidentityprovider.DescribeUserPoolInput{
+		UserPoolId: &poolID,
+	})
+	return err
 }
