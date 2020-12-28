@@ -18,6 +18,7 @@ package semantic
 
 import (
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/conversion"
@@ -39,7 +40,7 @@ var Semantic = conversion.EqualitiesOrDie(
 )
 
 // eq is an instance of Equalities for internal deep derivative comparisons
-// of API objects. Adapted from "k8s.io/apimachinery/equality".Semantic.
+// of API objects. Adapted from "k8s.io/apimachinery/pkg/api/equality".Semantic.
 var eq = conversion.EqualitiesOrDie(
 	func(a, b resource.Quantity) bool {
 		if a.IsZero() {
@@ -58,6 +59,34 @@ var eq = conversion.EqualitiesOrDie(
 			return true
 		}
 		return a == b
+	},
+	// Needed because DeepDerivative compares int values directly, which
+	// doesn't yield the expected result with defaulted int32 probe fields.
+	func(a, b *corev1.Probe) bool {
+		if a == nil {
+			return true
+		}
+		if b == nil {
+			return false
+		}
+
+		if a.InitialDelaySeconds != 0 && a.InitialDelaySeconds != b.InitialDelaySeconds {
+			return false
+		}
+		if a.TimeoutSeconds != 0 && a.TimeoutSeconds != b.TimeoutSeconds {
+			return false
+		}
+		if a.PeriodSeconds != 0 && a.PeriodSeconds != b.PeriodSeconds {
+			return false
+		}
+		if a.SuccessThreshold != 0 && a.SuccessThreshold != b.SuccessThreshold {
+			return false
+		}
+		if a.FailureThreshold != 0 && a.FailureThreshold != b.FailureThreshold {
+			return false
+		}
+
+		return (conversion.Equalities{}).DeepDerivative(a.Handler, b.Handler)
 	},
 )
 
