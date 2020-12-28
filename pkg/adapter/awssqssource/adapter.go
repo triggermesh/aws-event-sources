@@ -37,6 +37,7 @@ import (
 	"knative.dev/pkg/logging"
 
 	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/common/health"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources"
 )
 
@@ -126,11 +127,15 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 // Start implements adapter.Adapter.
 func (a *adapter) Start(ctx context.Context) error {
+	go health.Start(ctx)
+
 	url, err := a.queueLookup(a.arn.Resource)
 	if err != nil {
 		a.logger.Errorw("Unable to find URL of SQS queue "+a.arn.Resource, zap.Error(err))
 		return err
 	}
+
+	health.MarkReady()
 
 	queueURL := *url.QueueUrl
 	a.logger.Infof("Listening to SQS queue at URL: %s", queueURL)
@@ -178,7 +183,7 @@ func (a *adapter) Start(ctx context.Context) error {
 	return nil
 }
 
-// queueLookup finds the URL for a given queue name in the user's env.
+// queueLookup finds the URL for a given queue name in the user's account.
 // Needs to be an exact match to queue name and queue must be unique name in the AWS account.
 func (a *adapter) queueLookup(queueName string) (*sqs.GetQueueUrlOutput, error) {
 	return a.sqsClient.GetQueueUrl(&sqs.GetQueueUrlInput{

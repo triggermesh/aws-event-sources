@@ -38,6 +38,8 @@ type adapterConfig struct {
 	configs source.ConfigAccessor
 }
 
+const healthPortName = "health"
+
 // adapterDeploymentBuilder returns an AdapterDeploymentBuilderFunc for the
 // given source object and adapter config.
 func adapterDeploymentBuilder(src *v1alpha1.AWSSQSSource, cfg *adapterConfig) common.AdapterDeploymentBuilderFunc {
@@ -75,7 +77,10 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSSQSSource, cfg *adapterConfig) co
 			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
 
+			resource.Port(healthPortName, 8080),
 			resource.Port("metrics", 9090),
+
+			resource.Probe("/health", healthPortName),
 
 			// CPU throttling can be observed below a limit of 1,
 			// although the CPU usage under load remains below 400m.
