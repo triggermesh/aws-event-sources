@@ -40,6 +40,7 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 		Port("health", 8081),
 		Label("test.label/1", "val1"),
 		Probe("/health", "health"),
+		StartupProbe("/initialized", "health"),
 		EnvVars(makeEnvVars(2, "MULTI_ENV", "val")...),
 		EnvVar("TEST_ENV2", "val2"),
 		Label("test.label/2", "val2"),
@@ -103,6 +104,16 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 									Port: intstr.FromString("health"),
 								},
 							},
+							InitialDelaySeconds: 2,
+						},
+						StartupProbe: &corev1.Probe{
+							Handler: corev1.Handler{
+								HTTPGet: &corev1.HTTPGetAction{
+									Path: "/initialized",
+									Port: intstr.FromString("health"),
+								},
+							},
+							PeriodSeconds: 1,
 						},
 						Resources: corev1.ResourceRequirements{
 							Requests: corev1.ResourceList{

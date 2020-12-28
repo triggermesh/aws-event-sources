@@ -163,6 +163,34 @@ func Probe(path, port string) ObjectOption {
 					Port: intstrPort,
 				},
 			},
+			// TODO(antoineco): remove delay after switching to StartupProbe, which is enabled by default
+			// starting with Kubernetes 1.18.
+			// Ref. https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/
+			InitialDelaySeconds: 2,
+		}
+	}
+}
+
+// StartupProbe sets the HTTP startup probe of a Deployment's first container.
+func StartupProbe(path, port string) ObjectOption {
+	return func(object interface{}) {
+		var sp **corev1.Probe
+
+		switch o := object.(type) {
+		case *corev1.Container:
+			sp = &o.StartupProbe
+		case *appsv1.Deployment:
+			sp = &firstContainer(o).StartupProbe
+		}
+
+		*sp = &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: path,
+					Port: intstr.FromString(port),
+				},
+			},
+			PeriodSeconds: 1,
 		}
 	}
 }

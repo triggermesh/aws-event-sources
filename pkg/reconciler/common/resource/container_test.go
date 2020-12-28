@@ -35,6 +35,7 @@ func TestNewContainer(t *testing.T) {
 		EnvVars(makeEnvVars(2, "MULTI_ENV", "val")...),
 		EnvVar("TEST_ENV2", "val2"),
 		Probe("/health", "health"),
+		StartupProbe("/initialized", "health"),
 		EnvVarFromSecret("TEST_ENV3", "test-secret", "someKey"),
 		Requests(resource.MustParse("250m"), resource.MustParse("100Mi")),
 		Limits(resource.MustParse("250m"), resource.MustParse("100Mi")),
@@ -80,6 +81,16 @@ func TestNewContainer(t *testing.T) {
 					Port: intstr.FromString("health"),
 				},
 			},
+			InitialDelaySeconds: 2,
+		},
+		StartupProbe: &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path: "/initialized",
+					Port: intstr.FromString("health"),
+				},
+			},
+			PeriodSeconds: 1,
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
