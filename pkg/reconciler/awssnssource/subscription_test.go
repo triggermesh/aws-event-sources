@@ -17,17 +17,22 @@ limitations under the License.
 package awssnssource
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/service/sns"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
@@ -177,6 +182,40 @@ func TestAwsCredentials(t *testing.T) {
 			assert.Equal(t, tc.getRequests, len(cli.Actions()), "Number of API requests")
 		})
 	}
+}
+
+func TestErrors(t *testing.T) {
+	genericErr := assert.AnError
+	genericAWSErr := awserr.New("TestError", "an error", assert.AnError)
+	genericK8SErr := &apierrors.StatusError{}
+
+	t.Run("AWS error", func(t *testing.T) {
+		assert.True(t, isAWSError(genericAWSErr))
+		assert.True(t, isAWSError(fmt.Errorf("wrapped: %w", genericAWSErr)))
+		assert.False(t, isAWSError(genericErr))
+	})
+
+	t.Run("denied", func(t *testing.T) {
+		deniedErr := awserr.New(sns.ErrCodeAuthorizationErrorException, "an error", assert.AnError)
+
+		assert.True(t, isDenied(deniedErr))
+		assert.True(t, isDenied(fmt.Errorf("wrapped: %w", deniedErr)))
+		assert.False(t, isDenied(genericAWSErr))
+		assert.False(t, isDenied(genericErr))
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		notFoundAWSErr := awserr.New(sns.ErrCodeNotFoundException, "an error", assert.AnError)
+		notFoundK8SErr := apierrors.NewNotFound(schema.GroupResource{}, "")
+
+		assert.True(t, isNotFound(notFoundAWSErr))
+		assert.True(t, isNotFound(fmt.Errorf("wrapped: %w", notFoundAWSErr)))
+		assert.True(t, isNotFound(notFoundK8SErr))
+		assert.True(t, isNotFound(fmt.Errorf("wrapped: %w", notFoundK8SErr)))
+		assert.False(t, isNotFound(genericAWSErr))
+		assert.False(t, isNotFound(genericK8SErr))
+		assert.False(t, isNotFound(genericErr))
+	})
 }
 
 func newSecret(ns, name string, data map[string]string) *corev1.Secret {
