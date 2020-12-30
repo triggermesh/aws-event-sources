@@ -61,4 +61,11 @@ func TestErrors(t *testing.T) {
 		assert.False(t, isNotFound(genericK8SErr))
 		assert.False(t, isNotFound(genericErr))
 	})
+
+	t.Run("print error", func(t *testing.T) {
+		awssErrWithExtra := awserr.NewRequestFailure(genericAWSErr, 400, "0123456789")
+
+		assert.Equal(t, genericAWSErr.Error(), toErrMsg(awssErrWithExtra), "Extras not trimmed from AWS error")
+		assert.Equal(t, genericErr.Error(), toErrMsg(genericErr), "Error was altered")
+	})
 }

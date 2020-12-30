@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,16 +21,22 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/service/sns"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	clientgotesting "k8s.io/client-go/testing"
 
 	"knative.dev/eventing/pkg/reconciler/source"
-	fakek8sinjectionclient "knative.dev/pkg/client/injection/kube/client/fake"
+	"knative.dev/pkg/apis"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
+	rt "knative.dev/pkg/reconciler/testing"
 	"knative.dev/pkg/resolver"
+	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 	fakeservinginjectionclient "knative.dev/serving/pkg/client/injection/client/fake"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources"
@@ -38,15 +44,11 @@ import (
 	fakeinjectionclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client/fake"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awssnssource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
+	eventtesting "github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event/testing"
 	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
 )
 
 func TestReconcileSource(t *testing.T) {
-	adapterCfg := &adapterConfig{
-		Image:   "registry/image:tag",
-		configs: &source.EmptyVarsGenerator{},
-	}
-
 	var (
 		ctor      = reconcilerCtor(adapterCfg)
 		src       = newEventSource()
@@ -58,22 +60,40 @@ func TestReconcileSource(t *testing.T) {
 
 // reconcilerCtor returns a Ctor for a AWSSNSSource Reconciler.
 func reconcilerCtor(cfg *adapterConfig) Ctor {
-	return func(t *testing.T, ctx context.Context, ls *Listers) controller.Reconciler {
+	return func(t *testing.T, ctx context.Context, tr *rt.TableRow, ls *Listers) controller.Reconciler {
 		base := common.GenericServiceReconciler{
 			SinkResolver: resolver.NewURIResolver(ctx, func(types.NamespacedName) {}),
 			Lister:       ls.GetServiceLister().Services,
 			Client:       fakeservinginjectionclient.Get(ctx).ServingV1().Services,
 		}
 
+		snsCli := &mockedSNSClient{
+			subscriptions: getMockSubscriptionsPages(tr),
+		}
+
+		// inject client into test data so that table tests can perform
+		// assertions on it
+		if tr.OtherTestData == nil {
+			tr.OtherTestData = make(map[string]interface{}, 1)
+		}
+		tr.OtherTestData[testClientDataKey] = snsCli
+
 		r := &Reconciler{
 			base:       base,
 			adapterCfg: cfg,
+			snsCg:      staticClientGetter(snsCli),
 		}
 
 		return reconcilerv1alpha1.NewReconciler(ctx, logging.FromContext(ctx),
 			fakeinjectionclient.Get(ctx), ls.GetAWSSNSSourceLister(),
 			controller.GetEventRecorder(ctx), r)
 	}
+}
+
+// adapterCfg is used in every instance of Reconciler defined in reconciler tests.
+var adapterCfg = &adapterConfig{
+	Image:   "registry/image:tag",
+	configs: &source.EmptyVarsGenerator{},
 }
 
 // newEventSource returns a test source object with a minimal set of pre-filled attributes.
@@ -112,4 +132,327 @@ func newEventSource() *v1alpha1.AWSSNSSource {
 	Populate(src)
 
 	return src
+}
+
+// TestReconcileSubscription contains tests specific to the SNS source.
+func TestReconcileSubscription(t *testing.T) {
+	testCases := rt.TableTest{
+		// Regular lifecycle
+
+		{
+			Name:          "Not yet subscribed",
+			Key:           tKey,
+			OtherTestData: makeMockSubscriptionsPages(false),
+			Objects: []runtime.Object{
+				newReconciledSource(),
+				newReconciledAdapter(),
+			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: newReconciledSource(subscribed),
+			}},
+			WantEvents: []string{
+				subscribedEvent(),
+			},
+			PostConditions: []func(*testing.T, *rt.TableRow){
+				calledSubscribe(true),
+			},
+		},
+		{
+			Name:          "Already subscribed",
+			Key:           tKey,
+			OtherTestData: makeMockSubscriptionsPages(true),
+			Objects: []runtime.Object{
+				newReconciledSource(subscribed),
+				newReconciledAdapter(),
+			},
+			PostConditions: []func(*testing.T, *rt.TableRow){
+				calledSubscribe(false),
+			},
+		},
+
+		// Finalization
+
+		{
+			Name:          "Deletion while subscribed",
+			Key:           tKey,
+			OtherTestData: makeMockSubscriptionsPages(true),
+			Objects: []runtime.Object{
+				newReconciledSource(subscribed, deleted),
+				newReconciledAdapter(),
+			},
+			WantPatches: []clientgotesting.PatchActionImpl{
+				unsetFinalizerPatch(),
+			},
+			WantEvents: []string{
+				finalizedEvent(),
+				unsubscribedEvent(),
+			},
+			PostConditions: []func(*testing.T, *rt.TableRow){
+				calledUnsubscribe(true),
+			},
+		},
+		{
+			Name:          "Deletion while not subscribed",
+			Key:           tKey,
+			OtherTestData: makeMockSubscriptionsPages(false),
+			Objects: []runtime.Object{
+				newReconciledSource(deleted),
+				newReconciledAdapter(),
+			},
+			WantPatches: []clientgotesting.PatchActionImpl{
+				unsetFinalizerPatch(),
+			},
+			WantEvents: []string{
+				finalizedEvent(),
+				skippedUnsubscribeEvent(),
+			},
+			PostConditions: []func(*testing.T, *rt.TableRow){
+				calledUnsubscribe(false),
+			},
+		},
+	}
+
+	ctor := reconcilerCtor(adapterCfg)
+
+	testCases.Test(t, MakeFactory(ctor))
+}
+
+// tNs/tName match the namespace/name set by (reconciler/testing).Populate.
+const (
+	tNs   = "testns"
+	tName = "test"
+	tKey  = tNs + "/" + tName
+)
+
+var (
+	tSinkURI = &apis.URL{
+		Scheme: "http",
+		Host:   "default.default.svc.example.com",
+		Path:   "/",
+	}
+
+	tAdapterURI = &apis.URL{
+		Scheme: "http",
+		Host:   "public.example.com",
+		Path:   "/",
+	}
+)
+
+/* Source and receive adapter */
+
+// sourceOption is a functional option for an event source.
+type sourceOption func(*v1alpha1.AWSSNSSource)
+
+// newReconciledSource returns a test event source object that is identical to
+// what ReconcileKind generates.
+func newReconciledSource(opts ...sourceOption) *v1alpha1.AWSSNSSource {
+	src := newEventSource()
+
+	// assume the sink URI is resolved
+	src.Spec.Sink.Ref = nil
+	src.Spec.Sink.URI = tSinkURI
+
+	// assume status conditions are already set to True to ensure
+	// ReconcileKind is a no-op
+	status := src.GetStatusManager()
+	status.MarkSink(tSinkURI)
+	status.PropagateServiceAvailability(newReconciledAdapter())
+
+	for _, opt := range opts {
+		opt(src)
+	}
+
+	return src
+}
+
+var (
+	tTopicARN = NewARN(sns.ServiceName, "triggermeshtest")
+	tSubARN   = NewARN(sns.ServiceName, "triggermeshtest/0123456789")
+)
+
+// subscribed sets the Subscribed status condition to True and reports the ARN
+// of the SNS subscription in the source's status.
+func subscribed(src *v1alpha1.AWSSNSSource) {
+	src.Status.MarkSubscribed(tSubARN.String())
+}
+
+// deleted marks the source as deleted.
+func deleted(src *v1alpha1.AWSSNSSource) {
+	t := metav1.Unix(0, 0)
+	src.SetDeletionTimestamp(&t)
+}
+
+// newReconciledAdapter returns a test receive adapter object that is identical
+// to what ReconcileKind generates.
+func newReconciledAdapter() *servingv1.Service {
+	adapter := adapterServiceBuilder(newEventSource(), adapterCfg)(tSinkURI)
+
+	adapter.Status.SetConditions(apis.Conditions{{
+		Type:   v1alpha1.ConditionReady,
+		Status: corev1.ConditionTrue,
+	}})
+	adapter.Status.URL = tAdapterURI
+
+	return adapter
+}
+
+/* SNS client */
+
+// staticClientGetter transforms the given client interface into a
+// ClientGetter.
+func staticClientGetter(cli Client) clientGetterFunc {
+	return func(*v1alpha1.AWSSNSSource) (Client, error) {
+		return cli, nil
+	}
+}
+
+const testClientDataKey = "client"
+
+type mockSubscriptionsPages map[ /*token*/ *string][]*sns.Subscription
+
+type mockedSNSClient struct {
+	Client
+
+	subscriptions mockSubscriptionsPages
+
+	calledSubscribe   bool
+	calledUnsubscribe bool
+}
+
+func (c *mockedSNSClient) SubscribeWithContext(aws.Context, *sns.SubscribeInput,
+	...request.Option) (*sns.SubscribeOutput, error) {
+
+	c.calledSubscribe = true
+
+	return &sns.SubscribeOutput{
+		SubscriptionArn: aws.String(tSubARN.String()),
+	}, nil
+}
+
+func (c *mockedSNSClient) UnsubscribeWithContext(aws.Context, *sns.UnsubscribeInput,
+	...request.Option) (*sns.UnsubscribeOutput, error) {
+
+	c.calledUnsubscribe = true
+
+	return &sns.UnsubscribeOutput{}, nil
+}
+
+var page2Token = aws.String("page2token")
+
+func (c *mockedSNSClient) ListSubscriptionsByTopicWithContext(_ aws.Context, in *sns.ListSubscriptionsByTopicInput,
+	_ ...request.Option) (*sns.ListSubscriptionsByTopicOutput, error) {
+
+	if len(c.subscriptions) == 0 {
+		return &sns.ListSubscriptionsByTopicOutput{}, nil
+	}
+
+	var nextToken *string
+	if in.NextToken == nil {
+		nextToken = page2Token
+	}
+
+	return &sns.ListSubscriptionsByTopicOutput{
+		Subscriptions: c.subscriptions[in.NextToken],
+		NextToken:     nextToken,
+	}, nil
+}
+
+// makeMockSubscriptionsPages returns mocked pages of SNS Subscriptions to be
+// used as TableRow data.
+func makeMockSubscriptionsPages(subExists bool) map[string]interface{} {
+	pages := make(mockSubscriptionsPages, 2)
+
+	var wrongSubURL = aws.String("http://not-my-sub.example.com")
+	var wrongSubARN = aws.String("aws:sns:not:my:sub")
+
+	var okSubURL = aws.String(tAdapterURI.String())
+	var okSubARN = aws.String(tSubARN.String())
+
+	// first page, retrieved without NextToken
+	pages[new(string)] = []*sns.Subscription{
+		{Endpoint: wrongSubURL, SubscriptionArn: wrongSubARN},
+		{Endpoint: wrongSubURL, SubscriptionArn: wrongSubARN},
+		{Endpoint: wrongSubURL, SubscriptionArn: wrongSubARN},
+	}
+
+	// second page, retrieved with NextToken
+	pages[page2Token] = []*sns.Subscription{
+		{Endpoint: wrongSubURL, SubscriptionArn: wrongSubARN},
+		{Endpoint: wrongSubURL, SubscriptionArn: wrongSubARN},
+		{Endpoint: wrongSubURL, SubscriptionArn: wrongSubARN},
+	}
+
+	// inject the expected Subscription in the second page if requested, at
+	// a non-zero index to ensure handles pagination correctly
+	if subExists {
+		pages[page2Token][1].Endpoint = okSubURL
+		pages[page2Token][1].SubscriptionArn = okSubARN
+	}
+
+	return map[string]interface{}{
+		mockSubscriptionsPagesDataKey: pages,
+	}
+}
+
+const mockSubscriptionsPagesDataKey = "subpages"
+
+// getMockSubscriptionsPages gets mocked pages of SNS Subscriptions from the
+// TableRow's data.
+func getMockSubscriptionsPages(tr *rt.TableRow) mockSubscriptionsPages {
+	pages, ok := tr.OtherTestData[mockSubscriptionsPagesDataKey]
+	if !ok {
+		return nil
+	}
+	return pages.(mockSubscriptionsPages)
+}
+
+func calledSubscribe(expectCall bool) func(*testing.T, *rt.TableRow) {
+	return func(t *testing.T, tr *rt.TableRow) {
+		cli := tr.OtherTestData[testClientDataKey].(*mockedSNSClient)
+
+		if expectCall && !cli.calledSubscribe {
+			t.Error("Did not call Subscribe()")
+		}
+		if !expectCall && cli.calledSubscribe {
+			t.Error("Unexpected call to Subscribe()")
+		}
+	}
+}
+
+func calledUnsubscribe(expectCall bool) func(*testing.T, *rt.TableRow) {
+	return func(t *testing.T, tr *rt.TableRow) {
+		cli := tr.OtherTestData[testClientDataKey].(*mockedSNSClient)
+
+		if expectCall && !cli.calledUnsubscribe {
+			t.Error("Did not call Unsubscribe()")
+		}
+		if !expectCall && cli.calledUnsubscribe {
+			t.Error("Unexpected call to Unsubscribe()")
+		}
+	}
+}
+
+/* Patches */
+
+func unsetFinalizerPatch() clientgotesting.PatchActionImpl {
+	return clientgotesting.PatchActionImpl{
+		Name:      tName,
+		PatchType: types.MergePatchType,
+		Patch:     []byte(`{"metadata":{"finalizers":[],"resourceVersion":""}}`),
+	}
+}
+
+/* Events */
+
+func subscribedEvent() string {
+	return eventtesting.Eventf(corev1.EventTypeNormal, ReasonSubscribed, "Subscribed to SNS topic %q", tTopicARN)
+}
+func unsubscribedEvent() string {
+	return eventtesting.Eventf(corev1.EventTypeNormal, ReasonUnsubscribed, "Unsubscribed from SNS topic %q", tTopicARN)
+}
+func skippedUnsubscribeEvent() string {
+	return eventtesting.Eventf(corev1.EventTypeNormal, ReasonUnsubscribed, "Subscription already absent, skipping finalization")
+}
+func finalizedEvent() string {
+	return eventtesting.Eventf(corev1.EventTypeNormal, "FinalizerUpdate", "Updated %q finalizers", tName)
 }

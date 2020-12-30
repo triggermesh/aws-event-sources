@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -97,14 +97,17 @@ var awsSNSSourceConditionSet = NewEventSourceConditionSet(
 	AWSSNSConditionSubscribed,
 )
 
-// MarkSubscribed sets the Subscribed condition to True.
-func (s *AWSSNSSourceStatus) MarkSubscribed() {
+// MarkSubscribed sets the Subscribed condition to True and reports the ARN of
+// the SNS subscription.
+func (s *AWSSNSSourceStatus) MarkSubscribed(subARN string) {
+	s.SubscriptionARN = &subARN
 	awsSNSSourceConditionSet.Manage(s).MarkTrue(AWSSNSConditionSubscribed)
 }
 
 // MarkNotSubscribed sets the Subscribed condition to False with the given
 // reason and associated message.
 func (s *AWSSNSSourceStatus) MarkNotSubscribed(reason, msg string) {
+	s.SubscriptionARN = nil
 	awsSNSSourceConditionSet.Manage(s).MarkFalse(AWSSNSConditionSubscribed,
 		reason, msg)
 }

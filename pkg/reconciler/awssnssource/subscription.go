@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -94,15 +94,13 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 			return fmt.Errorf("%w", subscribeErrorEvent(url, topicARN, err))
 		}
 
-		return reconciler.NewEvent(corev1.EventTypeNormal, ReasonSubscribed,
-			"Subscribed to SNS topic %q", topicARN)
+		event.Normal(ctx, ReasonSubscribed, "Subscribed to SNS topic %q", topicARN)
 
 	case err != nil:
 		return fmt.Errorf("finding subscription: %w", err)
 	}
 
-	status.MarkSubscribed()
-	status.SubscriptionARN = &subsARN
+	status.MarkSubscribed(subsARN)
 
 	return nil
 }
@@ -202,7 +200,7 @@ func findSubscription(ctx context.Context, cli snsiface.SNSAPI, topicARN, endpoi
 
 		out, err = cli.ListSubscriptionsByTopicWithContext(ctx, in)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("listing subscriptions for topic: %w", err)
 		}
 
 		if initialRequest {
@@ -231,7 +229,7 @@ func subscribe(ctx context.Context, cli snsiface.SNSAPI, topicARN string,
 		ReturnSubscriptionArn: aws.Bool(true),
 	})
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("subscribing to topic: %w", err)
 	}
 
 	logging.FromContext(ctx).Debug("Subscribe responded with: ", resp)
@@ -245,7 +243,7 @@ func unsubscribe(ctx context.Context, cli snsiface.SNSAPI, subsARN string) error
 		SubscriptionArn: &subsARN,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("unsubscribing from topic: %w", err)
 	}
 
 	logging.FromContext(ctx).Debug("Unsubscribe responded with: ", resp)

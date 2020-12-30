@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ import (
 )
 
 // Ctor constructs a controller.Reconciler.
-type Ctor func(*testing.T, context.Context, *Listers) controller.Reconciler
+type Ctor func(*testing.T, context.Context, *rt.TableRow, *Listers) controller.Reconciler
 
 // MakeFactory creates a testing factory for our controller.Reconciler, and
 // initializes a Reconciler using the given Ctor as part of the process.
@@ -78,7 +78,7 @@ func MakeFactory(ctor Ctor) rt.Factory {
 		ctx = controller.WithEventRecorder(ctx, eventRecorder)
 
 		// set up Reconciler from fakes
-		r := ctor(t, ctx, &ls)
+		r := ctor(t, ctx, tr, &ls)
 
 		// promote the reconciler if it is leader aware
 		if la, ok := r.(reconciler.LeaderAware); ok {

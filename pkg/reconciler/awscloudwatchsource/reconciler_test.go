@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -23,10 +23,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+
 	"knative.dev/eventing/pkg/reconciler/source"
 	fakek8sinjectionclient "knative.dev/pkg/client/injection/kube/client/fake"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
+	rt "knative.dev/pkg/reconciler/testing"
 	"knative.dev/pkg/resolver"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis"
@@ -54,7 +56,7 @@ func TestReconcileSource(t *testing.T) {
 
 // reconcilerCtor returns a Ctor for a AWSCloudWatchSource Reconciler.
 func reconcilerCtor(cfg *adapterConfig) Ctor {
-	return func(t *testing.T, ctx context.Context, ls *Listers) controller.Reconciler {
+	return func(t *testing.T, ctx context.Context, _ *rt.TableRow, ls *Listers) controller.Reconciler {
 		base := common.GenericDeploymentReconciler{
 			SinkResolver: resolver.NewURIResolver(ctx, func(types.NamespacedName) {}),
 			Lister:       ls.GetDeploymentLister().Deployments,
