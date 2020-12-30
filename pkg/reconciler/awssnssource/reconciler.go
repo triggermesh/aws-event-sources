@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"knative.dev/pkg/reconciler"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -33,8 +32,8 @@ type Reconciler struct {
 	base       common.GenericServiceReconciler
 	adapterCfg *adapterConfig
 
-	// API clients
-	secretsCli func(namespace string) coreclientv1.SecretInterface
+	// SNS client interface
+	snsCg ClientGetter
 }
 
 // Check that our Reconciler implements Interface

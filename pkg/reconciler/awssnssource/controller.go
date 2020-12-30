@@ -54,7 +54,7 @@ func NewController(
 
 	r := &Reconciler{
 		adapterCfg: adapterCfg,
-		secretsCli: k8sclient.Get(ctx).CoreV1().Secrets,
+		snsCg:      newClientGetter(k8sclient.Get(ctx).CoreV1().Secrets),
 	}
 	impl := reconcilerv1alpha1.NewImpl(ctx, r)
 

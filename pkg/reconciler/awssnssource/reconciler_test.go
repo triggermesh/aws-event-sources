@@ -68,7 +68,6 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 		r := &Reconciler{
 			base:       base,
 			adapterCfg: cfg,
-			secretsCli: fakek8sinjectionclient.Get(ctx).CoreV1().Secrets,
 		}
 
 		return reconcilerv1alpha1.NewReconciler(ctx, logging.FromContext(ctx),

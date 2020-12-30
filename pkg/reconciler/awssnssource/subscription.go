@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/controller"
@@ -33,8 +32,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 
@@ -70,21 +67,21 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 		return nil
 	}
 
-	spec := src.(apis.HasSpec).GetUntypedSpec().(v1alpha1.AWSSNSSourceSpec)
+	typedSrc := src.(*v1alpha1.AWSSNSSource)
 
-	snsClient, err := newSNSClient(r.secretsCli(src.GetNamespace()), spec.ARN.Region, &spec.Credentials)
+	snsClient, err := r.snsCg.Get(typedSrc)
 	if err != nil {
 		status.MarkNotSubscribed(v1alpha1.AWSSNSReasonNoClient, "Cannot obtain SNS client")
 		return fmt.Errorf("%w", reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
 			"Error creating SNS client: %s", err))
 	}
 
-	topicARN := spec.ARN.String()
+	topicARN := typedSrc.Spec.ARN.String()
 
 	subsARN, err := findSubscription(ctx, snsClient, topicARN, url.String())
 	switch {
 	case isNotFound(err):
-		subsARN, err = subscribe(ctx, snsClient, topicARN, url, spec.SubscriptionAttributes)
+		subsARN, err = subscribe(ctx, snsClient, topicARN, url, typedSrc.Spec.SubscriptionAttributes)
 		switch {
 		case isAWSError(err):
 			// All documented API errors require some user intervention and
@@ -136,9 +133,9 @@ func (r *Reconciler) ensureUnsubscribed(ctx context.Context) error {
 			"The receive adapter did not report its public URL yet"))
 	}
 
-	spec := src.(apis.HasSpec).GetUntypedSpec().(v1alpha1.AWSSNSSourceSpec)
+	typedSrc := src.(*v1alpha1.AWSSNSSource)
 
-	snsClient, err := newSNSClient(r.secretsCli(src.GetNamespace()), spec.ARN.Region, &spec.Credentials)
+	snsClient, err := r.snsCg.Get(typedSrc)
 	switch {
 	case isNotFound(err):
 		// the finalizer is unlikely to recover from a missing Secret,
@@ -151,7 +148,7 @@ func (r *Reconciler) ensureUnsubscribed(ctx context.Context) error {
 			"Error creating SNS client: %s", err))
 	}
 
-	topicARN := spec.ARN.String()
+	topicARN := typedSrc.Spec.ARN.String()
 
 	subsARN, err := findSubscription(ctx, snsClient, topicARN, url.String())
 	switch {
@@ -185,72 +182,6 @@ func (r *Reconciler) ensureUnsubscribed(ctx context.Context) error {
 
 	return reconciler.NewEvent(corev1.EventTypeNormal, ReasonUnsubscribed,
 		"Unsubscribed from SNS topic %q", topicARN)
-}
-
-// newSNSClient returns a new SNS client for the given region using static credentials.
-func newSNSClient(cli coreclientv1.SecretInterface,
-	region string, creds *v1alpha1.AWSSecurityCredentials) (*sns.SNS, error) {
-
-	credsValue, err := awsCredentials(cli, creds)
-	if err != nil {
-		return nil, fmt.Errorf("reading AWS security credentials: %w", err)
-	}
-
-	cfg := session.Must(session.NewSession(aws.NewConfig().
-		WithRegion(region).
-		WithCredentials(credentials.NewStaticCredentialsFromCreds(*credsValue)),
-	))
-
-	return sns.New(cfg), nil
-}
-
-// awsCredentials returns the AWS security credentials referenced in the
-// source's spec.
-func awsCredentials(cli coreclientv1.SecretInterface,
-	creds *v1alpha1.AWSSecurityCredentials) (*credentials.Value, error) {
-
-	accessKeyID := creds.AccessKeyID.Value
-	secretAccessKey := creds.SecretAccessKey.Value
-
-	// cache a Secret object by name to avoid GET-ing the same Secret
-	// object multiple times
-	var secretCache map[string]*corev1.Secret
-
-	if vfs := creds.AccessKeyID.ValueFromSecret; vfs != nil {
-		secr, err := cli.Get(context.Background(), vfs.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, err
-		}
-
-		// cache Secret containing the access key ID so it can be reused
-		// below in case the same Secret contains the secret access key
-		secretCache = map[string]*corev1.Secret{
-			vfs.Name: secr,
-		}
-
-		accessKeyID = string(secr.Data[vfs.Key])
-	}
-
-	if vfs := creds.SecretAccessKey.ValueFromSecret; vfs != nil {
-		var secr *corev1.Secret
-		var err error
-
-		if secretCache != nil && secretCache[vfs.Name] != nil {
-			secr = secretCache[vfs.Name]
-		} else {
-			secr, err = cli.Get(context.Background(), vfs.Name, metav1.GetOptions{})
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		secretAccessKey = string(secr.Data[vfs.Key])
-	}
-
-	return &credentials.Value{
-		AccessKeyID:     accessKeyID,
-		SecretAccessKey: secretAccessKey,
-	}, nil
 }
 
 // findSubscription returns the ARN of the subscription corresponding to the
