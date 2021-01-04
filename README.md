@@ -28,8 +28,8 @@ The following table lists the AWS services currently supported by TriggerMesh So
 |                            AWS Service                            |                  Documentation                   | Support Level |
 |-------------------------------------------------------------------|--------------------------------------------------|---------------|
 | [CodeCommit](https://aws.amazon.com/codecommit/)                  | [README](cmd/awscodecommitsource/README.md)      | alpha         |
-| [Cognito Identity Pool](https://aws.amazon.com/cognito/)               | [README](cmd/awscognitoidentitysource/README.md) | alpha         |
-| [Cognito User Pool](https://aws.amazon.com/cognito/)               | [README](cmd/awscognitouserpoolsource/README.md) | alpha         |
+| [Cognito Identity Pool](https://aws.amazon.com/cognito/)          | [README](cmd/awscognitoidentitysource/README.md) | alpha         |
+| [Cognito User Pool](https://aws.amazon.com/cognito/)              | [README](cmd/awscognitouserpoolsource/README.md) | alpha         |
 | [DynamoDB](https://aws.amazon.com/dynamodb/)                      | [README](cmd/awsdynamodbsource/README.md)        | alpha         |
 | [Kinesis](https://aws.amazon.com/kinesis/)                        | [README](cmd/awskinesissource/README.md)         | alpha         |
 | [Simple Notifications Service (SNS)](https://aws.amazon.com/sns/) | [README](cmd/awssnssource/README.md)             | alpha         |
