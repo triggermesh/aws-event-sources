@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$ref": "#/definitions/MessageData",
+  "definitions": {
+    "MessageData": {
+      "required": [
+        "Type",
+        "MessageId",
+        "TopicArn",
+        "Message",
+        "Timestamp",
+        "SignatureVersion",
+        "Signature",
+        "SigningCertURL",
+        "UnsubscribeURL"
+      ],
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": [
+            "Notification"
+          ]
+        },
+        "MessageId": {
+          "type": "string"
+        },
+        "TopicArn": {
+          "type": "string"
+        },
+        "Subject": {
+          "type": "string"
+        },
+        "Message": {
+          "type": "string"
+        },
+        "Timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "SignatureVersion": {
+          "type": "string"
+        },
+        "Signature": {
+          "type": "string",
+          "media": {
+            "binaryEncoding": "base64"
+          }
+        },
+        "SigningCertURL": {
+          "type": "string",
+          "format": "uri"
+        },
+        "UnsubscribeURL": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}

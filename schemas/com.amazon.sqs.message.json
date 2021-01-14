@@ -1,0 +1,93 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$ref": "#/definitions/Message",
+  "definitions": {
+    "Message": {
+      "required": [
+        "Attributes",
+        "Body",
+        "MD5OfBody",
+        "MD5OfMessageAttributes",
+        "MessageAttributes",
+        "MessageId",
+        "ReceiptHandle"
+      ],
+      "properties": {
+        "Attributes": {
+          "patternProperties": {
+            ".*": {
+              "type": "string"
+            }
+          },
+          "type": "object"
+        },
+        "Body": {
+          "type": "string"
+        },
+        "MD5OfBody": {
+          "type": "string"
+        },
+        "MD5OfMessageAttributes": {
+          "type": "string"
+        },
+        "MessageAttributes": {
+          "patternProperties": {
+            ".*": {
+              "$schema": "http://json-schema.org/draft-04/schema#",
+              "$ref": "#/definitions/MessageAttributeValue"
+            }
+          },
+          "type": "object"
+        },
+        "MessageId": {
+          "type": "string"
+        },
+        "ReceiptHandle": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    },
+    "MessageAttributeValue": {
+      "required": [
+        "BinaryListValues",
+        "BinaryValue",
+        "DataType",
+        "StringListValues",
+        "StringValue"
+      ],
+      "properties": {
+        "BinaryListValues": {
+          "items": {
+            "type": "string",
+            "media": {
+              "binaryEncoding": "base64"
+            }
+          },
+          "type": "array"
+        },
+        "BinaryValue": {
+          "type": "string",
+          "media": {
+            "binaryEncoding": "base64"
+          }
+        },
+        "DataType": {
+          "type": "string"
+        },
+        "StringListValues": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "StringValue": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "type": "object"
+    }
+  }
+}
