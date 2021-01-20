@@ -154,7 +154,7 @@
                             }
                         },
                         "terminationMessagePath": "/dev/termination-log",
-                        "terminationMessagePolicy": "File"
+                        "terminationMessagePolicy": "FallbackToLogsOnError"
                     }
                 ],
                 "dnsPolicy": "ClusterFirst",

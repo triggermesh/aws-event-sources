@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -46,6 +46,7 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 		Label("test.label/2", "val2"),
 		Requests(resource.MustParse("250m"), resource.MustParse("100Mi")),
 		Limits(resource.MustParse("250m"), resource.MustParse("100Mi")),
+		TerminationErrorToLogs,
 	)
 
 	expectDepl := &appsv1.Deployment{
@@ -125,6 +126,7 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 								corev1.ResourceMemory: *resource.NewQuantity(1024*1024*100, resource.BinarySI),
 							},
 						},
+						TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 					}},
 				},
 			},
