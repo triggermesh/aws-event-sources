@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,13 +18,13 @@ package common
 
 // Common environment variables propagated to adapters.
 const (
-	EnvName      = "NAME"
-	EnvNamespace = "NAMESPACE"
-	EnvSink      = "K_SINK"
+	envName      = "NAME"
+	envNamespace = "NAMESPACE"
+	envSink      = "K_SINK"
+
+	envMetricsPrometheusPort = "METRICS_PROMETHEUS_PORT"
 
 	EnvARN             = "ARN"
 	EnvAccessKeyID     = "AWS_ACCESS_KEY_ID"
 	EnvSecretAccessKey = "AWS_SECRET_ACCESS_KEY" //nolint:gosec
-
-	EnvMetricsPrometheusPort = "METRICS_PROMETHEUS_PORT"
 )

@@ -23,7 +23,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
-	"knative.dev/pkg/kmeta"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
@@ -50,16 +49,7 @@ type adapterConfig struct {
 // adapterDeploymentBuilder returns an AdapterDeploymentBuilderFunc for the
 // given source object and adapter config.
 func adapterDeploymentBuilder(src *v1alpha1.AWSCloudWatchSource, cfg *adapterConfig) common.AdapterDeploymentBuilderFunc {
-	adapterName := common.AdapterName(src)
-
 	return func(sinkURI *apis.URL) *appsv1.Deployment {
-		name := kmeta.ChildName(adapterName+"-", src.Name)
-
-		var sinkURIStr string
-		if sinkURI != nil {
-			sinkURIStr = sinkURI.String()
-		}
-
 		var queries string
 		if len(src.Spec.MetricQueries) > 0 {
 			q, _ := json.Marshal(src.Spec.MetricQueries)
@@ -71,27 +61,9 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCloudWatchSource, cfg *adapterCon
 			pollingInterval = time.Duration(*f)
 		}
 
-		return resource.NewDeployment(src.Namespace, name,
-			resource.TerminationErrorToLogs,
-			resource.Controller(src),
-
-			resource.Label(common.AppNameLabel, adapterName),
-			resource.Label(common.AppInstanceLabel, src.Name),
-			resource.Label(common.AppComponentLabel, common.AdapterComponent),
-			resource.Label(common.AppPartOfLabel, common.PartOf),
-			resource.Label(common.AppManagedByLabel, common.ManagedBy),
-
-			resource.Selector(common.AppNameLabel, adapterName),
-			resource.Selector(common.AppInstanceLabel, src.Name),
-			resource.PodLabel(common.AppComponentLabel, common.AdapterComponent),
-			resource.PodLabel(common.AppPartOfLabel, common.PartOf),
-			resource.PodLabel(common.AppManagedByLabel, common.ManagedBy),
-
+		return common.NewAdapterDeployment(src, sinkURI,
 			resource.Image(cfg.Image),
 
-			resource.EnvVar(common.EnvName, src.Name),
-			resource.EnvVar(common.EnvNamespace, src.Namespace),
-			resource.EnvVar(common.EnvSink, sinkURIStr),
 			resource.EnvVar(envRegion, src.Spec.Region),
 			resource.EnvVar(envQueries, queries),
 			resource.EnvVar(envPollingInterval, pollingInterval.String()),
