@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,10 +24,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 
 	"knative.dev/pkg/kmeta"
-
-	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
 )
 
 const (
@@ -52,7 +52,7 @@ func makeEnvVars(count int, name, val string) []corev1.EnvVar {
 func TestMetaObjectOptions(t *testing.T) {
 	objMeta := NewDeployment(tNs, tName,
 		Label("test.label/2", "val2"),
-		Controller(DummyOwnerRefable()),
+		Controller(makeOwnerRefable()),
 		Label("test.label/1", "val1"),
 	).ObjectMeta
 
@@ -60,7 +60,7 @@ func TestMetaObjectOptions(t *testing.T) {
 		Namespace: tNs,
 		Name:      tName,
 		OwnerReferences: []metav1.OwnerReference{
-			*kmeta.NewControllerRef(DummyOwnerRefable()),
+			*kmeta.NewControllerRef(makeOwnerRefable()),
 		},
 		Labels: map[string]string{
 			"test.label/1": "val1",
@@ -71,4 +71,32 @@ func TestMetaObjectOptions(t *testing.T) {
 	if d := cmp.Diff(expectObjMeta, objMeta); d != "" {
 		t.Errorf("Unexpected diff: (-:expect, +:got) %s", d)
 	}
+}
+
+// makeOwnerRefable returns a OwnerRefable with fake attributes values.
+func makeOwnerRefable() *fakeOwnerRefable {
+	return &fakeOwnerRefable{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "fake",
+			UID:  types.UID("00000000-0000-0000-0000-000000000000"),
+		},
+		GroupVersionKind: schema.GroupVersionKind{
+			Group:   "fakegroup.fakeapi",
+			Version: "v0",
+			Kind:    "FakeKind",
+		},
+	}
+}
+
+var _ kmeta.OwnerRefable = (*fakeOwnerRefable)(nil)
+
+// fakeOwnerRefable implements OwnerRefable.
+type fakeOwnerRefable struct {
+	metav1.ObjectMeta
+	schema.GroupVersionKind
+}
+
+// GetGroupVersionKind returns the GroupVersionKind from the object.
+func (o *fakeOwnerRefable) GetGroupVersionKind() schema.GroupVersionKind {
+	return o.GroupVersionKind
 }
