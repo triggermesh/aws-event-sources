@@ -68,6 +68,8 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSCloudWatchSource, cfg *adapterCon
 			resource.EnvVar(envQueries, queries),
 			resource.EnvVar(envPollingInterval, pollingInterval.String()),
 			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
+			resource.EnvVar(common.EnvNamespace, src.GetNamespace()),
+			resource.EnvVar(common.EnvName, src.GetName()),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
 		)
 	}

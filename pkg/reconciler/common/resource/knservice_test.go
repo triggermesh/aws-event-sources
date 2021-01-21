@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -41,6 +41,7 @@ func TestNewServiceWithDefaultContainer(t *testing.T) {
 		EnvVars(makeEnvVars(2, "MULTI_ENV", "val")...),
 		EnvVar("TEST_ENV2", "val2"),
 		Label("test.label/2", "val2"),
+		ServiceAccount("god-mode"),
 		Requests(resource.MustParse("250m"), resource.MustParse("100Mi")),
 		Limits(resource.MustParse("250m"), resource.MustParse("100Mi")),
 	)
@@ -65,6 +66,7 @@ func TestNewServiceWithDefaultContainer(t *testing.T) {
 					},
 					Spec: servingv1.RevisionSpec{
 						PodSpec: corev1.PodSpec{
+							ServiceAccountName: "god-mode",
 							Containers: []corev1.Container{{
 								Name:  defaultContainerName,
 								Image: tImg,

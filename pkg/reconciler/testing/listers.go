@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,9 +20,13 @@ import (
 	"fmt"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	fakek8sclient "k8s.io/client-go/kubernetes/fake"
-	k8slistersv1 "k8s.io/client-go/listers/apps/v1"
+	appslistersv1 "k8s.io/client-go/listers/apps/v1"
+	corelistersv1 "k8s.io/client-go/listers/core/v1"
+	rbaclistersv1 "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/client-go/tools/cache"
 
 	fakeeventingclientset "knative.dev/eventing/pkg/client/clientset/versioned/fake"
@@ -145,11 +149,21 @@ func (l *Listers) GetAWSSQSSourceLister() listersv1alpha1.AWSSQSSourceLister {
 }
 
 // GetDeploymentLister returns a lister for Deployment objects.
-func (l *Listers) GetDeploymentLister() k8slistersv1.DeploymentLister {
-	return k8slistersv1.NewDeploymentLister(l.IndexerFor(&appsv1.Deployment{}))
+func (l *Listers) GetDeploymentLister() appslistersv1.DeploymentLister {
+	return appslistersv1.NewDeploymentLister(l.IndexerFor(&appsv1.Deployment{}))
 }
 
-// GetServiceLister returns a lister for Service objects.
+// GetServiceLister returns a lister for Knative Service objects.
 func (l *Listers) GetServiceLister() servinglistersv1.ServiceLister {
 	return servinglistersv1.NewServiceLister(l.IndexerFor(&servingv1.Service{}))
+}
+
+// GetServiceAccountLister returns a lister for ServiceAccount objects.
+func (l *Listers) GetServiceAccountLister() corelistersv1.ServiceAccountLister {
+	return corelistersv1.NewServiceAccountLister(l.IndexerFor(&corev1.ServiceAccount{}))
+}
+
+// GetRoleBindingLister returns a lister for RoleBinding objects
+func (l *Listers) GetRoleBindingLister() rbaclistersv1.RoleBindingLister {
+	return rbaclistersv1.NewRoleBindingLister(l.IndexerFor(&rbacv1.RoleBinding{}))
 }

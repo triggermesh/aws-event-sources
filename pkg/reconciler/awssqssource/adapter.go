@@ -48,6 +48,8 @@ func adapterDeploymentBuilder(src *v1alpha1.AWSSQSSource, cfg *adapterConfig) co
 
 			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
 			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
+			resource.EnvVar(common.EnvNamespace, src.GetNamespace()),
+			resource.EnvVar(common.EnvName, src.GetName()),
 			resource.EnvVars(cfg.configs.ToEnvVars()...),
 
 			resource.Port(healthPortName, 8080),
