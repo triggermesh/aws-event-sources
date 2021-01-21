@@ -17,8 +17,12 @@ limitations under the License.
 package awssnssource
 
 import (
+	"fmt"
+
+	"k8s.io/apimachinery/pkg/labels"
 	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
+	"knative.dev/pkg/kmeta"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -35,16 +39,33 @@ type adapterConfig struct {
 	configs source.ConfigAccessor
 }
 
-// adapterServiceBuilder returns an AdapterServiceBuilderFunc for the
-// given source object and adapter config.
-func adapterServiceBuilder(src *v1alpha1.AWSSNSSource, cfg *adapterConfig) common.AdapterServiceBuilderFunc {
-	return func(sinkURI *apis.URL) *servingv1.Service {
-		return common.NewAdapterKnService(src, sinkURI,
-			resource.Image(cfg.Image),
+// Verify that Reconciler implements common.AdapterServiceBuilder.
+var _ common.AdapterServiceBuilder = (*Reconciler)(nil)
 
-			resource.EnvVar(common.EnvARN, src.Spec.ARN.String()),
-			resource.EnvVars(common.MakeSecurityCredentialsEnvVars(src.Spec.Credentials)...),
-			resource.EnvVars(cfg.configs.ToEnvVars()...),
-		)
+// BuildAdapter implements common.AdapterServiceBuilder.
+func (r *Reconciler) BuildAdapter(src v1alpha1.EventSource, sinkURI *apis.URL) *servingv1.Service {
+	typedSrc := src.(*v1alpha1.AWSSNSSource)
+
+	return common.NewAdapterKnService(src, sinkURI,
+		resource.Image(r.adapterCfg.Image),
+
+		resource.EnvVar(common.EnvARN, typedSrc.Spec.ARN.String()),
+		resource.EnvVars(common.MakeSecurityCredentialsEnvVars(typedSrc.Spec.Credentials)...),
+		resource.EnvVars(r.adapterCfg.configs.ToEnvVars()...),
+	)
+}
+
+// RBACOwners implements common.AdapterServiceBuilder.
+func (r *Reconciler) RBACOwners(namespace string) ([]kmeta.OwnerRefable, error) {
+	srcs, err := r.srcLister(namespace).List(labels.Everything())
+	if err != nil {
+		return nil, fmt.Errorf("listing objects from cache: %w", err)
 	}
+
+	ownerRefables := make([]kmeta.OwnerRefable, len(srcs))
+	for i := range srcs {
+		ownerRefables[i] = srcs[i]
+	}
+
+	return ownerRefables, nil
 }
