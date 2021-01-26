@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2019-2020 TriggerMesh Inc.
+Copyright (c) 2019-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -35,16 +35,20 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
+	"knative.dev/pkg/apis"
+	"knative.dev/pkg/injection"
 	"knative.dev/pkg/logging"
 
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/awssnssource/status"
 	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/common/env"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
 // envConfig is a set parameters sourced from the environment for the source's
 // adapter.
 type envConfig struct {
-	pkgadapter.EnvConfig
+	env.Config
 
 	ARN string `required:"true"`
 }
@@ -57,33 +61,51 @@ type adapter struct {
 	ceClient  cloudevents.Client
 
 	arn arn.ARN
+
+	// fields accessed during object reconciliation
+	statusPatcher *status.Patcher
 }
 
-// NewEnvConfig returns an accessor for the source's adapter envConfig.
-func NewEnvConfig() pkgadapter.EnvConfigAccessor {
+// Check the interfaces adapter should implement.
+var (
+	_ pkgadapter.Adapter = (*adapter)(nil)
+	_ MTAdapter          = (*adapter)(nil)
+)
+
+// NewEnvConfig satisfies env.ConfigConstructor.
+// Returns an accessor for the source's adapter envConfig.
+func NewEnvConfig() env.ConfigAccessor {
 	return &envConfig{}
 }
 
 // NewAdapter returns a constructor for the source's adapter.
-func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClient cloudevents.Client) pkgadapter.Adapter {
-	logger := logging.FromContext(ctx)
+func NewAdapter(component string) pkgadapter.AdapterConstructor {
+	return func(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
+		ceClient cloudevents.Client) pkgadapter.Adapter {
 
-	env := envAcc.(*envConfig)
+		logger := logging.FromContext(ctx)
 
-	arn := common.MustParseARN(env.ARN)
+		env := envAcc.(*envConfig)
 
-	cfg := session.Must(session.NewSession(aws.NewConfig().
-		WithRegion(arn.Region).
-		WithMaxRetries(5),
-	))
+		arn := common.MustParseARN(env.ARN)
 
-	return &adapter{
-		logger: logger,
+		cfg := session.Must(session.NewSession(aws.NewConfig().
+			WithRegion(arn.Region).
+			WithMaxRetries(5),
+		))
 
-		snsClient: sns.New(cfg),
-		ceClient:  ceClient,
+		ns := injection.GetNamespaceScope(ctx)
 
-		arn: arn,
+		return &adapter{
+			logger: logger,
+
+			snsClient: sns.New(cfg),
+			ceClient:  ceClient,
+
+			arn: arn,
+
+			statusPatcher: status.NewPatcher(component, ns, ctx),
+		}
 	}
 }
 
@@ -195,4 +217,21 @@ func healthCheckHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintln(w, "OK")
+}
+
+// RegisterHandlerFor implements MTAdapter.
+func (a *adapter) RegisterHandlerFor(ctx context.Context, src *v1alpha1.AWSSNSSource) error {
+	// TODO(antoineco): implement routing
+	return nil
+}
+
+// DeregisterHandlerFor implements MTAdapter.
+func (a *adapter) DeregisterHandlerFor(ctx context.Context, src *v1alpha1.AWSSNSSource) error {
+	// TODO(antoineco): implement routing
+	return nil
+}
+
+// PropagateCondition implements MTAdapter.
+func (a *adapter) PropagateCondition(ctx context.Context, src *v1alpha1.AWSSNSSource, cond *apis.Condition) error {
+	return status.PropagateCondition(ctx, a.statusPatcher, src, cond)
 }

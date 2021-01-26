@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020-2021 TriggerMesh Inc.
+Copyright (c) 2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,18 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package common
+// Package controller contains helpers shared between controllers embedded in
+// source adapters.
+package controller
 
-// Common environment variables propagated to adapters.
-const (
-	EnvName      = "NAME"
-	EnvNamespace = "NAMESPACE"
+import "knative.dev/pkg/controller"
 
-	envSink                  = "K_SINK"
-	envComponent             = "K_COMPONENT"
-	envMetricsPrometheusPort = "METRICS_PROMETHEUS_PORT"
-
-	EnvARN             = "ARN"
-	EnvAccessKeyID     = "AWS_ACCESS_KEY_ID"
-	EnvSecretAccessKey = "AWS_SECRET_ACCESS_KEY" //nolint:gosec
-)
+// Opts returns a callback function that sets the controller's agent name and
+// configures the reconciler to skip status updates.
+func Opts(component string) controller.OptionsFn {
+	return func(impl *controller.Impl) controller.Options {
+		return controller.Options{
+			AgentName:         component,
+			SkipStatusUpdates: true,
+		}
+	}
+}

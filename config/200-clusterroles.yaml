@@ -280,7 +280,49 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: awssnssource-adapter
-rules: []
+rules:
+
+# Record Kubernetes events
+- apiGroups:
+  - ''
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update
+
+# Read Source resources and update their statuses
+- apiGroups:
+  - sources.triggermesh.io
+  resources:
+  - awssnssources
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - sources.triggermesh.io
+  resources:
+  - awssnssources/status
+  verbs:
+  - patch
+
+# Acquire leases for leader election
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - create
+- apiGroups:
+  - coordination.k8s.io
+  resourceNames:
+  - awssnssource.github.com-triggermesh-aws-event-sources-pkg-adapter-awssnssource.reconciler.00-of-01
+  resources:
+  - leases
+  verbs:
+  - get
+  - update
 
 ---
 

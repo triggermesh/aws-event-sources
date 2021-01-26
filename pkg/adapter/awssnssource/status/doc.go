@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020-2021 TriggerMesh Inc.
+Copyright (c) 2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,18 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package common
-
-// Common environment variables propagated to adapters.
-const (
-	EnvName      = "NAME"
-	EnvNamespace = "NAMESPACE"
-
-	envSink                  = "K_SINK"
-	envComponent             = "K_COMPONENT"
-	envMetricsPrometheusPort = "METRICS_PROMETHEUS_PORT"
-
-	EnvARN             = "ARN"
-	EnvAccessKeyID     = "AWS_ACCESS_KEY_ID"
-	EnvSecretAccessKey = "AWS_SECRET_ACCESS_KEY" //nolint:gosec
-)
+// Package status contains types and helpers to manipulate the status of source objects.
+package status

@@ -78,6 +78,12 @@ const (
 	// AWSSNSConditionSubscribed has status True when the event source's HTTP(S) endpoint has been subscribed to the
 	// SNS subscription.
 	AWSSNSConditionSubscribed apis.ConditionType = "Subscribed"
+
+	// AWSSNSConditionHandlerRegistered indicates that a HTTP handler was registered for the source object.
+	// It is not part of the ConditionSet registered for the AWSSNSSource
+	// type, and will therefore automatically be propagated by Knative with
+	// a severity of "Info".
+	AWSSNSConditionHandlerRegistered = "HandlerRegistered"
 )
 
 // Reasons for status conditions

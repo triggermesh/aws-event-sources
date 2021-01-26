@@ -74,6 +74,7 @@ func NewAdapterDeployment(src v1alpha1.EventSource, sinkURI *apis.URL, opts ...r
 			resource.ServiceAccount(AdapterRBACObjectsName(src)),
 
 			resource.EnvVar(envSink, sinkURIStr),
+			resource.EnvVar(envComponent, app),
 		}, opts...)...,
 	)
 }
@@ -109,6 +110,7 @@ func NewAdapterKnService(src v1alpha1.EventSource, sinkURI *apis.URL, opts ...re
 			resource.ServiceAccount(AdapterRBACObjectsName(src)),
 
 			resource.EnvVar(envSink, sinkURIStr),
+			resource.EnvVar(envComponent, app),
 			resource.EnvVar(envMetricsPrometheusPort, strconv.FormatUint(uint64(metricsPrometheusPort), 10)),
 		}, opts...)...,
 	)
