@@ -44,6 +44,7 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 		EnvVars(makeEnvVars(2, "MULTI_ENV", "val")...),
 		EnvVar("TEST_ENV2", "val2"),
 		Label("test.label/2", "val2"),
+		ServiceAccount("god-mode"),
 		Requests(resource.MustParse("250m"), resource.MustParse("100Mi")),
 		Limits(resource.MustParse("250m"), resource.MustParse("100Mi")),
 		TerminationErrorToLogs,
@@ -75,6 +76,7 @@ func TestNewDeploymentWithDefaultContainer(t *testing.T) {
 					},
 				},
 				Spec: corev1.PodSpec{
+					ServiceAccountName: "god-mode",
 					Containers: []corev1.Container{{
 						Name:  defaultContainerName,
 						Image: tImg,

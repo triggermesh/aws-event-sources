@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -34,6 +35,8 @@ import (
 	eventingv1 "knative.dev/eventing/pkg/apis/eventing/v1"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+	"knative.dev/pkg/kmeta"
+	"knative.dev/pkg/ptr"
 	"knative.dev/pkg/reconciler"
 	rt "knative.dev/pkg/reconciler/testing"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
@@ -64,19 +67,24 @@ var (
 	}
 )
 
-// Test the Reconcile method of the controller.Reconciler implemented by controllers.
+// Test the Reconcile() method of the controller.Reconciler implemented by
+// source Reconcilers, with focus on the generic ReconcileSource logic executed
+// by the generic adapter reconciler embedded in every source Reconciler.
 //
 // The environment for each test case is set up as follows:
 //  1. MakeFactory initializes fake clients with the objects declared in the test case
 //  2. MakeFactory injects those clients into a context along with fake event recorders, etc.
 //  3. A Reconciler is constructed via a Ctor function using the values injected above
 //  4. The Reconciler returned by MakeFactory is used to run the test case
-func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn interface{}) {
+func TestReconcileAdapter(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterBuilder interface{}) {
 	assertPopulatedSource(t, src)
 
 	newEventSource := eventSourceCtor(src)
-	newAdapter := adapterCtor(adapterFn, src)
+	newServiceAccount := NewServiceAccount(src)
+	newRoleBinding := NewRoleBinding(newServiceAccount())
+	newAdapter := adapterCtor(adapterBuilder, src)
 
+	s := newEventSource()
 	a := newAdapter()
 	n, k, r := nameKindAndResource(a)
 
@@ -96,12 +104,16 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 				newEventSource(noCEAttributes),
 			},
 			WantCreates: []runtime.Object{
+				newServiceAccount(),
+				newRoleBinding(),
 				newAdapter(),
 			},
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
 				Object: newEventSource(withSink, notDeployed(a)),
 			}},
 			WantEvents: []string{
+				createServiceAccountEvent(s),
+				createRoleBindingEvent(s),
 				createAdapterEvent(n, k),
 			},
 		},
@@ -123,6 +135,8 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 			Objects: []runtime.Object{
 				newAdressable(),
 				newEventSource(withSink, notDeployed(a)),
+				newServiceAccount(),
+				newRoleBinding(),
 				newAdapter(ready),
 			},
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
@@ -136,6 +150,8 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 			Objects: []runtime.Object{
 				newAdressable(),
 				newEventSource(withSink, deployed(a)),
+				newServiceAccount(),
+				newRoleBinding(),
 				newAdapter(notReady),
 			},
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
@@ -149,6 +165,8 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 			Objects: []runtime.Object{
 				newAdressable(),
 				newEventSource(withSink, deployed(a)),
+				newServiceAccount(),
+				newRoleBinding(),
 				newAdapter(ready, bumpImage),
 			},
 			WantUpdates: []clientgotesting.UpdateActionImpl{{
@@ -167,6 +185,8 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 			Objects: []runtime.Object{
 				/* sink omitted */
 				newEventSource(withSink, deployed(a)),
+				newServiceAccount(),
+				newRoleBinding(),
 				newAdapter(ready),
 			},
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
@@ -186,6 +206,8 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 			Objects: []runtime.Object{
 				newAdressable(),
 				newEventSource(withSink),
+				newServiceAccount(),
+				newRoleBinding(),
 			},
 			WantCreates: []runtime.Object{
 				newAdapter(),
@@ -207,6 +229,8 @@ func TestReconcile(t *testing.T, ctor Ctor, src v1alpha1.EventSource, adapterFn 
 			Objects: []runtime.Object{
 				newAdressable(),
 				newEventSource(withSink, deployed(a)),
+				newServiceAccount(),
+				newRoleBinding(),
 				newAdapter(ready, bumpImage),
 			},
 			WantUpdates: []clientgotesting.UpdateActionImpl{{
@@ -384,15 +408,15 @@ type adapterCtorWithOptions func(...adapterOption) runtime.Object
 
 // adapterCtor creates a copy of the given adapter object and returns a
 // function that can apply options to that object.
-func adapterCtor(adapterFn interface{}, src v1alpha1.EventSource) adapterCtorWithOptions {
+func adapterCtor(adapterBuilder interface{}, src v1alpha1.EventSource) adapterCtorWithOptions {
 	return func(opts ...adapterOption) runtime.Object {
 		var obj runtime.Object
 
-		switch typedAdapterFn := adapterFn.(type) {
-		case common.AdapterDeploymentBuilderFunc:
-			obj = typedAdapterFn(tSinkURI)
-		case common.AdapterServiceBuilderFunc:
-			obj = typedAdapterFn(tSinkURI)
+		switch typedAdapterBuilder := adapterBuilder.(type) {
+		case common.AdapterDeploymentBuilder:
+			obj = typedAdapterBuilder.BuildAdapter(src, tSinkURI)
+		case common.AdapterServiceBuilder:
+			obj = typedAdapterBuilder.BuildAdapter(src, tSinkURI)
 		}
 
 		for _, opt := range opts {
@@ -470,8 +494,76 @@ func newAdressable() *eventingv1.Broker {
 	}
 }
 
+/* RBAC */
+
+func NewServiceAccount(src kmeta.OwnerRefable) func() *corev1.ServiceAccount {
+	name := common.AdapterName(src) + "-adapter"
+	labels := common.RBACObjectLabels(src)
+
+	return func() *corev1.ServiceAccount {
+		sa := &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: tNs,
+				Name:      name,
+				Labels:    labels,
+				OwnerReferences: []metav1.OwnerReference{
+					*kmeta.NewControllerRef(src),
+				},
+			},
+		}
+		sa.OwnerReferences[0].Controller = ptr.Bool(false)
+
+		return sa
+	}
+}
+
+func NewRoleBinding(sa *corev1.ServiceAccount) func() *rbacv1.RoleBinding {
+	return func() *rbacv1.RoleBinding {
+		return &rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: tNs,
+				Name:      sa.Name,
+				Labels:    sa.Labels,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion:         "v1",
+						Kind:               "ServiceAccount",
+						Name:               sa.Name,
+						UID:                sa.UID,
+						Controller:         ptr.Bool(true),
+						BlockOwnerDeletion: ptr.Bool(true),
+					},
+				},
+			},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: "rbac.authorization.k8s.io",
+				Kind:     "ClusterRole",
+				Name:     sa.Name,
+			},
+			Subjects: []rbacv1.Subject{
+				{
+					APIGroup:  "",
+					Kind:      "ServiceAccount",
+					Namespace: tNs,
+					Name:      sa.Name,
+				},
+			},
+		}
+	}
+}
+
 /* Events */
 
+func createServiceAccountEvent(src kmeta.OwnerRefable) string {
+	return eventtesting.Eventf(corev1.EventTypeNormal, common.ReasonRBACCreate,
+		"Created ServiceAccount %q due to the creation of a %s object",
+		common.AdapterRBACObjectsName(src), src.GetGroupVersionKind().Kind)
+}
+func createRoleBindingEvent(src kmeta.OwnerRefable) string {
+	return eventtesting.Eventf(corev1.EventTypeNormal, common.ReasonRBACCreate,
+		"Created RoleBinding %q due to the creation of a %s object",
+		common.AdapterRBACObjectsName(src), src.GetGroupVersionKind().Kind)
+}
 func createAdapterEvent(name, kind string) string {
 	return eventtesting.Eventf(corev1.EventTypeNormal, common.ReasonAdapterCreate, "Created adapter %s %q", kind, name)
 }

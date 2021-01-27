@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,9 +33,11 @@ import (
 	logtesting "knative.dev/pkg/logging/testing"
 	"knative.dev/pkg/reconciler"
 	rt "knative.dev/pkg/reconciler/testing"
+	"knative.dev/pkg/resolver"
 	fakeservinginjectionclient "knative.dev/serving/pkg/client/injection/client/fake"
 
 	fakeinjectionclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client/fake"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 )
 
 // Ctor constructs a controller.Reconciler.
@@ -106,6 +108,39 @@ func MakeFactory(ctor Ctor) rt.Factory {
 		}
 
 		return r, actionRecorderList, eventList
+	}
+}
+
+// NewTestDeploymentReconciler returns a GenericServiceReconciler initialized with
+// test clients.
+func NewTestDeploymentReconciler(ctx context.Context, ls *Listers) common.GenericDeploymentReconciler {
+	return common.GenericDeploymentReconciler{
+		SinkResolver:          resolver.NewURIResolver(ctx, func(types.NamespacedName) {}),
+		Lister:                ls.GetDeploymentLister().Deployments,
+		Client:                fakek8sinjectionclient.Get(ctx).AppsV1().Deployments,
+		PodClient:             fakek8sinjectionclient.Get(ctx).CoreV1().Pods,
+		GenericRBACReconciler: newTestRBACReconciler(ctx, ls),
+	}
+}
+
+// NewTestServiceReconciler returns a GenericServiceReconciler initialized with
+// test clients.
+func NewTestServiceReconciler(ctx context.Context, ls *Listers) common.GenericServiceReconciler {
+	return common.GenericServiceReconciler{
+		SinkResolver:          resolver.NewURIResolver(ctx, func(types.NamespacedName) {}),
+		Lister:                ls.GetServiceLister().Services,
+		Client:                fakeservinginjectionclient.Get(ctx).ServingV1().Services,
+		GenericRBACReconciler: newTestRBACReconciler(ctx, ls),
+	}
+}
+
+// newTestRBACReconciler returns a GenericRBACReconciler initialized with test clients.
+func newTestRBACReconciler(ctx context.Context, ls *Listers) *common.GenericRBACReconciler {
+	return &common.GenericRBACReconciler{
+		SALister: ls.GetServiceAccountLister().ServiceAccounts,
+		RBLister: ls.GetRoleBindingLister().RoleBindings,
+		SAClient: fakek8sinjectionclient.Get(ctx).CoreV1().ServiceAccounts,
+		RBClient: fakek8sinjectionclient.Get(ctx).RbacV1().RoleBindings,
 	}
 }
 

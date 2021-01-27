@@ -19,9 +19,11 @@ package common
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -29,6 +31,7 @@ import (
 
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/controller"
+	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/reconciler"
 	"knative.dev/serving/pkg/apis/serving"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
@@ -45,11 +48,28 @@ var knativeServingAnnotations = []string{
 	serving.UpdaterAnnotation,
 }
 
-// AdapterDeploymentBuilderFunc builds a Deployment object for a source's adapter.
-type AdapterDeploymentBuilderFunc func(sinkURI *apis.URL) *appsv1.Deployment
+// RBACOwnersLister returns a list of OwnerRefable to be set as a the
+// OwnerReferences metadata attribute of a ServiceAccount.
+type RBACOwnersLister interface {
+	RBACOwners(namespace string) ([]kmeta.OwnerRefable, error)
+}
+
+// AdapterDeploymentBuilder provides all the necessary information for building
+// objects related to a source's adapter backed by a Deployment.
+type AdapterDeploymentBuilder interface {
+	RBACOwnersLister
+	BuildAdapter(src v1alpha1.EventSource, sinkURI *apis.URL) *appsv1.Deployment
+}
+
+// AdapterServiceBuilder provides all the necessary information for building
+// objects related to a source's adapter backed by a Knative Service.
+type AdapterServiceBuilder interface {
+	RBACOwnersLister
+	BuildAdapter(src v1alpha1.EventSource, sinkURI *apis.URL) *servingv1.Service
+}
 
 // ReconcileSource reconciles an event source type.
-func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context, adb AdapterDeploymentBuilderFunc) reconciler.Event {
+func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context, ab AdapterDeploymentBuilder) reconciler.Event {
 	src := v1alpha1.SourceFromContext(ctx)
 
 	src.GetStatusManager().CloudEventAttributes = CreateCloudEventAttributes(
@@ -63,7 +83,14 @@ func (r *GenericDeploymentReconciler) ReconcileSource(ctx context.Context, adb A
 	}
 	src.GetStatusManager().MarkSink(sinkURI)
 
-	if err := r.reconcileAdapter(ctx, adb(sinkURI)); err != nil {
+	desiredAdapter := ab.BuildAdapter(src, sinkURI)
+
+	saOwners, err := ab.RBACOwners(src.GetNamespace())
+	if err != nil {
+		return fmt.Errorf("listing ServiceAccount owners: %w", err)
+	}
+
+	if err := r.reconcileAdapter(ctx, desiredAdapter, saOwners); err != nil {
 		return fmt.Errorf("failed to reconcile adapter: %w", err)
 	}
 	return nil
@@ -82,8 +109,15 @@ func (r *GenericDeploymentReconciler) resolveSinkURL(ctx context.Context) (*apis
 }
 
 // reconcileAdapter reconciles the state of the source's adapter.
-func (r *GenericDeploymentReconciler) reconcileAdapter(ctx context.Context, desiredAdapter *appsv1.Deployment) error {
+func (r *GenericDeploymentReconciler) reconcileAdapter(ctx context.Context,
+	desiredAdapter *appsv1.Deployment, rbacOwners []kmeta.OwnerRefable) error {
+
 	src := v1alpha1.SourceFromContext(ctx)
+
+	if err := r.reconcileRBAC(ctx, rbacOwners); err != nil {
+		src.GetStatusManager().MarkRBACNotBound()
+		return fmt.Errorf("reconciling RBAC objects: %w", err)
+	}
 
 	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
 	if err != nil {
@@ -157,11 +191,8 @@ func (r *GenericDeploymentReconciler) syncAdapterDeployment(ctx context.Context,
 	return adapter, nil
 }
 
-// AdapterServiceBuilderFunc builds a Service object for a source's adapter.
-type AdapterServiceBuilderFunc func(sinkURI *apis.URL) *servingv1.Service
-
 // ReconcileSource reconciles an event source type.
-func (r *GenericServiceReconciler) ReconcileSource(ctx context.Context, adb AdapterServiceBuilderFunc) reconciler.Event {
+func (r *GenericServiceReconciler) ReconcileSource(ctx context.Context, ab AdapterServiceBuilder) reconciler.Event {
 	src := v1alpha1.SourceFromContext(ctx)
 
 	src.GetStatusManager().CloudEventAttributes = CreateCloudEventAttributes(
@@ -175,7 +206,14 @@ func (r *GenericServiceReconciler) ReconcileSource(ctx context.Context, adb Adap
 	}
 	src.GetStatusManager().MarkSink(sinkURI)
 
-	if err := r.reconcileAdapter(ctx, adb(sinkURI)); err != nil {
+	desiredAdapter := ab.BuildAdapter(src, sinkURI)
+
+	saOwners, err := ab.RBACOwners(src.GetNamespace())
+	if err != nil {
+		return fmt.Errorf("listing ServiceAccount owners: %w", err)
+	}
+
+	if err := r.reconcileAdapter(ctx, desiredAdapter, saOwners); err != nil {
 		return fmt.Errorf("failed to reconcile adapter: %w", err)
 	}
 	return nil
@@ -194,8 +232,15 @@ func (r *GenericServiceReconciler) resolveSinkURL(ctx context.Context) (*apis.UR
 }
 
 // reconcileAdapter reconciles the state of the source's adapter.
-func (r *GenericServiceReconciler) reconcileAdapter(ctx context.Context, desiredAdapter *servingv1.Service) error {
+func (r *GenericServiceReconciler) reconcileAdapter(ctx context.Context,
+	desiredAdapter *servingv1.Service, rbacOwners []kmeta.OwnerRefable) error {
+
 	src := v1alpha1.SourceFromContext(ctx)
+
+	if err := r.reconcileRBAC(ctx, rbacOwners); err != nil {
+		src.GetStatusManager().MarkRBACNotBound()
+		return fmt.Errorf("reconciling RBAC objects: %w", err)
+	}
 
 	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
 	if err != nil {
@@ -330,4 +375,154 @@ func newNotFoundForSelector(gr schema.GroupResource, sel labels.Selector) *apier
 	err := apierrors.NewNotFound(gr, "")
 	err.ErrStatus.Message = fmt.Sprint(gr, " not found for selector ", sel)
 	return err
+}
+
+// reconcileRBAC wraps the reconciliation logic for RBAC objects.
+func (r *GenericRBACReconciler) reconcileRBAC(ctx context.Context, owners []kmeta.OwnerRefable) error {
+	// The ServiceAccount's ownership is shared between all instances of a
+	// given source type. It gets garbage collected by Kubernetes as soon
+	// as its last owner (source) is deleted, so we don't need to clean
+	// things up explicitly once the last source gets deleted.
+	if len(owners) == 0 {
+		return nil
+	}
+
+	src := v1alpha1.SourceFromContext(ctx)
+
+	desiredSA := newServiceAccount(src, owners)
+	currentSA, err := r.getOrCreateAdapterServiceAccount(ctx, desiredSA)
+	if err != nil {
+		return err
+	}
+
+	desiredRB := newRoleBinding(src, currentSA)
+	currentRB, err := r.getOrCreateAdapterRoleBinding(ctx, desiredRB)
+	if err != nil {
+		return err
+	}
+
+	if _, err = r.syncAdapterServiceAccount(ctx, currentSA, desiredSA); err != nil {
+		return fmt.Errorf("synchronizing adapter ServiceAccount: %w", err)
+	}
+
+	if _, err = r.syncAdapterRoleBinding(ctx, currentRB, desiredRB); err != nil {
+		return fmt.Errorf("synchronizing adapter RoleBinding: %w", err)
+	}
+
+	return nil
+}
+
+// getOrCreateAdapterServiceAccount returns the existing adapter ServiceAccount
+// for a given source, or creates it if it is missing.
+func (r *GenericRBACReconciler) getOrCreateAdapterServiceAccount(ctx context.Context,
+	desiredSA *corev1.ServiceAccount) (*corev1.ServiceAccount, error) {
+
+	src := v1alpha1.SourceFromContext(ctx)
+
+	sa, err := r.SALister(src.GetNamespace()).Get(desiredSA.Name)
+	switch {
+	case apierrors.IsNotFound(err):
+		sa, err = r.SAClient(desiredSA.Namespace).Create(ctx, desiredSA, metav1.CreateOptions{})
+		if err != nil {
+			return nil, reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedRBACCreate,
+				"Failed to create adapter ServiceAccount %q: %s", desiredSA.Name, err)
+		}
+		controller.GetEventRecorder(ctx).Eventf(newNamespace(desiredSA.Namespace), corev1.EventTypeNormal,
+			ReasonRBACCreate, "Created ServiceAccount %q due to the creation of a %s object",
+			sa.Name, src.GetGroupVersionKind().Kind)
+
+	case err != nil:
+		return nil, fmt.Errorf("getting adapter ServiceAccount from cache: %w", err)
+	}
+
+	return sa, nil
+}
+
+// syncAdapterServiceAccount synchronizes the desired state of an adapter
+// ServiceAccount against its current state in the running cluster.
+func (r *GenericRBACReconciler) syncAdapterServiceAccount(ctx context.Context,
+	currentSA, desiredSA *corev1.ServiceAccount) (*corev1.ServiceAccount, error) {
+
+	if reflect.DeepEqual(desiredSA.OwnerReferences, currentSA.OwnerReferences) {
+		return currentSA, nil
+	}
+
+	// resourceVersion must be returned to the API server unmodified for
+	// optimistic concurrency, as per Kubernetes API conventions
+	desiredSA.ResourceVersion = currentSA.ResourceVersion
+
+	sa, err := r.SAClient(desiredSA.Namespace).Update(ctx, desiredSA, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedRBACUpdate,
+			"Failed to update adapter ServiceAccount %q: %s", desiredSA.Name, err)
+	}
+
+	controller.GetEventRecorder(ctx).Eventf(newNamespace(sa.Namespace), corev1.EventTypeNormal,
+		ReasonRBACUpdate, "Updated ServiceAccount %q due to the creation/deletion of a %s object",
+		sa.Name, v1alpha1.SourceFromContext(ctx).GetGroupVersionKind().Kind)
+
+	return sa, nil
+}
+
+// getOrCreateAdapterRoleBinding returns the existing adapter RoleBinding, or
+// creates it if it is missing.
+func (r *GenericRBACReconciler) getOrCreateAdapterRoleBinding(ctx context.Context,
+	desiredRB *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error) {
+
+	src := v1alpha1.SourceFromContext(ctx)
+
+	rb, err := r.RBLister(desiredRB.Namespace).Get(desiredRB.Name)
+	switch {
+	case apierrors.IsNotFound(err):
+		rb, err = r.RBClient(src.GetNamespace()).Create(ctx, desiredRB, metav1.CreateOptions{})
+		if err != nil {
+			return nil, reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedRBACCreate,
+				"Failed to create adapter RoleBinding %q: %s", desiredRB.Name, err)
+		}
+		controller.GetEventRecorder(ctx).Eventf(newNamespace(rb.Namespace), corev1.EventTypeNormal,
+			ReasonRBACCreate, "Created RoleBinding %q due to the creation of a %s object",
+			rb.Name, src.GetGroupVersionKind().Kind)
+
+	case err != nil:
+		return nil, fmt.Errorf("getting adapter RoleBinding from cache: %w", err)
+	}
+
+	return rb, nil
+}
+
+// syncAdapterRoleBinding synchronizes the desired state of an adapter
+// RoleBinding against its current state in the running cluster.
+func (r *GenericRBACReconciler) syncAdapterRoleBinding(ctx context.Context,
+	currentRB, desiredRB *rbacv1.RoleBinding) (*rbacv1.RoleBinding, error) {
+
+	if reflect.DeepEqual(desiredRB.OwnerReferences, currentRB.OwnerReferences) &&
+		reflect.DeepEqual(desiredRB.RoleRef, currentRB.RoleRef) &&
+		reflect.DeepEqual(desiredRB.Subjects, currentRB.Subjects) {
+
+		return currentRB, nil
+	}
+
+	// resourceVersion must be returned to the API server unmodified for
+	// optimistic concurrency, as per Kubernetes API conventions
+	desiredRB.ResourceVersion = currentRB.ResourceVersion
+
+	rb, err := r.RBClient(desiredRB.Namespace).Update(ctx, desiredRB, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedRBACUpdate,
+			"Failed to update adapter RoleBinding %q: %s", desiredRB.Name, err)
+	}
+	controller.GetEventRecorder(ctx).Eventf(newNamespace(rb.Namespace), corev1.EventTypeNormal,
+		ReasonRBACUpdate, "Updated RoleBinding %q", rb.Name)
+
+	return rb, nil
+}
+
+// newNamespace returns a Namespace object with the given name.
+// It is used as a helper to record namespace-scoped API events.
+func newNamespace(name string) *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
 }

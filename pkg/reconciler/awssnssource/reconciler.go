@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@ import (
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awssnssource"
+	listersv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/listers/sources/v1alpha1"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 )
 
@@ -32,7 +33,9 @@ type Reconciler struct {
 	base       common.GenericServiceReconciler
 	adapterCfg *adapterConfig
 
-	// SNS client interface
+	srcLister func(namespace string) listersv1alpha1.AWSSNSSourceNamespaceLister
+
+	// SNS client interface to interact with the SNS API
 	snsCg ClientGetter
 }
 
@@ -47,7 +50,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSSNSSour
 	// inject source into context for usage in reconciliation logic
 	ctx = v1alpha1.WithSource(ctx, src)
 
-	if err := r.base.ReconcileSource(ctx, adapterServiceBuilder(src, r.adapterCfg)); err != nil {
+	if err := r.base.ReconcileSource(ctx, r); err != nil {
 		return fmt.Errorf("failed to reconcile source: %w", err)
 	}
 

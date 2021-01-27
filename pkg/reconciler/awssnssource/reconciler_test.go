@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sns"
 
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,9 +36,7 @@ import (
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/logging"
 	rt "knative.dev/pkg/reconciler/testing"
-	"knative.dev/pkg/resolver"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
-	fakeservinginjectionclient "knative.dev/serving/pkg/client/injection/client/fake"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -48,25 +47,23 @@ import (
 	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
 )
 
-func TestReconcileSource(t *testing.T) {
-	var (
-		ctor      = reconcilerCtor(adapterCfg)
-		src       = newEventSource()
-		adapterFn = adapterServiceBuilder(src, adapterCfg)
-	)
+// adapterCfg is used in every instance of Reconciler defined in reconciler tests.
+var adapterCfg = &adapterConfig{
+	Image:   "registry/image:tag",
+	configs: &source.EmptyVarsGenerator{},
+}
 
-	TestReconcile(t, ctor, src, adapterFn)
+func TestReconcileSource(t *testing.T) {
+	ctor := reconcilerCtor(adapterCfg)
+	src := newEventSource()
+	ab := adapterBuilder(adapterCfg)
+
+	TestReconcileAdapter(t, ctor, src, ab)
 }
 
 // reconcilerCtor returns a Ctor for a AWSSNSSource Reconciler.
 func reconcilerCtor(cfg *adapterConfig) Ctor {
 	return func(t *testing.T, ctx context.Context, tr *rt.TableRow, ls *Listers) controller.Reconciler {
-		base := common.GenericServiceReconciler{
-			SinkResolver: resolver.NewURIResolver(ctx, func(types.NamespacedName) {}),
-			Lister:       ls.GetServiceLister().Services,
-			Client:       fakeservinginjectionclient.Get(ctx).ServingV1().Services,
-		}
-
 		snsCli := &mockedSNSClient{
 			subscriptions: getMockSubscriptionsPages(tr),
 		}
@@ -79,8 +76,9 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 		tr.OtherTestData[testClientDataKey] = snsCli
 
 		r := &Reconciler{
-			base:       base,
+			base:       NewTestServiceReconciler(ctx, ls),
 			adapterCfg: cfg,
+			srcLister:  ls.GetAWSSNSSourceLister().AWSSNSSources,
 			snsCg:      staticClientGetter(snsCli),
 		}
 
@@ -88,12 +86,6 @@ func reconcilerCtor(cfg *adapterConfig) Ctor {
 			fakeinjectionclient.Get(ctx), ls.GetAWSSNSSourceLister(),
 			controller.GetEventRecorder(ctx), r)
 	}
-}
-
-// adapterCfg is used in every instance of Reconciler defined in reconciler tests.
-var adapterCfg = &adapterConfig{
-	Image:   "registry/image:tag",
-	configs: &source.EmptyVarsGenerator{},
 }
 
 // newEventSource returns a test source object with a minimal set of pre-filled attributes.
@@ -134,6 +126,14 @@ func newEventSource() *v1alpha1.AWSSNSSource {
 	return src
 }
 
+// adapterBuilder returns a slim Reconciler containing only the fields accessed
+// by r.BuildAdapter().
+func adapterBuilder(cfg *adapterConfig) common.AdapterServiceBuilder {
+	return &Reconciler{
+		adapterCfg: cfg,
+	}
+}
+
 // TestReconcileSubscription contains tests specific to the SNS source.
 func TestReconcileSubscription(t *testing.T) {
 	testCases := rt.TableTest{
@@ -145,6 +145,8 @@ func TestReconcileSubscription(t *testing.T) {
 			OtherTestData: makeMockSubscriptionsPages(false),
 			Objects: []runtime.Object{
 				newReconciledSource(),
+				newReconciledServiceAccount(),
+				newReconciledRoleBinding(),
 				newReconciledAdapter(),
 			},
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
@@ -163,6 +165,8 @@ func TestReconcileSubscription(t *testing.T) {
 			OtherTestData: makeMockSubscriptionsPages(true),
 			Objects: []runtime.Object{
 				newReconciledSource(subscribed),
+				newReconciledServiceAccount(),
+				newReconciledRoleBinding(),
 				newReconciledAdapter(),
 			},
 			PostConditions: []func(*testing.T, *rt.TableRow){
@@ -178,6 +182,8 @@ func TestReconcileSubscription(t *testing.T) {
 			OtherTestData: makeMockSubscriptionsPages(true),
 			Objects: []runtime.Object{
 				newReconciledSource(subscribed, deleted),
+				newReconciledServiceAccount(),
+				newReconciledRoleBinding(),
 				newReconciledAdapter(),
 			},
 			WantPatches: []clientgotesting.PatchActionImpl{
@@ -197,6 +203,8 @@ func TestReconcileSubscription(t *testing.T) {
 			OtherTestData: makeMockSubscriptionsPages(false),
 			Objects: []runtime.Object{
 				newReconciledSource(deleted),
+				newReconciledServiceAccount(),
+				newReconciledRoleBinding(),
 				newReconciledAdapter(),
 			},
 			WantPatches: []clientgotesting.PatchActionImpl{
@@ -282,10 +290,22 @@ func deleted(src *v1alpha1.AWSSNSSource) {
 	src.SetDeletionTimestamp(&t)
 }
 
+// newReconciledServiceAccount returns a test ServiceAccount object that is
+// identical to what ReconcileKind generates.
+func newReconciledServiceAccount() *corev1.ServiceAccount {
+	return NewServiceAccount(newEventSource())()
+}
+
+// newReconciledRoleBinding returns a test RoleBinding object that is
+// identical to what ReconcileKind generates.
+func newReconciledRoleBinding() *rbacv1.RoleBinding {
+	return NewRoleBinding(newReconciledServiceAccount())()
+}
+
 // newReconciledAdapter returns a test receive adapter object that is identical
 // to what ReconcileKind generates.
 func newReconciledAdapter() *servingv1.Service {
-	adapter := adapterServiceBuilder(newEventSource(), adapterCfg)(tSinkURI)
+	adapter := adapterBuilder(adapterCfg).BuildAdapter(newEventSource(), tSinkURI)
 
 	adapter.Status.SetConditions(apis.Conditions{{
 		Type:   v1alpha1.ConditionReady,

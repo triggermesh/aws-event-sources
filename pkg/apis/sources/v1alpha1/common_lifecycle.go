@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -83,6 +83,13 @@ func (m *EventSourceStatusManager) MarkNoSink() {
 	m.SinkURI = nil
 	m.ConditionSet.Manage(m).MarkFalse(ConditionSinkProvided,
 		ReasonSinkNotFound, "The sink does not exist or its URI is not set")
+}
+
+// MarkRBACNotBound sets the Deployed condition to False, indicating that the
+// adapter's ServiceAccount couldn't be bound.
+func (m *EventSourceStatusManager) MarkRBACNotBound() {
+	m.ConditionSet.Manage(m).MarkFalse(ConditionDeployed,
+		ReasonRBACNotBound, "The adapter's ServiceAccount can not be bound")
 }
 
 // PropagateDeploymentAvailability uses the readiness of the provided
