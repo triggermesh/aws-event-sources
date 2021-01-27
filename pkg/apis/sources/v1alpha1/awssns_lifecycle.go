@@ -88,6 +88,8 @@ const (
 	AWSSNSReasonNoClient = "NoClient"
 	// AWSSNSReasonRejected is set on a Subscribed condition when the SNS API rejects a subscription request.
 	AWSSNSReasonRejected = "SubscriptionRejected"
+	// AWSSNSReasonAPIError is set on a Subscribed condition when the SNS API returns any other error.
+	AWSSNSReasonAPIError = "APIError"
 	// AWSSNSReasonFailedSync is set on a Subscribed condition when other synchronization errors occur.
 	AWSSNSReasonFailedSync = "FailedSync"
 )

@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -95,6 +96,13 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 		}
 
 		event.Normal(ctx, ReasonSubscribed, "Subscribed to SNS topic %q", topicARN)
+
+	case isAWSError(err):
+		// All documented API errors require some user intervention and
+		// are not to be retried.
+		// https://docs.aws.amazon.com/sns/latest/api/API_Subscribe.html#API_Subscribe_Errors
+		status.MarkNotSubscribed(v1alpha1.AWSSNSReasonAPIError, "API call rejected")
+		return controller.NewPermanentError(apiErrorEvent(err))
 
 	case err != nil:
 		return fmt.Errorf("finding subscription: %w", err)
@@ -267,6 +275,11 @@ func isNotFound(err error) bool {
 // API could not be authorized.
 func isDenied(err error) bool {
 	if awsErr := awserr.Error(nil); errors.As(err, &awsErr) {
+		if awsReqFail := awserr.RequestFailure(nil); errors.As(err, &awsReqFail) {
+			code := awsReqFail.StatusCode()
+			return code == http.StatusUnauthorized || code == http.StatusForbidden
+		}
+
 		return awsErr.Code() == sns.ErrCodeAuthorizationErrorException
 	}
 	return false
@@ -296,6 +309,13 @@ func toErrMsg(err error) string {
 func subscribeErrorEvent(url *apis.URL, topicARN string, origErr error) reconciler.Event {
 	return reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
 		"Error subscribing endpoint %q to SNS topic %q: %s", url, topicARN, toErrMsg(origErr))
+}
+
+// apiErrorEvent returns a reconciler event indicating that the SNS API
+// returned an error.
+func apiErrorEvent(origErr error) reconciler.Event {
+	return reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
+		"Error communicating with the SNS API: %s", toErrMsg(origErr))
 }
 
 // unsubscribeErrorEvent returns a reconciler event indicating that an endpoint

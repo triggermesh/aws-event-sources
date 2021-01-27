@@ -18,6 +18,7 @@ package awssnssource
 
 import (
 	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,10 +44,16 @@ func TestErrors(t *testing.T) {
 	t.Run("denied", func(t *testing.T) {
 		deniedErr := awserr.New(sns.ErrCodeAuthorizationErrorException, "an error", assert.AnError)
 
+		reqFailErr := func(httpCode int) error {
+			return awserr.NewRequestFailure(genericAWSErr, httpCode, "00000000-0000-...")
+		}
+
 		assert.True(t, isDenied(deniedErr))
 		assert.True(t, isDenied(fmt.Errorf("wrapped: %w", deniedErr)))
+		assert.True(t, isDenied(reqFailErr(http.StatusUnauthorized)))
 		assert.False(t, isDenied(genericAWSErr))
 		assert.False(t, isDenied(genericErr))
+		assert.False(t, isDenied(reqFailErr(http.StatusBadRequest)))
 	})
 
 	t.Run("not found", func(t *testing.T) {
