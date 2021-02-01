@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,35 +18,11 @@ package testing
 
 import (
 	"os"
-	"reflect"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"knative.dev/pkg/controller"
 )
-
-// EnsureNoNilField fails the test if the provided Impl's reconciler contains
-// nil pointers or interfaces.
-func EnsureNoNilField(t *testing.T, impl *controller.Impl) {
-	t.Helper()
-
-	recVal := reflect.ValueOf(impl.Reconciler).Elem().
-		FieldByName("reconciler"). // knative.dev/pkg/controller.Reconciler
-		Elem().                    // injection/reconciler/sources/v1alpha1/<type>.Interface
-		Elem()                     //*reconciler.Reconciler
-
-	for i := 0; i < recVal.NumField(); i++ {
-		f := recVal.Field(i)
-		switch f.Kind() {
-		case reflect.Interface, reflect.Ptr, reflect.Func:
-			if f.IsNil() {
-				t.Errorf("struct field %q is nil", recVal.Type().Field(i).Name)
-			}
-		}
-	}
-}
 
 // SetEnvVar sets the value of an env var and returns a function that can be
 // deferred to unset that variable.

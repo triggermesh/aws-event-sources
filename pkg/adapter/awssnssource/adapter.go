@@ -18,9 +18,7 @@ package awssnssource
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -28,41 +26,33 @@ import (
 
 	cloudevents "github.com/cloudevents/sdk-go/v2"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/arn"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/sns/snsiface"
+	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/apis"
+	k8sclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/injection"
 	"knative.dev/pkg/logging"
 
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/awssnssource/handler"
 	"github.com/triggermesh/aws-event-sources/pkg/adapter/awssnssource/status"
-	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
 	"github.com/triggermesh/aws-event-sources/pkg/adapter/common/env"
+	"github.com/triggermesh/aws-event-sources/pkg/adapter/common/router"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+	"github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client"
+	snsclient "github.com/triggermesh/aws-event-sources/pkg/client/sns"
+	"github.com/triggermesh/aws-event-sources/pkg/routing"
 )
-
-// envConfig is a set parameters sourced from the environment for the source's
-// adapter.
-type envConfig struct {
-	env.Config
-
-	ARN string `required:"true"`
-}
 
 // adapter implements the source's adapter.
 type adapter struct {
 	logger *zap.SugaredLogger
 
-	snsClient snsiface.SNSAPI
-	ceClient  cloudevents.Client
-
-	arn arn.ARN
+	ceClient cloudevents.Client
+	snsCg    snsclient.ClientGetter
 
 	// fields accessed during object reconciliation
+	router        *router.Router
 	statusPatcher *status.Patcher
 }
 
@@ -70,164 +60,113 @@ type adapter struct {
 var (
 	_ pkgadapter.Adapter = (*adapter)(nil)
 	_ MTAdapter          = (*adapter)(nil)
+	_ http.Handler       = (*adapter)(nil)
 )
 
 // NewEnvConfig satisfies env.ConfigConstructor.
 // Returns an accessor for the source's adapter envConfig.
 func NewEnvConfig() env.ConfigAccessor {
-	return &envConfig{}
+	return &env.Config{}
 }
 
 // NewAdapter returns a constructor for the source's adapter.
 func NewAdapter(component string) pkgadapter.AdapterConstructor {
-	return func(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor,
+	return func(ctx context.Context, _ pkgadapter.EnvConfigAccessor,
 		ceClient cloudevents.Client) pkgadapter.Adapter {
 
-		logger := logging.FromContext(ctx)
-
-		env := envAcc.(*envConfig)
-
-		arn := common.MustParseARN(env.ARN)
-
-		cfg := session.Must(session.NewSession(aws.NewConfig().
-			WithRegion(arn.Region).
-			WithMaxRetries(5),
-		))
-
 		ns := injection.GetNamespaceScope(ctx)
+		secrGetter := secretGetter(k8sclient.Get(ctx).CoreV1().Secrets(ns))
+		srcClient := client.Get(ctx).SourcesV1alpha1().AWSSNSSources(ns)
 
 		return &adapter{
-			logger: logger,
+			logger: logging.FromContext(ctx),
 
-			snsClient: sns.New(cfg),
-			ceClient:  ceClient,
+			ceClient: ceClient,
+			snsCg:    snsclient.NewClientGetter(secrGetter),
 
-			arn: arn,
-
-			statusPatcher: status.NewPatcher(component, ns, ctx),
+			router:        &router.Router{},
+			statusPatcher: status.NewPatcher(component, srcClient),
 		}
+	}
+}
+
+func secretGetter(cli coreclientv1.SecretInterface) snsclient.NamespacedSecretsGetter {
+	return func(string) coreclientv1.SecretInterface {
+		return cli
 	}
 }
 
 const (
-	serverPort                = "8080"
-	serverShutdownGracePeriod = time.Second * 10
+	serverPort                uint16 = 8080
+	serverShutdownGracePeriod        = time.Second * 10
 )
 
 // Start implements adapter.Adapter.
 func (a *adapter) Start(ctx context.Context) error {
-	http.HandleFunc("/", a.handleNotification)
-	http.HandleFunc("/health", healthCheckHandler)
+	server := &http.Server{
+		Addr:    fmt.Sprint(":", serverPort),
+		Handler: a,
+	}
 
-	server := &http.Server{Addr: ":" + serverPort}
-	serverErrCh := make(chan error)
-	defer close(serverErrCh)
+	return runHandler(ctx, server)
+}
 
+// runHandler runs the HTTP event handler until ctx get cancelled.
+func runHandler(ctx context.Context, s *http.Server) error {
+	logging.FromContext(ctx).Info("Starting HTTP event handler")
+
+	errCh := make(chan error)
 	go func() {
-		a.logger.Info("Serving on port " + serverPort)
-		serverErrCh <- server.ListenAndServe()
+		errCh <- s.ListenAndServe()
 	}()
 
-	var err error
+	handleServerError := func(err error) error {
+		if err != http.ErrServerClosed {
+			return fmt.Errorf("during server runtime: %w", err)
+		}
+		return nil
+	}
 
 	select {
-	case serverErr := <-serverErrCh:
-		if serverErr != nil {
-			err = fmt.Errorf("failure during runtime of SNS notification handler: %w", serverErr)
-		}
-
 	case <-ctx.Done():
-		a.logger.Info("Shutting server down")
+		logging.FromContext(ctx).Info("HTTP event handler is shutting down")
 
 		ctx, cancel := context.WithTimeout(context.Background(), serverShutdownGracePeriod)
 		defer cancel()
-		if shutdownErr := server.Shutdown(ctx); shutdownErr != nil {
-			err = fmt.Errorf("error during server shutdown: %w", shutdownErr)
+
+		if err := s.Shutdown(ctx); err != nil {
+			return fmt.Errorf("during server shutdown: %w", err)
 		}
 
-		// unblock server goroutine
-		<-serverErrCh
-	}
+		return handleServerError(<-errCh)
 
-	return err
-}
-
-// handleNotification implements the receive interface for SNS.
-func (a *adapter) handleNotification(rw http.ResponseWriter, r *http.Request) {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		a.logger.Errorw("Failed to read request body", zap.Error(err))
-		http.Error(rw, fmt.Sprint("Failed to read request body: ", err), http.StatusInternalServerError)
-		return
-	}
-
-	data := make(map[string]interface{})
-	if err := json.Unmarshal(body, &data); err != nil {
-		a.logger.Errorw("Failed to parse notification", zap.Error(err))
-		http.Error(rw, fmt.Sprint("Failed to parse notification: ", err), http.StatusBadRequest)
-		return
-	}
-
-	a.logger.Debug("Request body: ", string(body))
-
-	switch data["Type"].(string) {
-	// If the message is about our subscription, call the confirmation endpoint.
-	// payload: https://docs.aws.amazon.com/sns/latest/dg/sns-message-and-json-formats.html#http-subscription-confirmation-json
-	case "SubscriptionConfirmation":
-		resp, err := a.snsClient.ConfirmSubscription(&sns.ConfirmSubscriptionInput{
-			TopicArn: aws.String(data["TopicArn"].(string)),
-			Token:    aws.String(data["Token"].(string)),
-		})
-		if err != nil {
-			a.logger.Errorw("Unable to confirm SNS subscription", zap.Error(err))
-			http.Error(rw, fmt.Sprint("Unable to confirm SNS subscription: ", err), http.StatusInternalServerError)
-			return
-		}
-
-		a.logger.Debug("Successfully confirmed SNS subscription: ", *resp)
-
-	// If the message is a notification, push the event
-	// payload: https://docs.aws.amazon.com/sns/latest/dg/sns-message-and-json-formats.html#http-notification-json
-	case "Notification":
-		event := cloudevents.NewEvent(cloudevents.VersionV1)
-		event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSSNSGenericEventType))
-		event.SetSource(a.arn.String())
-		event.SetID(data["MessageId"].(string))
-
-		if subjectAttr, ok := data["Subject"]; ok {
-			event.SetSubject(subjectAttr.(string))
-		}
-
-		if err := event.SetData(cloudevents.ApplicationJSON, body); err != nil {
-			a.logger.Errorw("Failed to set event data", zap.Error(err))
-			http.Error(rw, fmt.Sprint("Failed to set event data: ", err), http.StatusInternalServerError)
-			return
-		}
-
-		if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
-			a.logger.Errorw("Failed to send CloudEvent", zap.Error(result))
-			http.Error(rw, fmt.Sprint("Failed to send CloudEvent: ", result), http.StatusInternalServerError)
-		}
-
-		a.logger.Debug("Successfully sent SNS notification: ", event)
+	case err := <-errCh:
+		return handleServerError(err)
 	}
 }
 
-func healthCheckHandler(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprintln(w, "OK")
+// ServeHTTP implements http.Handler.
+// Delegates incoming requests to the underlying router.
+func (a *adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	a.router.ServeHTTP(w, r)
 }
 
 // RegisterHandlerFor implements MTAdapter.
 func (a *adapter) RegisterHandlerFor(ctx context.Context, src *v1alpha1.AWSSNSSource) error {
-	// TODO(antoineco): implement routing
+	snsCli, err := a.snsCg.Get(src)
+	if err != nil {
+		return fmt.Errorf("obtaining SNS client: %w", err)
+	}
+
+	h := handler.New(src, a.logger, a.ceClient, snsCli)
+
+	a.router.RegisterPath(routing.URLPath(src), h)
 	return nil
 }
 
 // DeregisterHandlerFor implements MTAdapter.
 func (a *adapter) DeregisterHandlerFor(ctx context.Context, src *v1alpha1.AWSSNSSource) error {
-	// TODO(antoineco): implement routing
+	a.router.DeregisterPath(routing.URLPath(src))
 	return nil
 }
 

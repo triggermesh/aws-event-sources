@@ -307,6 +307,14 @@ rules:
   verbs:
   - patch
 
+# Read credentials
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
+  - get
+
 # Acquire leases for leader election
 - apiGroups:
   - coordination.k8s.io

@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/reconciler"
@@ -47,13 +48,9 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSSNSSour
 		return err
 	}
 
-	// TODO(antoineco): switch to true and adjust reason and message once
-	// routing is implemented
 	cond := &apis.Condition{
-		Type:    v1alpha1.AWSSNSConditionHandlerRegistered,
-		Status:  corev1.ConditionFalse,
-		Reason:  "TODO",
-		Message: "Multi-tenancy not implemented",
+		Type:   v1alpha1.AWSSNSConditionHandlerRegistered,
+		Status: corev1.ConditionTrue,
 	}
 
 	if err := r.adapter.PropagateCondition(ctx, src, cond); err != nil {

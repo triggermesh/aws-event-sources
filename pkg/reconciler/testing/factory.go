@@ -59,7 +59,7 @@ func MakeFactory(ctor Ctor) rt.Factory {
 		ctx = logging.WithLogger(ctx, logtesting.TestLogger(t))
 
 		// the controller.Reconciler uses an internal client to handle
-		// target objects
+		// source objects
 		ctx, client := fakeinjectionclient.With(ctx, ls.GetSourcesObjects()...)
 
 		// all clients used inside reconciler implementations should be

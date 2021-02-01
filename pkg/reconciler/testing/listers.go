@@ -46,7 +46,7 @@ var clientSetSchemes = []func(*runtime.Scheme) error{
 	fakeservingclient.AddToScheme,
 	// although our reconcilers do not handle eventing objects directly, we
 	// do need to register the eventing Scheme so that sink URI resolvers
-	// can recongnize the Broker objects we use in tests
+	// can recognize the Broker objects we use in tests
 	fakeeventingclientset.AddToScheme,
 }
 

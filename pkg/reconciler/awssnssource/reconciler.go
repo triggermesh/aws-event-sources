@@ -25,6 +25,7 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awssnssource"
 	listersv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/listers/sources/v1alpha1"
+	snsclient "github.com/triggermesh/aws-event-sources/pkg/client/sns"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 )
 
@@ -36,7 +37,7 @@ type Reconciler struct {
 	srcLister func(namespace string) listersv1alpha1.AWSSNSSourceNamespaceLister
 
 	// SNS client interface to interact with the SNS API
-	snsCg ClientGetter
+	snsCg snsclient.ClientGetter
 }
 
 // Check that our Reconciler implements Interface

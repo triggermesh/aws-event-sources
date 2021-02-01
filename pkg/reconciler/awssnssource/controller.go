@@ -31,6 +31,7 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	informerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awssnssource"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awssnssource"
+	"github.com/triggermesh/aws-event-sources/pkg/client/sns"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 )
 
@@ -58,7 +59,7 @@ func NewController(
 	r := &Reconciler{
 		adapterCfg: adapterCfg,
 		srcLister:  informer.Lister().AWSSNSSources,
-		snsCg:      newClientGetter(k8sclient.Get(ctx).CoreV1().Secrets),
+		snsCg:      sns.NewClientGetter(k8sclient.Get(ctx).CoreV1().Secrets),
 	}
 	impl := reconcilerv1alpha1.NewImpl(ctx, r)
 

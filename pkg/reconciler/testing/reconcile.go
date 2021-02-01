@@ -43,9 +43,9 @@ import (
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
-	eventtesting "github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event/testing"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/skip"
 	"github.com/triggermesh/aws-event-sources/pkg/routing"
+	eventtesting "github.com/triggermesh/aws-event-sources/pkg/testing/event"
 )
 
 const (

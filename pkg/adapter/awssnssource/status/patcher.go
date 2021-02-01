@@ -27,15 +27,14 @@ import (
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	clientv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/clientset/internalclientset/typed/sources/v1alpha1"
-	client "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client"
 )
 
 // NewPatcher returns a named Patcher scoped at the provided namespace and
 // initialized from the client interface carried by ctx.
-func NewPatcher(component, namespace string, ctx context.Context) *Patcher {
+func NewPatcher(component string, cli clientv1alpha1.AWSSNSSourceInterface) *Patcher {
 	return &Patcher{
 		component: component,
-		cli:       client.Get(ctx).SourcesV1alpha1().AWSSNSSources(namespace),
+		cli:       cli,
 	}
 }
 

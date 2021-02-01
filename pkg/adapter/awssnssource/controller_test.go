@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020-2021 TriggerMesh Inc.
+Copyright (c) 2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,23 +19,12 @@ package awssnssource
 import (
 	"testing"
 
-	rt "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
+	adaptesting "github.com/triggermesh/aws-event-sources/pkg/adapter/testing"
 
 	// Link fake informers accessed by our controller
 	_ "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/informers/sources/v1alpha1/awssnssource/fake"
-	_ "knative.dev/pkg/client/injection/ducks/duck/v1/addressable/fake"
-	_ "knative.dev/pkg/client/injection/kube/informers/core/v1/serviceaccount/fake"
-	_ "knative.dev/pkg/client/injection/kube/informers/rbac/v1/rolebinding/fake"
-	_ "knative.dev/pkg/injection/clients/dynamicclient/fake"
-	_ "knative.dev/serving/pkg/client/injection/informers/serving/v1/service/fake"
 )
 
 func TestNewController(t *testing.T) {
-	t.Run("No failure", func(t *testing.T) {
-		rt.TestControllerConstructor(t, NewController)
-	})
-
-	t.Run("Failure cases", func(t *testing.T) {
-		rt.TestControllerConstructorFailures(t, NewController)
-	})
+	adaptesting.TestControllerConstructor(t, NewController("controller-test"), &adapter{})
 }

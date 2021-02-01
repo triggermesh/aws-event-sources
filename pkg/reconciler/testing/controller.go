@@ -26,6 +26,8 @@ import (
 	"knative.dev/pkg/logging"
 	"knative.dev/pkg/metrics"
 	rt "knative.dev/pkg/reconciler/testing"
+
+	"github.com/triggermesh/aws-event-sources/pkg/testing/structs"
 )
 
 // TestControllerConstructor tests that a controller constructor meets our requirements.
@@ -56,7 +58,7 @@ func TestControllerConstructor(t *testing.T, ctor injection.ControllerConstructo
 	ctrler := ctor(ctx, cmw)
 
 	// catch unitialized fields in Reconciler struct
-	EnsureNoNilField(t, ctrler)
+	structs.EnsureNoNilField(t, ctrler)
 }
 
 // TestControllerConstructorFailures tests that a controller constructor fails

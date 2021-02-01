@@ -20,10 +20,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/service/sns"
-
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,14 +34,19 @@ import (
 	rt "knative.dev/pkg/reconciler/testing"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/request"
+	"github.com/aws/aws-sdk-go/service/sns"
+
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	fakeinjectionclient "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/client/fake"
 	reconcilerv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/injection/reconciler/sources/v1alpha1/awssnssource"
+	snsclient "github.com/triggermesh/aws-event-sources/pkg/client/sns"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
-	eventtesting "github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event/testing"
 	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
 	"github.com/triggermesh/aws-event-sources/pkg/routing"
+	eventtesting "github.com/triggermesh/aws-event-sources/pkg/testing/event"
 )
 
 // adapterCfg is used in every instance of Reconciler defined in reconciler tests.
@@ -324,8 +325,8 @@ func newReconciledAdapter() *servingv1.Service {
 
 // staticClientGetter transforms the given client interface into a
 // ClientGetter.
-func staticClientGetter(cli Client) clientGetterFunc {
-	return func(*v1alpha1.AWSSNSSource) (Client, error) {
+func staticClientGetter(cli snsclient.Client) snsclient.ClientGetterFunc {
+	return func(*v1alpha1.AWSSNSSource) (snsclient.Client, error) {
 		return cli, nil
 	}
 }
@@ -335,7 +336,7 @@ const testClientDataKey = "client"
 type mockSubscriptionsPages map[ /*token*/ *string][]*sns.Subscription
 
 type mockedSNSClient struct {
-	Client
+	snsclient.Client
 
 	subscriptions mockSubscriptionsPages
 
@@ -381,6 +382,8 @@ func (c *mockedSNSClient) ListSubscriptionsByTopicWithContext(_ aws.Context, in 
 	}, nil
 }
 
+const mockSubscriptionsPagesDataKey = "subpages"
+
 // makeMockSubscriptionsPages returns mocked pages of SNS Subscriptions to be
 // used as TableRow data.
 func makeMockSubscriptionsPages(subExists bool) map[string]interface{} {
@@ -417,8 +420,6 @@ func makeMockSubscriptionsPages(subExists bool) map[string]interface{} {
 		mockSubscriptionsPagesDataKey: pages,
 	}
 }
-
-const mockSubscriptionsPagesDataKey = "subpages"
 
 // getMockSubscriptionsPages gets mocked pages of SNS Subscriptions from the
 // TableRow's data.

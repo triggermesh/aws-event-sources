@@ -41,6 +41,10 @@ func PropagateCondition(ctx context.Context, p *Patcher, src *v1alpha1.AWSSNSSou
 		condMan.MarkFalse(cond.Type, cond.Reason, cond.Message)
 	}
 
+	if c := ClockFromContext(ctx); c != nil {
+		forceTransitionTime(stMan.GetConditions(), cond.Type, c)
+	}
+
 	patch, err := duck.CreatePatch(src, srcCpy)
 	if err != nil {
 		return fmt.Errorf("creating JSON patch for status condition: %w", err)
@@ -63,4 +67,17 @@ func shallowSourceCopy(src *v1alpha1.AWSSNSSource) *v1alpha1.AWSSNSSource {
 	srcCpy := *src
 	srcCpy.Status.Conditions = src.Status.Conditions.DeepCopy()
 	return &srcCpy
+}
+
+// forceTransitionTime forces the value of the status condition of the given
+// type to the value returned by the provided Clock.
+// This helper exists because Knative's SetConditon method always uses
+// time.Now(), which is not suitable to write reproducible tests in some
+// situations.
+func forceTransitionTime(conds apis.Conditions, ct apis.ConditionType, c Clock) {
+	for i, cond := range conds {
+		if cond.Type == ct {
+			conds[i].LastTransitionTime = c.Now()
+		}
+	}
 }
