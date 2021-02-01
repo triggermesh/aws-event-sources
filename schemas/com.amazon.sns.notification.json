@@ -1,19 +1,10 @@
 {
-  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/MessageData",
   "definitions": {
     "MessageData": {
-      "required": [
-        "Type",
-        "MessageId",
-        "TopicArn",
-        "Message",
-        "Timestamp",
-        "SignatureVersion",
-        "Signature",
-        "SigningCertURL",
-        "UnsubscribeURL"
-      ],
+      "type": "object",
+      "additionalProperties": false,
       "properties": {
         "Type": {
           "type": "string",
@@ -53,10 +44,45 @@
         "UnsubscribeURL": {
           "type": "string",
           "format": "uri"
+        },
+        "MessageAttributes": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/MessageAttribute"
+          }
         }
       },
-      "additionalProperties": false,
-      "type": "object"
+      "required": [
+        "Type",
+        "MessageId",
+        "TopicArn",
+        "Message",
+        "Timestamp",
+        "SignatureVersion",
+        "Signature",
+        "SigningCertURL",
+        "UnsubscribeURL"
+      ]
+    },
+    "MessageAttribute": {
+      "required": [
+        "Type",
+        "Value"
+      ],
+      "properties": {
+        "Type": {
+          "type": "string",
+          "enum": [
+            "String",
+            "String.Array",
+            "Number",
+            "Binary"
+          ]
+        },
+        "Value": {
+          "type": "string"
+        }
+      }
     }
   }
 }
