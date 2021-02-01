@@ -45,6 +45,7 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 	eventtesting "github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event/testing"
 	. "github.com/triggermesh/aws-event-sources/pkg/reconciler/testing"
+	"github.com/triggermesh/aws-event-sources/pkg/routing"
 )
 
 // adapterCfg is used in every instance of Reconciler defined in reconciler tests.
@@ -265,6 +266,7 @@ func newReconciledSource(opts ...sourceOption) *v1alpha1.AWSSNSSource {
 	status := src.GetStatusManager()
 	status.MarkSink(tSinkURI)
 	status.PropagateServiceAvailability(newReconciledAdapter())
+	status.SetRoute(routing.URLPath(src))
 
 	for _, opt := range opts {
 		opt(src)
@@ -306,6 +308,8 @@ func newReconciledRoleBinding() *rbacv1.RoleBinding {
 // to what ReconcileKind generates.
 func newReconciledAdapter() *servingv1.Service {
 	adapter := adapterBuilder(adapterCfg).BuildAdapter(newEventSource(), tSinkURI)
+
+	common.OwnByServiceAccount(adapter, NewServiceAccount(newEventSource())())
 
 	adapter.Status.SetConditions(apis.Conditions{{
 		Type:   v1alpha1.ConditionReady,
@@ -385,7 +389,7 @@ func makeMockSubscriptionsPages(subExists bool) map[string]interface{} {
 	var wrongSubURL = aws.String("http://not-my-sub.example.com")
 	var wrongSubARN = aws.String("aws:sns:not:my:sub")
 
-	var okSubURL = aws.String(tAdapterURI.String())
+	var okSubURL = aws.String(tAdapterURI.String() + tNs + "/" + tName)
 	var okSubARN = aws.String(tSubARN.String())
 
 	// first page, retrieved without NextToken
@@ -403,7 +407,7 @@ func makeMockSubscriptionsPages(subExists bool) map[string]interface{} {
 	}
 
 	// inject the expected Subscription in the second page if requested, at
-	// a non-zero index to ensure handles pagination correctly
+	// a non-zero index to ensure pagination is handled correctly
 	if subExists {
 		pages[page2Token][1].Endpoint = okSubURL
 		pages[page2Token][1].SubscriptionArn = okSubARN

@@ -51,20 +51,12 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 	src := v1alpha1.SourceFromContext(ctx)
 	status := &src.(*v1alpha1.AWSSNSSource).Status
 
-	adapter, err := r.base.FindAdapter(src)
-	switch {
-	case isNotFound(err):
-		return nil
-	case err != nil:
-		return fmt.Errorf("finding receive adapter: %w", err)
-	}
+	isDeployed := status.GetCondition(v1alpha1.ConditionDeployed).IsTrue()
+	url := status.Address.URL
 
-	url := adapter.Status.URL
-
-	// skip this cycle if the adapter URL wasn't yet determined
-	if !adapter.IsReady() || url == nil {
-		status.MarkNotSubscribed(v1alpha1.AWSSNSReasonNoURL,
-			"The receive adapter did not report its public URL yet")
+	// skip this cycle if the URL couldn't yet be determined
+	if !isDeployed || url == nil {
+		status.MarkNotSubscribed(v1alpha1.AWSSNSReasonNoURL, "The receive adapter isn't ready yet")
 		return nil
 	}
 
@@ -81,9 +73,14 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 
 	subsARN, err := findSubscription(ctx, snsClient, topicARN, url.String())
 	switch {
-	case isNotFound(err):
+	case isPending(subsARN), isNotFound(err):
 		subsARN, err = subscribe(ctx, snsClient, topicARN, url, typedSrc.Spec.SubscriptionAttributes)
 		switch {
+		case isPending(subsARN):
+			status.MarkNotSubscribed(v1alpha1.AWSSNSReasonPending, "Subscription is pending confirmation")
+			// wrap to fail the finalization
+			return fmt.Errorf("%w", reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
+				"Subscription is pending confirmation, will retry"))
 		case isAWSError(err):
 			// All documented API errors require some user intervention and
 			// are not to be retried.
@@ -94,8 +91,6 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 			status.MarkNotSubscribed(v1alpha1.AWSSNSReasonFailedSync, "Cannot subscribe endpoint")
 			return fmt.Errorf("%w", subscribeErrorEvent(url, topicARN, err))
 		}
-
-		event.Normal(ctx, ReasonSubscribed, "Subscribed to SNS topic %q", topicARN)
 
 	case isAWSError(err):
 		// All documented API errors require some user intervention and
@@ -108,6 +103,9 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 		return fmt.Errorf("finding subscription: %w", err)
 	}
 
+	if !status.GetCondition(v1alpha1.AWSSNSConditionSubscribed).IsTrue() {
+		event.Normal(ctx, ReasonSubscribed, "Subscribed to SNS topic %q", topicARN)
+	}
 	status.MarkSubscribed(subsARN)
 
 	return nil
@@ -122,21 +120,10 @@ func (r *Reconciler) ensureUnsubscribed(ctx context.Context) error {
 
 	src := v1alpha1.SourceFromContext(ctx)
 
-	adapter, err := r.base.FindAdapter(src)
-	switch {
-	case isNotFound(err):
-		event.Warn(ctx, ReasonFailedUnsubscribe, "Missing receive adapter, skipping finalization")
-		return nil
-	case err != nil:
-		return fmt.Errorf("finding receive adapter: %w", err)
-	}
-
-	url := adapter.Status.URL
-
+	url := src.GetStatusManager().Address.URL
 	if url == nil {
-		// don't retry until the adapter updates its status
-		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedUnsubscribe,
-			"The receive adapter did not report its public URL yet"))
+		event.Warn(ctx, ReasonFailedUnsubscribe, "Missing endpoint URL, skipping finalization")
+		return nil
 	}
 
 	typedSrc := src.(*v1alpha1.AWSSNSSource)
@@ -158,6 +145,9 @@ func (r *Reconciler) ensureUnsubscribed(ctx context.Context) error {
 
 	subsARN, err := findSubscription(ctx, snsClient, topicARN, url.String())
 	switch {
+	case isPending(subsARN):
+		return reconciler.NewEvent(corev1.EventTypeNormal, ReasonFailedUnsubscribe,
+			"Subscription wasn't confirmed, skipping finalization")
 	case isNotFound(err):
 		return reconciler.NewEvent(corev1.EventTypeNormal, ReasonUnsubscribed,
 			"Subscription already absent, skipping finalization")
@@ -230,11 +220,10 @@ func subscribe(ctx context.Context, cli snsiface.SNSAPI, topicARN string,
 	endpointURL *apis.URL, attributes map[string]*string) (string /*arn*/, error) {
 
 	resp, err := cli.SubscribeWithContext(ctx, &sns.SubscribeInput{
-		Endpoint:              aws.String(endpointURL.String()),
-		Protocol:              &endpointURL.Scheme,
-		TopicArn:              &topicARN,
-		Attributes:            attributes,
-		ReturnSubscriptionArn: aws.Bool(true),
+		Endpoint:   aws.String(endpointURL.String()),
+		Protocol:   &endpointURL.Scheme,
+		TopicArn:   &topicARN,
+		Attributes: attributes,
 	})
 	if err != nil {
 		return "", fmt.Errorf("subscribing to topic: %w", err)
@@ -289,6 +278,19 @@ func isDenied(err error) bool {
 func isAWSError(err error) bool {
 	awsErr := awserr.Error(nil)
 	return errors.As(err, &awsErr)
+}
+
+// isPending returns whether the given ARN string indicates that the
+// subscription is still pending.
+func isPending(arn string) bool {
+	const (
+		// returned by ListSubscriptionsByTopic
+		listSubsPending = "PendingConfirmation"
+		// returned by Subscribe
+		subscribePending = "pending confirmation"
+	)
+
+	return arn == listSubsPending || arn == subscribePending
 }
 
 // toErrMsg attempts to extract the message from the given error if it is an

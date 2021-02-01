@@ -20,10 +20,10 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/labels"
+
 	"knative.dev/eventing/pkg/reconciler/source"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/kmeta"
-	"knative.dev/pkg/system"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -44,18 +44,10 @@ type adapterConfig struct {
 var _ common.AdapterServiceBuilder = (*Reconciler)(nil)
 
 // BuildAdapter implements common.AdapterServiceBuilder.
-func (r *Reconciler) BuildAdapter(src v1alpha1.EventSource, sinkURI *apis.URL) *servingv1.Service {
-	typedSrc := src.(*v1alpha1.AWSSNSSource)
-
-	return common.NewAdapterKnService(src, sinkURI,
+func (r *Reconciler) BuildAdapter(src v1alpha1.EventSource, _ *apis.URL) *servingv1.Service {
+	return common.NewMTAdapterKnService(src,
 		resource.Image(r.adapterCfg.Image),
-
-		resource.EnvVar(common.EnvARN, typedSrc.Spec.ARN.String()),
-		resource.EnvVars(common.MakeSecurityCredentialsEnvVars(typedSrc.Spec.Credentials)...),
 		resource.EnvVars(r.adapterCfg.configs.ToEnvVars()...),
-
-		// required by multi-tenant adapters to enable HA
-		resource.EnvVar(system.NamespaceEnvKey, src.GetNamespace()),
 	)
 }
 

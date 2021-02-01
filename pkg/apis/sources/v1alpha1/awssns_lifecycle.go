@@ -97,6 +97,8 @@ const (
 	AWSSNSReasonNoURL = "MissingAdapterURL"
 	// AWSSNSReasonNoClient is set on a Subscribed condition when a SNS API client cannot be obtained.
 	AWSSNSReasonNoClient = "NoClient"
+	// AWSSNSReasonPending is set on a Subscribed condition when the SNS subscription is pending confirmation.
+	AWSSNSReasonPending = "PendingConfirmation"
 	// AWSSNSReasonRejected is set on a Subscribed condition when the SNS API rejects a subscription request.
 	AWSSNSReasonRejected = "SubscriptionRejected"
 	// AWSSNSReasonAPIError is set on a Subscribed condition when the SNS API returns any other error.
