@@ -29,6 +29,7 @@ import (
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/kmeta"
 	"knative.dev/pkg/ptr"
+	"knative.dev/pkg/system"
 	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
@@ -37,15 +38,20 @@ import (
 
 const metricsPrometheusPort uint16 = 9092
 
-// AdapterName returns the adapter's name for the given source object.
-func AdapterName(src kmeta.OwnerRefable) string {
+// ComponentName returns the component name for the given source object.
+func ComponentName(src kmeta.OwnerRefable) string {
 	return strings.ToLower(src.GetGroupVersionKind().Kind)
 }
 
+// MTAdapterObjectName returns a unique name to apply to all objects related to
+// the given source's multi-tenant adapter (RBAC, Deployment/KnService, ...).
+func MTAdapterObjectName(src kmeta.OwnerRefable) string {
+	return ComponentName(src) + "-" + componentAdapter
+}
+
 // NewAdapterDeployment is a wrapper around resource.NewDeployment which
-// pre-populates attributes common to all adapter Deployments.
+// pre-populates attributes common to all adapters backed by a Deployment.
 func NewAdapterDeployment(src v1alpha1.EventSource, sinkURI *apis.URL, opts ...resource.ObjectOption) *appsv1.Deployment {
-	app := AdapterName(src)
 	srcNs := src.GetNamespace()
 	srcName := src.GetName()
 
@@ -54,35 +60,60 @@ func NewAdapterDeployment(src v1alpha1.EventSource, sinkURI *apis.URL, opts ...r
 		sinkURIStr = sinkURI.String()
 	}
 
-	return resource.NewDeployment(srcNs, kmeta.ChildName(app+"-", srcName),
-		append([]resource.ObjectOption{
-			resource.TerminationErrorToLogs,
+	return resource.NewDeployment(srcNs, kmeta.ChildName(ComponentName(src)+"-", srcName),
+		append(commonAdapterDeploymentOptions(src), append([]resource.ObjectOption{
 			resource.Controller(src),
 
-			resource.Label(appNameLabel, app),
 			resource.Label(appInstanceLabel, srcName),
-			resource.Label(appComponentLabel, componentAdapter),
-			resource.Label(appPartOfLabel, partOf),
-			resource.Label(appManagedByLabel, managedBy),
-
-			resource.Selector(appNameLabel, app),
 			resource.Selector(appInstanceLabel, srcName),
-			resource.PodLabel(appComponentLabel, componentAdapter),
-			resource.PodLabel(appPartOfLabel, partOf),
-			resource.PodLabel(appManagedByLabel, managedBy),
-
-			resource.ServiceAccount(AdapterRBACObjectsName(src)),
 
 			resource.EnvVar(envSink, sinkURIStr),
-			resource.EnvVar(envComponent, app),
-		}, opts...)...,
+		}, opts...)...)...,
 	)
 }
 
+// NewMTAdapterDeployment is a wrapper around resource.NewDeployment which
+// pre-populates attributes common to all multi-tenant adapters backed by a
+// Deployment.
+func NewMTAdapterDeployment(src v1alpha1.EventSource, opts ...resource.ObjectOption) *appsv1.Deployment {
+	srcNs := src.GetNamespace()
+
+	return resource.NewDeployment(srcNs, MTAdapterObjectName(src),
+		append(commonAdapterDeploymentOptions(src), append([]resource.ObjectOption{
+			resource.EnvVar(EnvNamespace, srcNs),
+			resource.EnvVar(system.NamespaceEnvKey, srcNs), // required to enable HA
+		}, opts...)...)...,
+	)
+}
+
+// commonAdapterDeploymentOptions returns a set of ObjectOptions common to all
+// adapters backed by a Deployment.
+func commonAdapterDeploymentOptions(src v1alpha1.EventSource) []resource.ObjectOption {
+	app := ComponentName(src)
+
+	return []resource.ObjectOption{
+		resource.TerminationErrorToLogs,
+
+		resource.Label(appNameLabel, app),
+		resource.Label(appComponentLabel, componentAdapter),
+		resource.Label(appPartOfLabel, partOf),
+		resource.Label(appManagedByLabel, managedBy),
+
+		resource.Selector(appNameLabel, app),
+		resource.Selector(appComponentLabel, componentAdapter),
+		resource.PodLabel(appPartOfLabel, partOf),
+		resource.PodLabel(appManagedByLabel, managedBy),
+
+		resource.ServiceAccount(MTAdapterObjectName(src)),
+
+		resource.EnvVar(envComponent, app),
+	}
+}
+
 // NewAdapterKnService is a wrapper around resource.NewKnService which
-// pre-populates attributes common to all adapter Knative Services.
+// pre-populates attributes common to all adapters backed by a Knative Service.
 func NewAdapterKnService(src v1alpha1.EventSource, sinkURI *apis.URL, opts ...resource.ObjectOption) *servingv1.Service {
-	app := AdapterName(src)
+	app := ComponentName(src)
 	srcNs := src.GetNamespace()
 	srcName := src.GetName()
 
@@ -92,28 +123,52 @@ func NewAdapterKnService(src v1alpha1.EventSource, sinkURI *apis.URL, opts ...re
 	}
 
 	return resource.NewKnService(srcNs, kmeta.ChildName(app+"-", srcName),
-		append([]resource.ObjectOption{
+		append(commonAdapterKnServiceOptions(src), append([]resource.ObjectOption{
 			resource.Controller(src),
 
-			resource.Label(appNameLabel, app),
 			resource.Label(appInstanceLabel, srcName),
-			resource.Label(appComponentLabel, componentAdapter),
-			resource.Label(appPartOfLabel, partOf),
-			resource.Label(appManagedByLabel, managedBy),
-
-			resource.PodLabel(appNameLabel, app),
 			resource.PodLabel(appInstanceLabel, srcName),
-			resource.PodLabel(appComponentLabel, componentAdapter),
-			resource.PodLabel(appPartOfLabel, partOf),
-			resource.PodLabel(appManagedByLabel, managedBy),
-
-			resource.ServiceAccount(AdapterRBACObjectsName(src)),
 
 			resource.EnvVar(envSink, sinkURIStr),
-			resource.EnvVar(envComponent, app),
-			resource.EnvVar(envMetricsPrometheusPort, strconv.FormatUint(uint64(metricsPrometheusPort), 10)),
-		}, opts...)...,
+		}, opts...)...)...,
 	)
+}
+
+// NewMTAdapterKnService is a wrapper around resource.NewKnService which
+// pre-populates attributes common to all multi-tenant adapters backed by a
+// Knative Service.
+func NewMTAdapterKnService(src v1alpha1.EventSource, opts ...resource.ObjectOption) *servingv1.Service {
+	srcNs := src.GetNamespace()
+
+	return resource.NewKnService(srcNs, MTAdapterObjectName(src),
+		append(commonAdapterKnServiceOptions(src), append([]resource.ObjectOption{
+			resource.EnvVar(EnvNamespace, srcNs),
+			resource.EnvVar(system.NamespaceEnvKey, srcNs), // required to enable HA
+		}, opts...)...)...,
+	)
+}
+
+// commonAdapterKnServiceOptions returns a set of ObjectOptions common to all
+// adapters backed by a Knative Service.
+func commonAdapterKnServiceOptions(src v1alpha1.EventSource) []resource.ObjectOption {
+	app := ComponentName(src)
+
+	return []resource.ObjectOption{
+		resource.Label(appNameLabel, app),
+		resource.Label(appComponentLabel, componentAdapter),
+		resource.Label(appPartOfLabel, partOf),
+		resource.Label(appManagedByLabel, managedBy),
+
+		resource.PodLabel(appNameLabel, app),
+		resource.PodLabel(appComponentLabel, componentAdapter),
+		resource.PodLabel(appPartOfLabel, partOf),
+		resource.PodLabel(appManagedByLabel, managedBy),
+
+		resource.ServiceAccount(MTAdapterObjectName(src)),
+
+		resource.EnvVar(envComponent, app),
+		resource.EnvVar(envMetricsPrometheusPort, strconv.FormatUint(uint64(metricsPrometheusPort), 10)),
+	}
 }
 
 // newServiceAccount returns a ServiceAccount object with its OwnerReferences
@@ -128,9 +183,9 @@ func newServiceAccount(src v1alpha1.EventSource, owners []kmeta.OwnerRefable) *c
 	return &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace:       src.GetNamespace(),
-			Name:            AdapterRBACObjectsName(src),
+			Name:            MTAdapterObjectName(src),
 			OwnerReferences: ownerRefs,
-			Labels:          RBACObjectLabels(src),
+			Labels:          CommonObjectLabels(src),
 		},
 	}
 
@@ -143,16 +198,13 @@ func newRoleBinding(src v1alpha1.EventSource, owner *corev1.ServiceAccount) *rba
 	saGVK := corev1.SchemeGroupVersion.WithKind("ServiceAccount")
 
 	ns := src.GetNamespace()
-	n := AdapterRBACObjectsName(src)
+	n := MTAdapterObjectName(src)
 
-	return &rbacv1.RoleBinding{
+	rb := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: ns,
 			Name:      n,
-			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(owner, saGVK),
-			},
-			Labels: RBACObjectLabels(src),
+			Labels:    CommonObjectLabels(src),
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: crGVK.Group,
@@ -166,18 +218,26 @@ func newRoleBinding(src v1alpha1.EventSource, owner *corev1.ServiceAccount) *rba
 			Name:      n,
 		}},
 	}
+
+	OwnByServiceAccount(rb, owner)
+
+	return rb
 }
 
-// AdapterRBACObjectsName returns a unique name to apply to all RBAC objects
-// for the given source's adapter.
-func AdapterRBACObjectsName(src kmeta.OwnerRefable) string {
-	return AdapterName(src) + "-" + componentAdapter
+// OwnByServiceAccount sets the owner of obj to the given ServiceAccount.
+func OwnByServiceAccount(obj metav1.Object, owner *corev1.ServiceAccount) {
+	saGVK := corev1.SchemeGroupVersion.WithKind("ServiceAccount")
+
+	obj.SetOwnerReferences([]metav1.OwnerReference{
+		*metav1.NewControllerRef(owner, saGVK),
+	})
 }
 
-// RBACObjectLabels returns a set of labels to be applied to reconciled RBAC objects.
-func RBACObjectLabels(src kmeta.OwnerRefable) labels.Set {
+// CommonObjectLabels returns a set of labels which are always applied to
+// objects reconciled for the given source type.
+func CommonObjectLabels(src kmeta.OwnerRefable) labels.Set {
 	return labels.Set{
-		appNameLabel:      AdapterName(src),
+		appNameLabel:      ComponentName(src),
 		appComponentLabel: componentAdapter,
 		appPartOfLabel:    partOf,
 		appManagedByLabel: managedBy,

@@ -39,6 +39,7 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/semantic"
+	"github.com/triggermesh/aws-event-sources/pkg/routing"
 )
 
 // List of annotations set on Knative Serving objects by the Knative Serving
@@ -114,9 +115,17 @@ func (r *GenericDeploymentReconciler) reconcileAdapter(ctx context.Context,
 
 	src := v1alpha1.SourceFromContext(ctx)
 
-	if err := r.reconcileRBAC(ctx, rbacOwners); err != nil {
+	sa, err := r.reconcileRBAC(ctx, rbacOwners)
+	if err != nil {
 		src.GetStatusManager().MarkRBACNotBound()
 		return fmt.Errorf("reconciling RBAC objects: %w", err)
+	}
+
+	if v1alpha1.IsMultiTenant(src) {
+		// delegate ownership to the ServiceAccount in order to cause a
+		// garbage collection once all instances of the given source
+		// type have been deleted from the namespace
+		OwnByServiceAccount(desiredAdapter, sa)
 	}
 
 	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
@@ -139,7 +148,7 @@ func (r *GenericDeploymentReconciler) reconcileAdapter(ctx context.Context,
 func (r *GenericDeploymentReconciler) getOrCreateAdapter(ctx context.Context, desiredAdapter *appsv1.Deployment) (*appsv1.Deployment, error) {
 	src := v1alpha1.SourceFromContext(ctx)
 
-	adapter, err := r.FindAdapter(src)
+	adapter, err := findAdapter(r, src, metav1.GetControllerOfNoCopy(desiredAdapter))
 	switch {
 	case apierrors.IsNotFound(err):
 		adapter, err = r.Client(src.GetNamespace()).Create(ctx, desiredAdapter, metav1.CreateOptions{})
@@ -147,22 +156,13 @@ func (r *GenericDeploymentReconciler) getOrCreateAdapter(ctx context.Context, de
 			return nil, reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedAdapterCreate,
 				"Failed to create adapter Deployment %q: %s", desiredAdapter.Name, err)
 		}
-		event.Normal(ctx, ReasonAdapterCreate, "Created adapter Deployment %q", adapter.Name)
+		event.Normal(ctx, ReasonAdapterCreate, "Created adapter Deployment %q", adapter.GetName())
 
 	case err != nil:
 		return nil, fmt.Errorf("failed to get adapter Deployment from cache: %w", err)
 	}
 
-	return adapter, nil
-}
-
-// FindAdapter returns the adapter Deployment for a given source if it exists.
-func (r *GenericDeploymentReconciler) FindAdapter(src v1alpha1.EventSource) (*appsv1.Deployment, error) {
-	o, err := findAdapter(r, src)
-	if err != nil {
-		return nil, err
-	}
-	return o.(*appsv1.Deployment), nil
+	return adapter.(*appsv1.Deployment), nil
 }
 
 // syncAdapterDeployment synchronizes the desired state of an adapter Deployment
@@ -237,9 +237,19 @@ func (r *GenericServiceReconciler) reconcileAdapter(ctx context.Context,
 
 	src := v1alpha1.SourceFromContext(ctx)
 
-	if err := r.reconcileRBAC(ctx, rbacOwners); err != nil {
+	isMultiTenant := v1alpha1.IsMultiTenant(src)
+
+	sa, err := r.reconcileRBAC(ctx, rbacOwners)
+	if err != nil {
 		src.GetStatusManager().MarkRBACNotBound()
 		return fmt.Errorf("reconciling RBAC objects: %w", err)
+	}
+
+	if isMultiTenant {
+		// delegate ownership to the ServiceAccount in order to cause a
+		// garbage collection once all instances of the given source
+		// type have been deleted from the namespace
+		OwnByServiceAccount(desiredAdapter, sa)
 	}
 
 	currentAdapter, err := r.getOrCreateAdapter(ctx, desiredAdapter)
@@ -252,7 +262,11 @@ func (r *GenericServiceReconciler) reconcileAdapter(ctx context.Context,
 	if err != nil {
 		return fmt.Errorf("failed to synchronize adapter Service: %w", err)
 	}
+
 	src.GetStatusManager().PropagateServiceAvailability(currentAdapter)
+	if isMultiTenant {
+		src.GetStatusManager().SetRoute(routing.URLPath(src))
+	}
 
 	return nil
 }
@@ -262,7 +276,7 @@ func (r *GenericServiceReconciler) reconcileAdapter(ctx context.Context,
 func (r *GenericServiceReconciler) getOrCreateAdapter(ctx context.Context, desiredAdapter *servingv1.Service) (*servingv1.Service, error) {
 	src := v1alpha1.SourceFromContext(ctx)
 
-	adapter, err := r.FindAdapter(src)
+	adapter, err := findAdapter(r, src, metav1.GetControllerOfNoCopy(desiredAdapter))
 	switch {
 	case apierrors.IsNotFound(err):
 		adapter, err = r.Client(src.GetNamespace()).Create(ctx, desiredAdapter, metav1.CreateOptions{})
@@ -270,22 +284,13 @@ func (r *GenericServiceReconciler) getOrCreateAdapter(ctx context.Context, desir
 			return nil, reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedAdapterCreate,
 				"Failed to create adapter Service %q: %s", desiredAdapter.Name, err)
 		}
-		event.Normal(ctx, ReasonAdapterCreate, "Created adapter Service %q", adapter.Name)
+		event.Normal(ctx, ReasonAdapterCreate, "Created adapter Service %q", adapter.GetName())
 
 	case err != nil:
 		return nil, fmt.Errorf("failed to get adapter Service from cache: %w", err)
 	}
 
-	return adapter, nil
-}
-
-// FindAdapter returns the adapter Service for a given source if it exists.
-func (r *GenericServiceReconciler) FindAdapter(src v1alpha1.EventSource) (*servingv1.Service, error) {
-	o, err := findAdapter(r, src)
-	if err != nil {
-		return nil, err
-	}
-	return o.(*servingv1.Service), nil
+	return adapter.(*servingv1.Service), nil
 }
 
 // syncAdapterService synchronizes the desired state of an adapter Service
@@ -322,13 +327,18 @@ func (r *GenericServiceReconciler) syncAdapterService(ctx context.Context,
 }
 
 // findAdapter returns the adapter object for a given source if it exists.
-func findAdapter(genericReconciler interface{}, src v1alpha1.EventSource) (metav1.Object, error) {
-	// the combination of standard labels {name,instance} is unique and
-	// immutable
-	sel := labels.SelectorFromSet(labels.Set{
-		appNameLabel:     AdapterName(src),
-		appInstanceLabel: src.GetName(),
-	})
+func findAdapter(genericReconciler interface{},
+	src v1alpha1.EventSource, owner *metav1.OwnerReference) (metav1.Object, error) {
+
+	ls := CommonObjectLabels(src)
+
+	if !v1alpha1.IsMultiTenant(src) {
+		// the combination of standard labels {name,instance} is unique
+		// and immutable for single-tenant sources
+		ls[appInstanceLabel] = src.GetName()
+	}
+
+	sel := labels.SelectorFromValidatedSet(ls)
 
 	var objs []metav1.Object
 	var gr schema.GroupResource
@@ -360,7 +370,9 @@ func findAdapter(genericReconciler interface{}, src v1alpha1.EventSource) (metav
 	}
 
 	for _, obj := range objs {
-		if metav1.IsControlledBy(obj, src) {
+		objOwner := metav1.GetControllerOfNoCopy(obj)
+
+		if objOwner.UID == owner.UID {
 			return obj, nil
 		}
 	}
@@ -378,13 +390,15 @@ func newNotFoundForSelector(gr schema.GroupResource, sel labels.Selector) *apier
 }
 
 // reconcileRBAC wraps the reconciliation logic for RBAC objects.
-func (r *GenericRBACReconciler) reconcileRBAC(ctx context.Context, owners []kmeta.OwnerRefable) error {
+func (r *GenericRBACReconciler) reconcileRBAC(ctx context.Context,
+	owners []kmeta.OwnerRefable) (*corev1.ServiceAccount, error) {
+
 	// The ServiceAccount's ownership is shared between all instances of a
 	// given source type. It gets garbage collected by Kubernetes as soon
 	// as its last owner (source) is deleted, so we don't need to clean
 	// things up explicitly once the last source gets deleted.
 	if len(owners) == 0 {
-		return nil
+		return nil, nil
 	}
 
 	src := v1alpha1.SourceFromContext(ctx)
@@ -392,24 +406,24 @@ func (r *GenericRBACReconciler) reconcileRBAC(ctx context.Context, owners []kmet
 	desiredSA := newServiceAccount(src, owners)
 	currentSA, err := r.getOrCreateAdapterServiceAccount(ctx, desiredSA)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	desiredRB := newRoleBinding(src, currentSA)
 	currentRB, err := r.getOrCreateAdapterRoleBinding(ctx, desiredRB)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if _, err = r.syncAdapterServiceAccount(ctx, currentSA, desiredSA); err != nil {
-		return fmt.Errorf("synchronizing adapter ServiceAccount: %w", err)
+	if currentSA, err = r.syncAdapterServiceAccount(ctx, currentSA, desiredSA); err != nil {
+		return nil, fmt.Errorf("synchronizing adapter ServiceAccount: %w", err)
 	}
 
 	if _, err = r.syncAdapterRoleBinding(ctx, currentRB, desiredRB); err != nil {
-		return fmt.Errorf("synchronizing adapter RoleBinding: %w", err)
+		return nil, fmt.Errorf("synchronizing adapter RoleBinding: %w", err)
 	}
 
-	return nil
+	return currentSA, nil
 }
 
 // getOrCreateAdapterServiceAccount returns the existing adapter ServiceAccount

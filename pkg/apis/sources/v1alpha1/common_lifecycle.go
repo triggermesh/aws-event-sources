@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"context"
+	"path"
 
 	"go.uber.org/zap"
 
@@ -149,7 +150,7 @@ func (m *EventSourceStatusManager) PropagateServiceAvailability(ksvc *servingv1.
 	if m.Address == nil {
 		m.Address = &duckv1.Addressable{}
 	}
-	m.Address.URL = ksvc.Status.URL
+	m.Address.URL = ksvc.Status.URL.DeepCopy()
 
 	if ksvc.IsReady() {
 		m.ConditionSet.Manage(m).MarkTrue(ConditionDeployed)
@@ -177,4 +178,13 @@ func (m *EventSourceStatusManager) PropagateServiceAvailability(ksvc *servingv1.
 	}
 
 	m.ConditionSet.Manage(m).MarkFalse(ConditionDeployed, reason, msg)
+}
+
+// SetRoute appends the given URL path to the current source's URL.
+func (m *EventSourceStatusManager) SetRoute(urlPath string) {
+	if m.Address == nil || m.Address.URL == nil {
+		return
+	}
+
+	m.Address.URL.Path = path.Join(m.Address.URL.Path, urlPath)
 }

@@ -73,6 +73,11 @@ func (s *AWSSNSSource) AsEventSource() string {
 	return s.Spec.ARN.String()
 }
 
+// IsMultiTenant implements MultiTenant.
+func (*AWSSNSSource) IsMultiTenant() bool {
+	return true
+}
+
 // Status conditions
 const (
 	// AWSSNSConditionSubscribed has status True when the event source's HTTP(S) endpoint has been subscribed to the

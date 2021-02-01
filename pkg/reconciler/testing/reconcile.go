@@ -45,6 +45,7 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common"
 	eventtesting "github.com/triggermesh/aws-event-sources/pkg/reconciler/common/event/testing"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/common/skip"
+	"github.com/triggermesh/aws-event-sources/pkg/routing"
 )
 
 const (
@@ -387,6 +388,10 @@ func propagateAdapterAvailabilityFunc(adapter runtime.Object) func(src v1alpha1.
 			src.GetStatusManager().PropagateDeploymentAvailability(context.Background(), a, nil)
 		case *servingv1.Service:
 			src.GetStatusManager().PropagateServiceAvailability(a)
+
+			if v1alpha1.IsMultiTenant(src) {
+				src.GetStatusManager().SetRoute(routing.URLPath(src))
+			}
 		}
 	}
 }
@@ -417,6 +422,13 @@ func adapterCtor(adapterBuilder interface{}, src v1alpha1.EventSource) adapterCt
 			obj = typedAdapterBuilder.BuildAdapter(src, tSinkURI)
 		case common.AdapterServiceBuilder:
 			obj = typedAdapterBuilder.BuildAdapter(src, tSinkURI)
+		}
+
+		// emulate the logic applied by the generic reconciler, which
+		// automatically sets the ServiceAccount as owner of
+		// multi-tenant adapters
+		if v1alpha1.IsMultiTenant(src) {
+			common.OwnByServiceAccount(obj.(metav1.Object), NewServiceAccount(src)())
 		}
 
 		for _, opt := range opts {
@@ -497,8 +509,8 @@ func newAdressable() *eventingv1.Broker {
 /* RBAC */
 
 func NewServiceAccount(src kmeta.OwnerRefable) func() *corev1.ServiceAccount {
-	name := common.AdapterName(src) + "-adapter"
-	labels := common.RBACObjectLabels(src)
+	name := common.ComponentName(src) + "-adapter"
+	labels := common.CommonObjectLabels(src)
 
 	return func() *corev1.ServiceAccount {
 		sa := &corev1.ServiceAccount{
@@ -554,15 +566,15 @@ func NewRoleBinding(sa *corev1.ServiceAccount) func() *rbacv1.RoleBinding {
 
 /* Events */
 
-func createServiceAccountEvent(src kmeta.OwnerRefable) string {
+func createServiceAccountEvent(src v1alpha1.EventSource) string {
 	return eventtesting.Eventf(corev1.EventTypeNormal, common.ReasonRBACCreate,
 		"Created ServiceAccount %q due to the creation of a %s object",
-		common.AdapterRBACObjectsName(src), src.GetGroupVersionKind().Kind)
+		common.MTAdapterObjectName(src), src.GetGroupVersionKind().Kind)
 }
-func createRoleBindingEvent(src kmeta.OwnerRefable) string {
+func createRoleBindingEvent(src v1alpha1.EventSource) string {
 	return eventtesting.Eventf(corev1.EventTypeNormal, common.ReasonRBACCreate,
 		"Created RoleBinding %q due to the creation of a %s object",
-		common.AdapterRBACObjectsName(src), src.GetGroupVersionKind().Kind)
+		common.MTAdapterObjectName(src), src.GetGroupVersionKind().Kind)
 }
 func createAdapterEvent(name, kind string) string {
 	return eventtesting.Eventf(corev1.EventTypeNormal, common.ReasonAdapterCreate, "Created adapter %s %q", kind, name)

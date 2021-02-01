@@ -44,6 +44,7 @@ var (
 	_ runtime.Object  = (*AWSSNSSource)(nil)
 	_ pkgapis.HasSpec = (*AWSSNSSource)(nil)
 	_ EventSource     = (*AWSSNSSource)(nil)
+	_ multiTenant     = (*AWSSNSSource)(nil)
 )
 
 // AWSSNSSourceSpec defines the desired state of the event source.

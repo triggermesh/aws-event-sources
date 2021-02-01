@@ -47,6 +47,17 @@ type EventSource interface {
 	AsEventSource() string
 }
 
+// multiTenant is implemented by all multi-tenant source types.
+type multiTenant interface {
+	IsMultiTenant() bool
+}
+
+// IsMultiTenant returns whether the given source type is multi-tenant.
+func IsMultiTenant(src EventSource) bool {
+	mt, ok := src.(multiTenant)
+	return ok && mt.IsMultiTenant()
+}
+
 type sourceKey struct{}
 
 // WithSource returns a copy of the parent context in which the value
