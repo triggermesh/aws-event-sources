@@ -112,21 +112,19 @@ func parseQueries(rawQuery string) ([]*cloudwatch.MetricDataQuery, error) {
 	}
 
 	for _, v := range rawQueries {
-		var q cloudwatch.MetricDataQuery
+		name := v.Name
 
 		if v.Expression != nil {
-			q = cloudwatch.MetricDataQuery{
+			queries = append(queries, &cloudwatch.MetricDataQuery{
 				Expression: v.Expression,
-				Id:         &v.Name,
-			}
+				Id:         &name,
+			})
 		} else if v.Metric != nil {
-			q = cloudwatch.MetricDataQuery{
-				Id:         &v.Name,
+			queries = append(queries, &cloudwatch.MetricDataQuery{
+				Id:         &name,
 				MetricStat: transformQuery(v.Metric),
-			}
+			})
 		}
-
-		queries = append(queries, &q)
 	}
 	return queries, nil
 }
