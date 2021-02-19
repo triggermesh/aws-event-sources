@@ -34,12 +34,12 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 ARG VERSION
 
-LABEL name "Triggermesh AWS Cognito Identity Pool Event Source"
-LABEL vendor "Triggermesh"
+LABEL name "TriggerMesh AWS Cognito Identity Pool Event Source"
+LABEL vendor "TriggerMesh"
 LABEL version "$VERSION"
 LABEL release "1"
-LABEL summary "The Triggermesh Cognito Identity Pool Source"
-LABEL description "This is the Triggermesh Knative Event Source for AWS Cognito Identity Pool"
+LABEL summary "The TriggerMesh Cognito Identity Pool Source"
+LABEL description "This is the TriggerMesh Knative Event Source for AWS Cognito Identity Pool"
 
 # Emulate ko builds
 # https://github.com/google/ko/blob/v0.5.0/README.md#including-static-assets

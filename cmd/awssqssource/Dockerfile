@@ -34,12 +34,12 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 ARG VERSION
 
-LABEL name "Triggermesh AWS SQS Event Source"
-LABEL vendor "Triggermesh"
+LABEL name "TriggerMesh AWS SQS Event Source"
+LABEL vendor "TriggerMesh"
 LABEL version "$VERSION"
 LABEL release "1"
-LABEL summary "The Triggermesh SQS Source"
-LABEL description "This is the Triggermesh Knative Event Source for AWS SQS"
+LABEL summary "The TriggerMesh SQS Source"
+LABEL description "This is the TriggerMesh Knative Event Source for AWS SQS"
 
 # Emulate ko builds
 # https://github.com/google/ko/blob/v0.5.0/README.md#including-static-assets

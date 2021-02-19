@@ -35,7 +35,7 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:8.2
 ARG VERSION
 
 LABEL name "AWS Event Sources Controller"
-LABEL vendor "Triggermesh Inc."
+LABEL vendor "TriggerMesh Inc."
 LABEL version "$VERSION"
 LABEL release "1"
 LABEL summary "AWS Event Sources controller for Kubernetes"

@@ -46,7 +46,7 @@ ${NOTABLE_CHANGES}
 
 ## Installation
 
-Download Triggermesh Knative event sources for AWS ${RELEASE}
+Download TriggerMesh Knative event sources for AWS ${RELEASE}
 
 ${RELEASE_ASSETS_TABLE}
 

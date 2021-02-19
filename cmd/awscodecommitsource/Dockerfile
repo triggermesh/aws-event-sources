@@ -34,12 +34,12 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 ARG VERSION
 
-LABEL name "Triggermesh AWS CodeCommit Event Source"
-LABEL vendor "Triggermesh"
+LABEL name "TriggerMesh AWS CodeCommit Event Source"
+LABEL vendor "TriggerMesh"
 LABEL version "$VERSION"
 LABEL release "1"
-LABEL summary "The Triggermesh CodeCommit Source"
-LABEL description "This is the Triggermesh Knative Event Source for AWS CodeCommit"
+LABEL summary "The TriggerMesh CodeCommit Source"
+LABEL description "This is the TriggerMesh Knative Event Source for AWS CodeCommit"
 
 # Emulate ko builds
 # https://github.com/google/ko/blob/v0.5.0/README.md#including-static-assets
