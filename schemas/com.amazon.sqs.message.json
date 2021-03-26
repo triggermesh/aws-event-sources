@@ -14,12 +14,12 @@
       ],
       "properties": {
         "Attributes": {
+          "type": "object",
           "patternProperties": {
             ".*": {
               "type": "string"
             }
-          },
-          "type": "object"
+          }
         },
         "Body": {
           "type": "string"
@@ -28,16 +28,22 @@
           "type": "string"
         },
         "MD5OfMessageAttributes": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "MessageAttributes": {
+          "type": [
+            "object",
+            "null"
+          ],
           "patternProperties": {
             ".*": {
               "$schema": "http://json-schema.org/draft-04/schema#",
               "$ref": "#/definitions/MessageAttributeValue"
             }
-          },
-          "type": "object"
+          }
         },
         "MessageId": {
           "type": "string"
@@ -59,13 +65,13 @@
       ],
       "properties": {
         "BinaryListValues": {
+          "type": "array",
           "items": {
             "type": "string",
             "media": {
               "binaryEncoding": "base64"
             }
-          },
-          "type": "array"
+          }
         },
         "BinaryValue": {
           "type": "string",
@@ -77,10 +83,10 @@
           "type": "string"
         },
         "StringListValues": {
+          "type": "array",
           "items": {
             "type": "string"
-          },
-          "type": "array"
+          }
         },
         "StringValue": {
           "type": "string"

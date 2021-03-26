@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,6 +34,7 @@ type SourcesV1alpha1Interface interface {
 	AWSDynamoDBSourcesGetter
 	AWSIoTSourcesGetter
 	AWSKinesisSourcesGetter
+	AWSS3SourcesGetter
 	AWSSNSSourcesGetter
 	AWSSQSSourcesGetter
 }
@@ -73,6 +74,10 @@ func (c *SourcesV1alpha1Client) AWSIoTSources(namespace string) AWSIoTSourceInte
 
 func (c *SourcesV1alpha1Client) AWSKinesisSources(namespace string) AWSKinesisSourceInterface {
 	return newAWSKinesisSources(c, namespace)
+}
+
+func (c *SourcesV1alpha1Client) AWSS3Sources(namespace string) AWSS3SourceInterface {
+	return newAWSS3Sources(c, namespace)
 }
 
 func (c *SourcesV1alpha1Client) AWSSNSSources(namespace string) AWSSNSSourceInterface {

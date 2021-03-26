@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package sns
+package aws
 
 import (
 	"testing"
@@ -32,7 +32,7 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
 
-func TestAwsCredentials(t *testing.T) {
+func TestCredentials(t *testing.T) {
 	const (
 		ns = "fake-namespace"
 
@@ -169,8 +169,7 @@ func TestAwsCredentials(t *testing.T) {
 
 			cli := fake.NewSimpleClientset(secrets...)
 
-			cg := NewClientGetter(cli.CoreV1().Secrets)
-			creds, err := cg.awsCredentials(ns, &tc.input)
+			creds, err := Credentials(cli.CoreV1().Secrets(ns), &tc.input)
 
 			require.NoError(t, err)
 

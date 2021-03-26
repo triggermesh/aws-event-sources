@@ -40,7 +40,6 @@ const (
 	tQueueArnResource = "MyQueue"
 	tQueueURL         = "https://sqs.us-fake-0.amazonaws.com/123456789012/MyQueue"
 	tMsgIDPrefix      = "00000000-0000-0000-0000-000000000" // + 3 digits appended for each msg
-	tSenderID         = "test"
 )
 
 func TestAdapter(t *testing.T) {
@@ -49,6 +48,8 @@ func TestAdapter(t *testing.T) {
 	// therefore affirm something went wrong if the receiveMsgPeriod timer
 	// happens during a test.
 	const testTimeout = receiveMsgPeriod
+
+	arn := makeARN(tQueueArnResource)
 
 	testCases := map[string]struct {
 		numMsgs      int
@@ -90,7 +91,9 @@ func TestAdapter(t *testing.T) {
 				sqsClient: sqsCli,
 				ceClient:  ceCli,
 
-				arn: makeARN(tQueueArnResource),
+				arn: arn,
+
+				msgPrcsr: &defaultMessageProcessor{ceSource: arn.String()},
 
 				processQueue: make(chan *sqs.Message, tc.queueBufSize),
 				deleteQueue:  make(chan *sqs.Message, tc.queueBufSize),
@@ -145,7 +148,7 @@ func TestAdapter(t *testing.T) {
 			ev := ceCli.Sent()[0]
 			assert.Equal(t, ev.Type(), "com.amazon.sqs.message")
 			assert.Equal(t, "arn:aws:sqs:us-fake-0:123456789012:MyQueue", ev.Source())
-			assert.Equal(t, ev.Subject(), tSenderID)
+			assert.Contains(t, ev.ID(), tMsgIDPrefix)
 
 			// final assertions
 			assert.Len(t, ceCli.Sent(), tc.numMsgs, "Received more events than expected")
@@ -246,9 +249,6 @@ func makeMockMessages(n int) []*sqs.Message {
 		msgs[i] = &sqs.Message{
 			MessageId:     aws.String(fmt.Sprintf(tMsgIDPrefix+"%03d", i+1)),
 			ReceiptHandle: aws.String(receiptHandle),
-			Attributes: aws.StringMap(map[string]string{
-				sqs.MessageSystemAttributeNameSenderId: tSenderID,
-			}),
 		}
 	}
 

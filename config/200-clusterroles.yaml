@@ -59,6 +59,7 @@ rules:
   - awsdynamodbsources
   - awsiotsources
   - awskinesissources
+  - awss3sources
   - awssnssources
   - awssqssources
   verbs:
@@ -76,6 +77,7 @@ rules:
   - awsdynamodbsources/status
   - awsiotsources/status
   - awskinesissources/status
+  - awss3sources/status
   - awssnssources/status
   - awssqssources/status
   verbs:
@@ -94,6 +96,7 @@ rules:
   - awsdynamodbsources/finalizers
   - awsiotsources/finalizers
   - awskinesissources/finalizers
+  - awss3sources/finalizers
   - awssnssources/finalizers
   - awssqssources/finalizers
   verbs:
@@ -103,6 +106,7 @@ rules:
 - apiGroups:
   - sources.triggermesh.io
   resources:
+  - awss3sources
   - awssnssources
   verbs:
   - patch
@@ -129,6 +133,7 @@ rules:
   - awsdynamodbsource-adapter
   - awsiotsource-adapter
   - awskinesissource-adapter
+  - awss3source-adapter
   - awssnssource-adapter
   - awssqssource-adapter
   verbs:
@@ -194,6 +199,7 @@ rules:
   - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awsdynamodbsource.reconciler.00-of-01
   - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awsiotsource.reconciler.00-of-01
   - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awskinesissource.reconciler.00-of-01
+  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awss3source.reconciler.00-of-01
   - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awssnssource.reconciler.00-of-01
   - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awssqssource.reconciler.00-of-01
   resources:
@@ -272,6 +278,14 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: awskinesissource-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: awss3source-adapter
 rules: []
 
 ---

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019-2020 TriggerMesh Inc.
+Copyright (c) 2019-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package awssqssource
 import (
 	"context"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -52,6 +53,12 @@ type envConfig struct {
 	pkgadapter.EnvConfig
 
 	ARN string `envconfig:"ARN" required:"true"`
+
+	// Name of a message processor which takes care of converting SQS
+	// messages to CloudEvents.
+	//
+	// Supported values: [ default s3 ]
+	MessageProcessor string `envconfig:"SQS_MESSAGE_PROCESSOR" default:"default"`
 }
 
 // adapter implements the source's adapter.
@@ -65,6 +72,8 @@ type adapter struct {
 	ceClient  cloudevents.Client
 
 	arn arn.ARN
+
+	msgPrcsr MessageProcessor
 
 	processQueue chan *sqs.Message
 	deleteQueue  chan *sqs.Message
@@ -93,6 +102,16 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 	arn := common.MustParseARN(env.ARN)
 
+	var msgPrcsr MessageProcessor
+	switch env.MessageProcessor {
+	case "s3":
+		msgPrcsr = &s3MessageProcessor{ceSourceFallback: arn.String()}
+	case "default":
+		msgPrcsr = &defaultMessageProcessor{ceSource: arn.String()}
+	default:
+		panic("unsupported message processor " + strconv.Quote(env.MessageProcessor))
+	}
+
 	cfg := session.Must(session.NewSession(aws.NewConfig().
 		WithRegion(arn.Region),
 	))
@@ -117,6 +136,8 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		ceClient:  ceClient,
 
 		arn: arn,
+
+		msgPrcsr: msgPrcsr,
 
 		processQueue: make(chan *sqs.Message, queueBufferSizeProcess),
 		deleteQueue:  make(chan *sqs.Message, queueBufferSizeDelete),

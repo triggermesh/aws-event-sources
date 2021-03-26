@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -42,8 +42,13 @@ func withClient(ctx context.Context, cfg *rest.Config) context.Context {
 func Get(ctx context.Context) internalclientset.Interface {
 	untyped := ctx.Value(Key{})
 	if untyped == nil {
-		logging.FromContext(ctx).Panic(
-			"Unable to fetch github.com/triggermesh/aws-event-sources/pkg/client/generated/clientset/internalclientset.Interface from context.")
+		if injection.GetConfig(ctx) == nil {
+			logging.FromContext(ctx).Panic(
+				"Unable to fetch github.com/triggermesh/aws-event-sources/pkg/client/generated/clientset/internalclientset.Interface from context. This context is not the application context (which is typically given to constructors via sharedmain).")
+		} else {
+			logging.FromContext(ctx).Panic(
+				"Unable to fetch github.com/triggermesh/aws-event-sources/pkg/client/generated/clientset/internalclientset.Interface from context.")
+		}
 	}
 	return untyped.(internalclientset.Interface)
 }

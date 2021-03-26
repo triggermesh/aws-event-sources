@@ -17,20 +17,18 @@ limitations under the License.
 package sns
 
 import (
-	"context"
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 
-	"github.com/aws/aws-sdk-go/aws"
+	awscore "github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/aws/aws-sdk-go/service/sns/snsiface"
 
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
+	"github.com/triggermesh/aws-event-sources/pkg/aws"
 )
 
 // Client is an alias for the SNSAPI interface.
@@ -56,77 +54,26 @@ type ClientGetterWithSecretGetter struct {
 	sg NamespacedSecretsGetter
 }
 
-// clientGetterWithSecretGetter implements ClientGetter.
+// ClientGetterWithSecretGetter implements ClientGetter.
 var _ ClientGetter = (*ClientGetterWithSecretGetter)(nil)
 
 // Get implements ClientGetter.
 func (g *ClientGetterWithSecretGetter) Get(src *v1alpha1.AWSSNSSource) (Client, error) {
-	creds, err := g.awsCredentials(src.Namespace, &src.Spec.Credentials)
+	creds, err := aws.Credentials(g.sg(src.Namespace), &src.Spec.Credentials)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving AWS security credentials: %w", err)
 	}
 
-	return sns.New(session.Must(session.NewSession(aws.NewConfig().
+	return sns.New(session.Must(session.NewSession(awscore.NewConfig().
 		WithRegion(src.Spec.ARN.Region).
 		WithCredentials(credentials.NewStaticCredentialsFromCreds(*creds)),
 	))), nil
 }
 
-// awsCredentials returns the AWS security credentials referenced in a source's
-// spec, using the ClientGetter's Secrets getter if necessary.
-func (g *ClientGetterWithSecretGetter) awsCredentials(namespace string,
-	creds *v1alpha1.AWSSecurityCredentials) (*credentials.Value, error) {
-
-	accessKeyID := creds.AccessKeyID.Value
-	secretAccessKey := creds.SecretAccessKey.Value
-
-	cli := g.sg(namespace)
-
-	// cache a Secret object by name to avoid GET-ing the same Secret
-	// object multiple times
-	var secretCache map[string]*corev1.Secret
-
-	if vfs := creds.AccessKeyID.ValueFromSecret; vfs != nil {
-		secr, err := cli.Get(context.Background(), vfs.Name, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("getting Secret from cluster: %w", err)
-		}
-
-		// cache Secret containing the access key ID so it can be reused
-		// below in case the same Secret contains the secret access key
-		secretCache = map[string]*corev1.Secret{
-			vfs.Name: secr,
-		}
-
-		accessKeyID = string(secr.Data[vfs.Key])
-	}
-
-	if vfs := creds.SecretAccessKey.ValueFromSecret; vfs != nil {
-		var secr *corev1.Secret
-		var err error
-
-		if secretCache != nil && secretCache[vfs.Name] != nil {
-			secr = secretCache[vfs.Name]
-		} else {
-			secr, err = cli.Get(context.Background(), vfs.Name, metav1.GetOptions{})
-			if err != nil {
-				return nil, fmt.Errorf("getting Secret from cluster: %w", err)
-			}
-		}
-
-		secretAccessKey = string(secr.Data[vfs.Key])
-	}
-
-	return &credentials.Value{
-		AccessKeyID:     accessKeyID,
-		SecretAccessKey: secretAccessKey,
-	}, nil
-}
-
 // ClientGetterFunc allows the use of ordinary functions as ClientGetter.
 type ClientGetterFunc func(*v1alpha1.AWSSNSSource) (Client, error)
 
-// clientGetterFunc implements ClientGetter.
+// ClientGetterFunc implements ClientGetter.
 var _ ClientGetter = (ClientGetterFunc)(nil)
 
 // Get implements ClientGetter.
