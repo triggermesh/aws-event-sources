@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -464,6 +465,16 @@ func (r *GenericRBACReconciler) syncAdapterServiceAccount(ctx context.Context,
 	// resourceVersion must be returned to the API server unmodified for
 	// optimistic concurrency, as per Kubernetes API conventions
 	desiredSA.ResourceVersion = currentSA.ResourceVersion
+
+	// Kubernetes generates a secret named "<object_name>-token-<rand_id>"
+	// upon creation of a ServiceAccount. We need to preserve the reference
+	// to this secret during updates, otherwise Kubernetes generates a new
+	// secret without garbage collecting the old one(s).
+	for _, secr := range currentSA.Secrets {
+		if strings.HasPrefix(secr.Name, desiredSA.Name+"-token-") {
+			desiredSA.Secrets = append(desiredSA.Secrets, secr)
+		}
+	}
 
 	sa, err := r.SAClient(desiredSA.Namespace).Update(ctx, desiredSA, metav1.UpdateOptions{})
 	if err != nil {
