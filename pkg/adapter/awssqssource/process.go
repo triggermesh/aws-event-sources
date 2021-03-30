@@ -126,14 +126,24 @@ type s3MessageProcessor struct {
 //
 // Expected events structure: https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-content-structure.html
 func (p *s3MessageProcessor) Process(msg *sqs.Message) ([]*cloudevents.Event, error) {
-	bodyData := make(map[string]interface{})
-	if err := json.Unmarshal([]byte(*msg.Body), &bodyData); err != nil {
-		return nil, fmt.Errorf("deserializing message body: %w", err)
-	}
-
 	var events []*cloudevents.Event
 
+	bodyData := make(map[string]interface{})
+
+	if err := json.Unmarshal([]byte(*msg.Body), &bodyData); err != nil {
+		// if the data is not a JSON object, we can be certain the
+		// message didn't originate from S3, and fall back to the
+		// default processor's behaviour
+		event, err := makeSQSEvent(msg, p.ceSourceFallback)
+		if err != nil {
+			return nil, fmt.Errorf("creating CloudEvent from SQS message: %w", err)
+		}
+
+		return append(events, event), nil
+	}
+
 	var records []interface{}
+
 	recordsVal, hasRecords := bodyData["Records"]
 	if hasRecords {
 		records, hasRecords = recordsVal.([]interface{})
