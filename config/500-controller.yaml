@@ -57,7 +57,7 @@ spec:
         # Source adapters
         - name: AWSCLOUDWATCHSOURCE_IMAGE
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awscloudwatchsource
-        - name: awscloudwatchlogssource_IMAGE
+        - name: AWSCLOUDWATCHLOGSSOURCE_IMAGE
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awscloudwatchlogssource
         - name: AWSCODECOMMITSOURCE_IMAGE
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awscodecommitsource
