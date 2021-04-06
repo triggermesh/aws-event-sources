@@ -65,9 +65,12 @@ func ensureQueue(ctx context.Context, cli sqsiface.SQSAPI) (string /*arn*/, erro
 		}
 		event.Normal(ctx, ReasonQueueCreated, "Created SQS queue %q", queueURL)
 
-	case isDenied(err):
-		status.MarkNotSubscribed(v1alpha1.AWSS3ReasonAPIError, "Access denied to SQS API")
-		return "", controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedQueue,
+	case isAWSError(err):
+		// All documented API errors require some user intervention and
+		// are not to be retried.
+		// https://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html
+		status.MarkNotSubscribed(v1alpha1.AWSS3ReasonAPIError, "Request to SQS API got rejected")
+		return "", controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
 			"Failed to synchronize SQS queue: %s", toErrMsg(err)))
 
 	case err != nil:

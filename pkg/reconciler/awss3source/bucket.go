@@ -52,14 +52,22 @@ func (r *Reconciler) ensureNotificationsEnabled(ctx context.Context, cli s3iface
 
 	notifCfg, err := getNotificationsConfig(ctx, cli, bucketARN.Resource)
 	switch {
-	case isDenied(err):
-		status.MarkNotSubscribed(v1alpha1.AWSS3ReasonAPIError, "Access denied to S3 API")
+	case isNotFound(err):
+		status.MarkNotSubscribed(v1alpha1.AWSS3ReasonNoBucket, "Bucket does not exist")
+		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
+			"The bucket does not exist: %s", toErrMsg(err)))
+	case isAWSError(err):
+		// All documented API errors require some user intervention and
+		// are not to be retried.
+		// https://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html
+		status.MarkNotSubscribed(v1alpha1.AWSS3ReasonAPIError, "Request to S3 API got rejected")
 		return controller.NewPermanentError(reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
 			"Failed to synchronize bucket configuration: %s", toErrMsg(err)))
 	case err != nil:
 		status.MarkNotSubscribed(v1alpha1.AWSS3ReasonAPIError, "Cannot obtain current bucket configuration")
+		// wrap any other error to fail the finalization
 		return fmt.Errorf("%w", reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
-			"Error reading current event notifications configuration: %s", err))
+			"Error reading current event notifications configuration: %s", toErrMsg(err)))
 	}
 
 	desiredQueueCfg := makeQueueConfiguration(typedSrc, queueARN)
@@ -70,7 +78,7 @@ func (r *Reconciler) ensureNotificationsEnabled(ctx context.Context, cli s3iface
 		if err := configureNotifications(ctx, cli, bucketARN.Resource, notifCfg); err != nil {
 			status.MarkNotSubscribed(v1alpha1.AWSS3ReasonAPIError, "Cannot configure event notifications")
 			return fmt.Errorf("%w", reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
-				"Error configuring event notifications: %s", err))
+				"Error configuring event notifications: %s", toErrMsg(err)))
 		}
 	}
 
@@ -110,7 +118,7 @@ func (r *Reconciler) ensureNotificationsDisabled(ctx context.Context, cli s3ifac
 
 	if err := configureNotifications(ctx, cli, bucketARN.Resource, notifCfg); err != nil {
 		return fmt.Errorf("%w", reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedUnsubscribe,
-			"Error configuring event notifications: %s", err))
+			"Error configuring event notifications: %s", toErrMsg(err)))
 	}
 
 	return reconciler.NewEvent(corev1.EventTypeNormal, ReasonUnsubscribed,
@@ -238,6 +246,12 @@ func isDenied(err error) bool {
 		}
 	}
 	return false
+}
+
+// isAWSError returns whether the given error is an AWS API error.
+func isAWSError(err error) bool {
+	awsErr := awserr.Error(nil)
+	return errors.As(err, &awsErr)
 }
 
 // toErrMsg attempts to extract the message from the given error if it is an

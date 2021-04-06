@@ -115,6 +115,8 @@ const (
 const (
 	// AWSS3ReasonNoClient is set on a Subscribed condition when a S3/SQS API client cannot be obtained.
 	AWSS3ReasonNoClient = "NoClient"
+	// AWSS3ReasonNoBucket is set on a Subscribed condition when the S3 bucket does not exist.
+	AWSS3ReasonNoBucket = "BucketNotFound"
 	// AWSS3ReasonAPIError is set on a Subscribed condition when the S3/SQS API returns any other error.
 	AWSS3ReasonAPIError = "APIError"
 )
