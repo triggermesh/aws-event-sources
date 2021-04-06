@@ -102,6 +102,9 @@ spec:
                             type: string
                           key:
                             type: string
+                        required:
+                        - name
+                        - key
                     oneOf:
                     - required: [value]
                     - required: [valueFromSecret]
@@ -118,6 +121,9 @@ spec:
                             type: string
                           key:
                             type: string
+                        required:
+                        - name
+                        - key
                     oneOf:
                     - required: [value]
                     - required: [valueFromSecret]
