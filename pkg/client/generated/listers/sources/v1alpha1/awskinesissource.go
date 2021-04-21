@@ -26,8 +26,10 @@ import (
 )
 
 // AWSKinesisSourceLister helps list AWSKinesisSources.
+// All objects returned here must be treated as read-only.
 type AWSKinesisSourceLister interface {
 	// List lists all AWSKinesisSources in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSKinesisSource, err error)
 	// AWSKinesisSources returns an object that can list and get AWSKinesisSources.
 	AWSKinesisSources(namespace string) AWSKinesisSourceNamespaceLister
@@ -58,10 +60,13 @@ func (s *aWSKinesisSourceLister) AWSKinesisSources(namespace string) AWSKinesisS
 }
 
 // AWSKinesisSourceNamespaceLister helps list and get AWSKinesisSources.
+// All objects returned here must be treated as read-only.
 type AWSKinesisSourceNamespaceLister interface {
 	// List lists all AWSKinesisSources in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSKinesisSource, err error)
 	// Get retrieves the AWSKinesisSource from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.AWSKinesisSource, error)
 	AWSKinesisSourceNamespaceListerExpansion
 }

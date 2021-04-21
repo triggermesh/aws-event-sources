@@ -26,8 +26,10 @@ import (
 )
 
 // AWSCognitoIdentitySourceLister helps list AWSCognitoIdentitySources.
+// All objects returned here must be treated as read-only.
 type AWSCognitoIdentitySourceLister interface {
 	// List lists all AWSCognitoIdentitySources in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSCognitoIdentitySource, err error)
 	// AWSCognitoIdentitySources returns an object that can list and get AWSCognitoIdentitySources.
 	AWSCognitoIdentitySources(namespace string) AWSCognitoIdentitySourceNamespaceLister
@@ -58,10 +60,13 @@ func (s *aWSCognitoIdentitySourceLister) AWSCognitoIdentitySources(namespace str
 }
 
 // AWSCognitoIdentitySourceNamespaceLister helps list and get AWSCognitoIdentitySources.
+// All objects returned here must be treated as read-only.
 type AWSCognitoIdentitySourceNamespaceLister interface {
 	// List lists all AWSCognitoIdentitySources in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSCognitoIdentitySource, err error)
 	// Get retrieves the AWSCognitoIdentitySource from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.AWSCognitoIdentitySource, error)
 	AWSCognitoIdentitySourceNamespaceListerExpansion
 }

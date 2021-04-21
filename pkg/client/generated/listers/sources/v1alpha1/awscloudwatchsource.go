@@ -26,8 +26,10 @@ import (
 )
 
 // AWSCloudWatchSourceLister helps list AWSCloudWatchSources.
+// All objects returned here must be treated as read-only.
 type AWSCloudWatchSourceLister interface {
 	// List lists all AWSCloudWatchSources in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSCloudWatchSource, err error)
 	// AWSCloudWatchSources returns an object that can list and get AWSCloudWatchSources.
 	AWSCloudWatchSources(namespace string) AWSCloudWatchSourceNamespaceLister
@@ -58,10 +60,13 @@ func (s *aWSCloudWatchSourceLister) AWSCloudWatchSources(namespace string) AWSCl
 }
 
 // AWSCloudWatchSourceNamespaceLister helps list and get AWSCloudWatchSources.
+// All objects returned here must be treated as read-only.
 type AWSCloudWatchSourceNamespaceLister interface {
 	// List lists all AWSCloudWatchSources in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSCloudWatchSource, err error)
 	// Get retrieves the AWSCloudWatchSource from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.AWSCloudWatchSource, error)
 	AWSCloudWatchSourceNamespaceListerExpansion
 }
