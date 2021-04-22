@@ -29,11 +29,6 @@ jobs:
       - run:
           name: Building package
           command: make build
-      - gcp-cli/install
-      - gcp-cli/initialize
-      - run:
-          name: Building docker image
-          command: make -j6 cloudbuild-test
 
   test:
     executor:
@@ -71,7 +66,7 @@ jobs:
       - gcp-cli/initialize
       - run:
           name: Publishing docker image
-          command: IMAGE_SHA=${CIRCLE_SHA1} IMAGE_TAG=${CIRCLE_TAG:-latest} make -j6 cloudbuild
+          command: IMAGE_SHA=${CIRCLE_SHA1} IMAGE_TAG=${CIRCLE_TAG:-latest} make -j4 cloudbuild
 
   deploy:
     description: Patches target cluster configuration
