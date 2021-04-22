@@ -26,8 +26,10 @@ import (
 )
 
 // AWSSNSSourceLister helps list AWSSNSSources.
+// All objects returned here must be treated as read-only.
 type AWSSNSSourceLister interface {
 	// List lists all AWSSNSSources in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSSNSSource, err error)
 	// AWSSNSSources returns an object that can list and get AWSSNSSources.
 	AWSSNSSources(namespace string) AWSSNSSourceNamespaceLister
@@ -58,10 +60,13 @@ func (s *aWSSNSSourceLister) AWSSNSSources(namespace string) AWSSNSSourceNamespa
 }
 
 // AWSSNSSourceNamespaceLister helps list and get AWSSNSSources.
+// All objects returned here must be treated as read-only.
 type AWSSNSSourceNamespaceLister interface {
 	// List lists all AWSSNSSources in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSSNSSource, err error)
 	// Get retrieves the AWSSNSSource from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.AWSSNSSource, error)
 	AWSSNSSourceNamespaceListerExpansion
 }

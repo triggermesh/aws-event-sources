@@ -26,8 +26,10 @@ import (
 )
 
 // AWSIoTSourceLister helps list AWSIoTSources.
+// All objects returned here must be treated as read-only.
 type AWSIoTSourceLister interface {
 	// List lists all AWSIoTSources in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSIoTSource, err error)
 	// AWSIoTSources returns an object that can list and get AWSIoTSources.
 	AWSIoTSources(namespace string) AWSIoTSourceNamespaceLister
@@ -58,10 +60,13 @@ func (s *aWSIoTSourceLister) AWSIoTSources(namespace string) AWSIoTSourceNamespa
 }
 
 // AWSIoTSourceNamespaceLister helps list and get AWSIoTSources.
+// All objects returned here must be treated as read-only.
 type AWSIoTSourceNamespaceLister interface {
 	// List lists all AWSIoTSources in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSIoTSource, err error)
 	// Get retrieves the AWSIoTSource from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.AWSIoTSource, error)
 	AWSIoTSourceNamespaceListerExpansion
 }

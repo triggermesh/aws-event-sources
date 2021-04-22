@@ -26,8 +26,10 @@ import (
 )
 
 // AWSS3SourceLister helps list AWSS3Sources.
+// All objects returned here must be treated as read-only.
 type AWSS3SourceLister interface {
 	// List lists all AWSS3Sources in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSS3Source, err error)
 	// AWSS3Sources returns an object that can list and get AWSS3Sources.
 	AWSS3Sources(namespace string) AWSS3SourceNamespaceLister
@@ -58,10 +60,13 @@ func (s *aWSS3SourceLister) AWSS3Sources(namespace string) AWSS3SourceNamespaceL
 }
 
 // AWSS3SourceNamespaceLister helps list and get AWSS3Sources.
+// All objects returned here must be treated as read-only.
 type AWSS3SourceNamespaceLister interface {
 	// List lists all AWSS3Sources in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSS3Source, err error)
 	// Get retrieves the AWSS3Source from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.AWSS3Source, error)
 	AWSS3SourceNamespaceListerExpansion
 }

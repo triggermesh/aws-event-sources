@@ -182,6 +182,8 @@ func (*fakeInformer) HasSynced() bool { return true }
 
 func (*fakeInformer) LastSyncResourceVersion() string { return "" }
 
+func (*fakeInformer) SetWatchErrorHandler(cache.WatchErrorHandler) error { return nil }
+
 func (fakeStore) Add(interface{}) error { return nil }
 
 func (fakeStore) Update(interface{}) error { return nil }

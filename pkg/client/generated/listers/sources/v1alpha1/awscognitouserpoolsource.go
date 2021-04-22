@@ -26,8 +26,10 @@ import (
 )
 
 // AWSCognitoUserPoolSourceLister helps list AWSCognitoUserPoolSources.
+// All objects returned here must be treated as read-only.
 type AWSCognitoUserPoolSourceLister interface {
 	// List lists all AWSCognitoUserPoolSources in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSCognitoUserPoolSource, err error)
 	// AWSCognitoUserPoolSources returns an object that can list and get AWSCognitoUserPoolSources.
 	AWSCognitoUserPoolSources(namespace string) AWSCognitoUserPoolSourceNamespaceLister
@@ -58,10 +60,13 @@ func (s *aWSCognitoUserPoolSourceLister) AWSCognitoUserPoolSources(namespace str
 }
 
 // AWSCognitoUserPoolSourceNamespaceLister helps list and get AWSCognitoUserPoolSources.
+// All objects returned here must be treated as read-only.
 type AWSCognitoUserPoolSourceNamespaceLister interface {
 	// List lists all AWSCognitoUserPoolSources in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSCognitoUserPoolSource, err error)
 	// Get retrieves the AWSCognitoUserPoolSource from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.AWSCognitoUserPoolSource, error)
 	AWSCognitoUserPoolSourceNamespaceListerExpansion
 }

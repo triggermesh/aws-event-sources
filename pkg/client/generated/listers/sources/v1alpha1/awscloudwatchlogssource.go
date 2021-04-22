@@ -26,8 +26,10 @@ import (
 )
 
 // AWSCloudWatchLogsSourceLister helps list AWSCloudWatchLogsSources.
+// All objects returned here must be treated as read-only.
 type AWSCloudWatchLogsSourceLister interface {
 	// List lists all AWSCloudWatchLogsSources in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSCloudWatchLogsSource, err error)
 	// AWSCloudWatchLogsSources returns an object that can list and get AWSCloudWatchLogsSources.
 	AWSCloudWatchLogsSources(namespace string) AWSCloudWatchLogsSourceNamespaceLister
@@ -58,10 +60,13 @@ func (s *aWSCloudWatchLogsSourceLister) AWSCloudWatchLogsSources(namespace strin
 }
 
 // AWSCloudWatchLogsSourceNamespaceLister helps list and get AWSCloudWatchLogsSources.
+// All objects returned here must be treated as read-only.
 type AWSCloudWatchLogsSourceNamespaceLister interface {
 	// List lists all AWSCloudWatchLogsSources in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSCloudWatchLogsSource, err error)
 	// Get retrieves the AWSCloudWatchLogsSource from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.AWSCloudWatchLogsSource, error)
 	AWSCloudWatchLogsSourceNamespaceListerExpansion
 }

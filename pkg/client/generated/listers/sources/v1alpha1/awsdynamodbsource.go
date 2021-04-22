@@ -26,8 +26,10 @@ import (
 )
 
 // AWSDynamoDBSourceLister helps list AWSDynamoDBSources.
+// All objects returned here must be treated as read-only.
 type AWSDynamoDBSourceLister interface {
 	// List lists all AWSDynamoDBSources in the indexer.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSDynamoDBSource, err error)
 	// AWSDynamoDBSources returns an object that can list and get AWSDynamoDBSources.
 	AWSDynamoDBSources(namespace string) AWSDynamoDBSourceNamespaceLister
@@ -58,10 +60,13 @@ func (s *aWSDynamoDBSourceLister) AWSDynamoDBSources(namespace string) AWSDynamo
 }
 
 // AWSDynamoDBSourceNamespaceLister helps list and get AWSDynamoDBSources.
+// All objects returned here must be treated as read-only.
 type AWSDynamoDBSourceNamespaceLister interface {
 	// List lists all AWSDynamoDBSources in the indexer for a given namespace.
+	// Objects returned here must be treated as read-only.
 	List(selector labels.Selector) (ret []*v1alpha1.AWSDynamoDBSource, err error)
 	// Get retrieves the AWSDynamoDBSource from the indexer for a given namespace and name.
+	// Objects returned here must be treated as read-only.
 	Get(name string) (*v1alpha1.AWSDynamoDBSource, error)
 	AWSDynamoDBSourceNamespaceListerExpansion
 }
