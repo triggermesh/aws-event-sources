@@ -2,7 +2,13 @@
 
 ![Sources for Amazon Web Services](./images/saws.png "Sources for Amazon Web Services")
 
-TriggerMesh Sources for Amazon Web Services (SAWS) allows you to quickly and easily consume events from your AWS  services and send them to workloads running in your cluster.
+TriggerMesh Sources for Amazon Web Services (SAWS) allow you to quickly and easily consume events from your AWS services
+and send them to workloads running in your cluster.
+
+Other Knative Sources maintained by TriggerMesh are available in the following repositories:
+
+- [Knative Sources][knsrc]
+- [GitLab Source][knsrc-gitlab] (Knative sandbox project)
 
 ## Installation
 
@@ -19,50 +25,58 @@ Refer to the [aws-event-sources chart documentation](chart/README.md) for all av
 
 ### OpenShift
 
-Login to the OpenShift Container Platform console and install the **AWS Sources Operator** from the **OperatorHub**. Refer to the [aws-event-sources-operator documentation](https://github.com/triggermesh/aws-sources-operator/blob/master/README.md) for the complete guide in getting up and running on the OpenShift Container Platform.
+Login to the OpenShift Container Platform console and install the **AWS Sources Operator** from the **OperatorHub**.
+Refer to the [documentation][operator] of the AWS Event Sources Operator for the complete guide in getting up and
+running on the OpenShift Container Platform.
 
 ## Getting Started
 
 The following table lists the AWS services currently supported by TriggerMesh Sources for AWS and their support level.
 
-|                            AWS Service                            |                  Documentation                   | Support Level |
+| AWS Service                                                       | Documentation                                    | Support Level |
 |-------------------------------------------------------------------|--------------------------------------------------|---------------|
+| [CloudWatch](https://aws.amazon.com/cloudwatch/)                  |                                                  | alpha         |
+| [CloudWatch Logs](https://aws.amazon.com/cloudwatch/)             |                                                  | alpha         |
 | [CodeCommit](https://aws.amazon.com/codecommit/)                  | [README](cmd/awscodecommitsource/README.md)      | alpha         |
 | [Cognito Identity Pool](https://aws.amazon.com/cognito/)          | [README](cmd/awscognitoidentitysource/README.md) | alpha         |
 | [Cognito User Pool](https://aws.amazon.com/cognito/)              | [README](cmd/awscognitouserpoolsource/README.md) | alpha         |
 | [DynamoDB](https://aws.amazon.com/dynamodb/)                      | [README](cmd/awsdynamodbsource/README.md)        | alpha         |
 | [Kinesis](https://aws.amazon.com/kinesis/)                        | [README](cmd/awskinesissource/README.md)         | alpha         |
+| [Simple Cloud Storage (S3)](https://aws.amazon.com/s3/)           |                                                  | alpha         |
 | [Simple Notifications Service (SNS)](https://aws.amazon.com/sns/) | [README](cmd/awssnssource/README.md)             | alpha         |
 | [Simple Queue Service (SQS)](https://aws.amazon.com/sqs/)         | [README](cmd/awssqssource/README.md)             | alpha         |
 
-For detailed usage instructions about a particular source, please refer to the linked `README.md` files.
+For detailed usage instructions about a particular source, please refer to its linked `README.md` file, or to the
+[TriggerMesh documentation][tm-docs].
 
-## TriggerMesh Cloud
+## Contributions and support
 
-These container sources can be used as is from this repository or you can use our feature rich [TriggerMesh Cloud](https://cloud.triggermesh.io) offering where you can use our easy to use interface to configure them and also have access to other event source that are not publicly available.
+We would love to hear your feedback on these sources. Please don't hesitate to submit bug reports and suggestions by
+[filing issues][gh-issue], or contribute by [submitting pull-requests][gh-pr].
 
-![TriggerMesh Cloud](images/triggermesh-cloud.png)
+Refer to [DEVELOPMENT.md](./DEVELOPMENT.md) in order to get started.
 
-## Roadmap
+## TriggerMesh Cloud Early Access
 
-* Add a more generic SNS source using an operator architecture
-* Add a CloudWatch source using an operator architecture
-* Performance improvements
-
-## Support
-
-The sources listed in this repository are fully open source and can be used in any Knative cluster. They consist of event consumers for various AWS services. Most of them are packaged as `Container Sources` and make use of [CloudEvents](https://cloudevents.io/).
-
-We would love your feedback and ideas. Reach out to us by filing an [issue](https://github.com/triggermesh/aws-event-sources/issues/new) and help us extend and improve these sources with your [contributions](https://github.com/triggermesh/aws-event-sources/compare).
+TriggerMesh Sources for Amazon Web Services can be used as is from this repo. You can also use them along with other
+components from our Cloud at <https://cloud.triggermesh.io>, which has a web UI to configure and run them.
 
 ## Commercial Support
 
-TriggerMesh Inc supports these sources commercially, email info@triggermesh.com for details.
+TriggerMesh Inc. supports those sources commercially. Email us at <info@triggermesh.com> to get more details.
 
 ## Code of Conduct
 
-This repository is not a part of [CNCF](https://www.cncf.io/) but we abide by its [code of conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md).
+Although this project is not part of the [CNCF][cncf], we abide by its [code of conduct][cncf-conduct].
 
-## Contributing
+[operator]: https://github.com/triggermesh/aws-sources-operator/blob/master/README.md
+[tm-docs]: https://docs.triggermesh.io/sources/
 
-Refer to [DEVELOPMENT.md](./DEVELOPMENT.md).
+[knsrc]: https://github.com/triggermesh/knative-sources
+[knsrc-gitlab]: https://github.com/knative-sandbox/eventing-gitlab
+
+[gh-issue]: https://github.com/triggermesh/knative-sources/issues
+[gh-pr]: https://github.com/triggermesh/knative-sources/pulls
+
+[cncf]: https://www.cncf.io/
+[cncf-conduct]: https://github.com/cncf/foundation/blob/master/code-of-conduct.md
