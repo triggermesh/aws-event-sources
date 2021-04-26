@@ -187,25 +187,8 @@ rules:
   resources:
   - leases
   verbs:
-  - create
-- apiGroups:
-  - coordination.k8s.io
-  resourceNames:
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscloudwatchlogssource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscloudwatchsource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscodecommitsource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscognitoidentitysource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscognitouserpoolsource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awsdynamodbsource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awsiotsource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awskinesissource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awss3source.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awssnssource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awssqssource.reconciler.00-of-01
-  resources:
-  - leases
-  verbs:
   - get
+  - create
   - update
 
 # Determine the exact reason why Deployments fail
@@ -335,15 +318,8 @@ rules:
   resources:
   - leases
   verbs:
-  - create
-- apiGroups:
-  - coordination.k8s.io
-  resourceNames:
-  - awssnssource.github.com-triggermesh-aws-event-sources-pkg-adapter-awssnssource.reconciler.00-of-01
-  resources:
-  - leases
-  verbs:
   - get
+  - create
   - update
 
 ---
