@@ -39,7 +39,7 @@ type Reconciler struct {
 var _ reconcilerv1alpha1.Interface = (*Reconciler)(nil)
 
 // ReconcileKind implements Interface.ReconcileKind.
-func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSCloudWatchLogsSource) reconciler.Event {
+func (r *Reconciler) ReconcileKind(ctx context.Context, src *v1alpha1.AWSPerformanceInsightsSource) reconciler.Event {
 	// inject source into context for usage in reconciliation logic
 	ctx = v1alpha1.WithSource(ctx, src)
 
