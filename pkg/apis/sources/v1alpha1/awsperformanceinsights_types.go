@@ -49,9 +49,8 @@ type AWSPerformanceInsightsSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
 	ARN apis.ARN `json:"arn"`
-	// PollingInterval in a duration format for how often to pull metrics data from. Default is 5m
-	// +optional
-	PollingInterval *apis.Duration `json:"pollingInterval,omitempty"`
+
+	PollingInterval *apis.Duration `json:"pollingInterval"`
 
 	Credentials AWSSecurityCredentials `json:"credentials"`
 

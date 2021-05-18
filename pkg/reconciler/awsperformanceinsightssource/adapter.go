@@ -18,7 +18,6 @@ package awsperformanceinsightssource
 
 import (
 	"fmt"
-	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -37,8 +36,6 @@ const (
 	envMetricQuery     = "METRIC_QUERY"
 	envIdentifier      = "IDENTIFIER"
 	envServiceType     = "SERVICE_TYPE"
-
-	defaultPollingInterval = 5 * time.Minute
 )
 
 // adapterConfig contains properties used to configure the source's adapter.
@@ -57,16 +54,11 @@ var _ common.AdapterDeploymentBuilder = (*Reconciler)(nil)
 func (r *Reconciler) BuildAdapter(src v1alpha1.EventSource, sinkURI *apis.URL) *appsv1.Deployment {
 	typedSrc := src.(*v1alpha1.AWSPerformanceInsightsSource)
 
-	pollingInterval := defaultPollingInterval
-	if f := typedSrc.Spec.PollingInterval; f != nil && time.Duration(*f).Nanoseconds() > 0 {
-		pollingInterval = time.Duration(*f)
-	}
-
 	return common.NewAdapterDeployment(src, sinkURI,
 		resource.Image(r.adapterCfg.Image),
 
 		resource.EnvVar(common.EnvARN, typedSrc.Spec.ARN.String()),
-		resource.EnvVar(envPollingInterval, pollingInterval.String()),
+		resource.EnvVar(envPollingInterval, typedSrc.Spec.PollingInterval.String()),
 		resource.EnvVar(envMetricQuery, typedSrc.Spec.MetricQuery),
 		resource.EnvVar(envIdentifier, typedSrc.Spec.Identifier),
 		resource.EnvVar(envServiceType, typedSrc.Spec.ServiceType),

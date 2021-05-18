@@ -43,7 +43,7 @@ type envConfig struct {
 
 	ARN string `envconfig:"ARN"`
 
-	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"` // free tier is 5m
+	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"`
 
 	MetricQuery string `envconfig:"METRIC_QUERY" required:"true"`
 
