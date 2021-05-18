@@ -118,6 +118,7 @@ func (a *adapter) Start(ctx context.Context) error {
 
 	// Wake up every pollingInterval, and retrieve the logs
 	var priorTime time.Time
+	priorTime = time.Now()
 	for {
 		select {
 		case <-ctx.Done():
@@ -149,7 +150,6 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 	for _, d := range rm.MetricList {
 		for _, metric := range d.DataPoints {
 			if metric.Value != nil {
-
 				event := cloudevents.NewEvent(cloudevents.VersionV1)
 				event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSPerformanceInsightsGenericEventType))
 				event.SetSource(a.arn.String())
