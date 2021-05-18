@@ -18,7 +18,6 @@ package awsperformanceinsightssource
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -148,14 +147,10 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 		a.logger.Errorf("retrieving resource metrics: %v", err)
 		return
 	}
-	fmt.Println(rm)
+
 	for _, d := range rm.MetricList {
 		for _, metric := range d.DataPoints {
 			if metric.Value != nil {
-				fmt.Println("_________________")
-				fmt.Println(metric)
-				fmt.Println("_________________")
-
 				event := cloudevents.NewEvent(cloudevents.VersionV1)
 				event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSPerformanceInsightsGenericEventType))
 				event.SetSource(a.arn.String())
