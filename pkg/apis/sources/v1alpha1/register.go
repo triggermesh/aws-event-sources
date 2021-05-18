@@ -47,6 +47,7 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&AWSS3Source{}, &AWSS3SourceList{},
 		&AWSSNSSource{}, &AWSSNSSourceList{},
 		&AWSSQSSource{}, &AWSSQSSourceList{},
+		&AWSPerformanceInsightsSource{}, &AWSPerformanceInsightsSourceList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

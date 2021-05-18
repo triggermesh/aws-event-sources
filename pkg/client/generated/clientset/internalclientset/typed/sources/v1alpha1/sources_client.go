@@ -34,6 +34,7 @@ type SourcesV1alpha1Interface interface {
 	AWSDynamoDBSourcesGetter
 	AWSIoTSourcesGetter
 	AWSKinesisSourcesGetter
+	AWSPerformanceInsightsSourcesGetter
 	AWSS3SourcesGetter
 	AWSSNSSourcesGetter
 	AWSSQSSourcesGetter
@@ -74,6 +75,10 @@ func (c *SourcesV1alpha1Client) AWSIoTSources(namespace string) AWSIoTSourceInte
 
 func (c *SourcesV1alpha1Client) AWSKinesisSources(namespace string) AWSKinesisSourceInterface {
 	return newAWSKinesisSources(c, namespace)
+}
+
+func (c *SourcesV1alpha1Client) AWSPerformanceInsightsSources(namespace string) AWSPerformanceInsightsSourceInterface {
+	return newAWSPerformanceInsightsSources(c, namespace)
 }
 
 func (c *SourcesV1alpha1Client) AWSS3Sources(namespace string) AWSS3SourceInterface {

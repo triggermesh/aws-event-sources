@@ -40,6 +40,8 @@ type Interface interface {
 	AWSIoTSources() AWSIoTSourceInformer
 	// AWSKinesisSources returns a AWSKinesisSourceInformer.
 	AWSKinesisSources() AWSKinesisSourceInformer
+	// AWSPerformanceInsightsSources returns a AWSPerformanceInsightsSourceInformer.
+	AWSPerformanceInsightsSources() AWSPerformanceInsightsSourceInformer
 	// AWSS3Sources returns a AWSS3SourceInformer.
 	AWSS3Sources() AWSS3SourceInformer
 	// AWSSNSSources returns a AWSSNSSourceInformer.
@@ -97,6 +99,11 @@ func (v *version) AWSIoTSources() AWSIoTSourceInformer {
 // AWSKinesisSources returns a AWSKinesisSourceInformer.
 func (v *version) AWSKinesisSources() AWSKinesisSourceInformer {
 	return &aWSKinesisSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// AWSPerformanceInsightsSources returns a AWSPerformanceInsightsSourceInformer.
+func (v *version) AWSPerformanceInsightsSources() AWSPerformanceInsightsSourceInformer {
+	return &aWSPerformanceInsightsSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // AWSS3Sources returns a AWSS3SourceInformer.
