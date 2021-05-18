@@ -275,6 +275,7 @@ kind: ClusterRole
 metadata:
   name: awsperformanceinsightssource-adapter
 rules: []
+
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
