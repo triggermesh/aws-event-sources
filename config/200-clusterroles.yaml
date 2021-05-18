@@ -59,6 +59,7 @@ rules:
   - awsdynamodbsources
   - awsiotsources
   - awskinesissources
+  - awsperformanceinsightssources
   - awss3sources
   - awssnssources
   - awssqssources
@@ -77,6 +78,7 @@ rules:
   - awsdynamodbsources/status
   - awsiotsources/status
   - awskinesissources/status
+  - awsperformanceinsightssources/status
   - awss3sources/status
   - awssnssources/status
   - awssqssources/status
@@ -96,6 +98,7 @@ rules:
   - awsdynamodbsources/finalizers
   - awsiotsources/finalizers
   - awskinesissources/finalizers
+  - awsperformanceinsightssources/finalizers
   - awss3sources/finalizers
   - awssnssources/finalizers
   - awssqssources/finalizers
@@ -133,6 +136,7 @@ rules:
   - awsdynamodbsource-adapter
   - awsiotsource-adapter
   - awskinesissource-adapter
+  - awsperformanceinsightssource-adapter
   - awss3source-adapter
   - awssnssource-adapter
   - awssqssource-adapter
@@ -263,6 +267,14 @@ metadata:
   name: awskinesissource-adapter
 rules: []
 
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: awsperformanceinsightssource-adapter
+rules: []
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
@@ -352,6 +364,7 @@ rules:
   - awsdynamodbsources
   - awsiotsources
   - awskinesissources
+  - awsperformanceinsightssources
   - awssnssources
   - awssqssources
   verbs:
