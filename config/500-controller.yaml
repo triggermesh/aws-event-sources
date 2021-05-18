@@ -69,6 +69,8 @@ spec:
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awsdynamodbsource
         - name: AWSKINESISSOURCE_IMAGE
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awskinesissource
+        - name: AWSPERFORMANCEINSIGHTSSOURCE_IMAGE
+          value: ko://github.com/triggermesh/aws-event-sources/cmd/awsperformanceinsightssource
         - name: AWSSNSSOURCE_IMAGE
           value: ko://github.com/triggermesh/aws-event-sources/cmd/awssnssource
         - name: AWSSQSSOURCE_IMAGE

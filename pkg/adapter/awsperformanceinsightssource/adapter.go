@@ -18,7 +18,6 @@ package awsperformanceinsightssource
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -60,8 +59,7 @@ type adapter struct {
 	pIClient *pi.PI
 	ceClient cloudevents.Client
 
-	arn arn.ARN
-
+	arn             arn.ARN
 	pollingInterval time.Duration
 	metricQuery     []*pi.MetricQuery
 	identifier      string
@@ -133,8 +131,6 @@ func (a *adapter) Start(ctx context.Context) error {
 }
 
 func (a *adapter) CollectLogs(priorTime time.Time, currentTime time.Time) {
-	a.logger.Info("Firing logs")
-
 	rmi := &pi.GetResourceMetricsInput{
 		EndTime:       aws.Time(time.Now()),
 		StartTime:     aws.Time(priorTime),
@@ -146,13 +142,12 @@ func (a *adapter) CollectLogs(priorTime time.Time, currentTime time.Time) {
 	rm, err := a.pIClient.GetResourceMetrics(rmi)
 
 	if err != nil {
-		fmt.Println("error:")
-		fmt.Println(err)
+		a.logger.Errorf("retrieving resource metrics: %v", err)
 		return
 	}
 
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSEventType(a.arn.Service, "io.triggermesh.wrong.event.type"))
+	event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSPerformanceInsightsGenericEventType))
 	event.SetSource(a.arn.String())
 
 	ceer := event.SetData(cloudevents.ApplicationJSON, rm)
