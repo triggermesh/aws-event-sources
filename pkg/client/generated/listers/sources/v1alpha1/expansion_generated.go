@@ -82,6 +82,14 @@ type AWSKinesisSourceListerExpansion interface{}
 // AWSKinesisSourceNamespaceLister.
 type AWSKinesisSourceNamespaceListerExpansion interface{}
 
+// AWSPerformanceInsightsSourceListerExpansion allows custom methods to be added to
+// AWSPerformanceInsightsSourceLister.
+type AWSPerformanceInsightsSourceListerExpansion interface{}
+
+// AWSPerformanceInsightsSourceNamespaceListerExpansion allows custom methods to be added to
+// AWSPerformanceInsightsSourceNamespaceLister.
+type AWSPerformanceInsightsSourceNamespaceListerExpansion interface{}
+
 // AWSS3SourceListerExpansion allows custom methods to be added to
 // AWSS3SourceLister.
 type AWSS3SourceListerExpansion interface{}

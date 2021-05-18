@@ -1,6 +1,6 @@
 KREPO              = aws-event-sources
 KREPO_DESC         = TriggerMesh AWS event sources
-COMMANDS           = aws-event-sources-controller awscloudwatchsource awscloudwatchlogssource awscodecommitsource awscognitoidentitysource awscognitouserpoolsource awsdynamodbsource awskinesissource awssnssource awssqssource
+COMMANDS           = aws-event-sources-controller awscloudwatchsource awscloudwatchlogssource awscodecommitsource awscognitoidentitysource awscognitouserpoolsource awsdynamodbsource awskinesissource awsperformanceinsightssource awssnssource awssqssource
 
 TARGETS           ?= linux/amd64
 

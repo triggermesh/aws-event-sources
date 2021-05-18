@@ -70,6 +70,12 @@ var (
 		Resource: "awskinesissources",
 	}
 
+	// AWSPerformanceInsightsSourceResource respresents an event source for AWS Kinesis.
+	AWSPerformanceInsightsSourceResource = schema.GroupResource{
+		Group:    GroupName,
+		Resource: "awsperformanceinsights",
+	}
+
 	// AWSS3SourceResource respresents an event source for AWS S3.
 	AWSS3SourceResource = schema.GroupResource{
 		Group:    GroupName,

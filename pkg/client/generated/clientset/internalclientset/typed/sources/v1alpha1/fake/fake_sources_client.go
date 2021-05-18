@@ -60,6 +60,10 @@ func (c *FakeSourcesV1alpha1) AWSKinesisSources(namespace string) v1alpha1.AWSKi
 	return &FakeAWSKinesisSources{c, namespace}
 }
 
+func (c *FakeSourcesV1alpha1) AWSPerformanceInsightsSources(namespace string) v1alpha1.AWSPerformanceInsightsSourceInterface {
+	return &FakeAWSPerformanceInsightsSources{c, namespace}
+}
+
 func (c *FakeSourcesV1alpha1) AWSS3Sources(namespace string) v1alpha1.AWSS3SourceInterface {
 	return &FakeAWSS3Sources{c, namespace}
 }

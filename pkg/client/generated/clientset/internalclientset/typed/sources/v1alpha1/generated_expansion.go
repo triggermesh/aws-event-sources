@@ -34,6 +34,8 @@ type AWSIoTSourceExpansion interface{}
 
 type AWSKinesisSourceExpansion interface{}
 
+type AWSPerformanceInsightsSourceExpansion interface{}
+
 type AWSS3SourceExpansion interface{}
 
 type AWSSNSSourceExpansion interface{}

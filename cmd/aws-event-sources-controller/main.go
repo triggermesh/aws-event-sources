@@ -27,6 +27,7 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsdynamodbsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsiotsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awskinesissource"
+	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsperformanceinsightssource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awss3source"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awssnssource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awssqssource"
@@ -42,6 +43,7 @@ func main() {
 		awsdynamodbsource.NewController,
 		awsiotsource.NewController,
 		awskinesissource.NewController,
+		awsperformanceinsightssource.NewController,
 		awss3source.NewController,
 		awssnssource.NewController,
 		awssqssource.NewController,
