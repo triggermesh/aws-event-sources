@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019-2020 TriggerMesh Inc.
+Copyright (c) 2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -124,13 +124,13 @@ func (a *adapter) Start(ctx context.Context) error {
 			return nil
 
 		case t := <-poll.C:
-			go a.CollectLogs(priorTime, t)
+			go a.PollMetrics(priorTime, t)
 			priorTime = t
 		}
 	}
 }
 
-func (a *adapter) CollectLogs(priorTime time.Time, currentTime time.Time) {
+func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 	rmi := &pi.GetResourceMetricsInput{
 		EndTime:       aws.Time(time.Now()),
 		StartTime:     aws.Time(priorTime),
@@ -146,21 +146,28 @@ func (a *adapter) CollectLogs(priorTime time.Time, currentTime time.Time) {
 		return
 	}
 
-	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSPerformanceInsightsGenericEventType))
-	event.SetSource(a.arn.String())
+	for _, d := range rm.MetricList {
+		for _, metric := range d.DataPoints {
+			if metric.Value != nil {
 
-	ceer := event.SetData(cloudevents.ApplicationJSON, rm)
-	if ceer != nil {
-		a.logger.Errorf("failed to set event data: %v", err)
-		return
+				event := cloudevents.NewEvent(cloudevents.VersionV1)
+				event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSPerformanceInsightsGenericEventType))
+				event.SetSource(a.arn.String())
+
+				ceer := event.SetData(cloudevents.ApplicationJSON, metric)
+				if ceer != nil {
+					a.logger.Errorf("failed to set event data: %v", err)
+					return
+				}
+
+				if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
+					a.logger.Errorf("failed to send event data: %v", err)
+					return
+				}
+
+				a.logger.Debug("Sent Cloudevent Sucessfully")
+			}
+		}
 	}
-
-	if result := a.ceClient.Send(context.Background(), event); !cloudevents.IsACK(result) {
-		a.logger.Errorf("failed to send event data: %v", err)
-		return
-	}
-
-	a.logger.Debug("Sent Cloudevent Sucessfully")
 
 }
