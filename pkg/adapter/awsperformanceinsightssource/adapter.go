@@ -132,7 +132,6 @@ func (a *adapter) Start(ctx context.Context) error {
 }
 
 func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
-
 	rmi := &pi.GetResourceMetricsInput{
 		EndTime:       aws.Time(time.Now()),
 		StartTime:     aws.Time(priorTime),
