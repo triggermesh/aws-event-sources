@@ -66,6 +66,12 @@ type adapter struct {
 	serviceType     string
 }
 
+// event represents the structured event data to be sent as the payload of the Cloudevent
+type event struct {
+	Metric string  `json:"metric"`
+	Value  float64 `json:"value"`
+}
+
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
 func NewEnvConfig() pkgadapter.EnvConfigAccessor {
 	return &envConfig{}
@@ -178,9 +184,4 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 		}
 	}
 
-}
-
-type event struct {
-	Metric string  `json:"metric"`
-	Value  float64 `json:"value"`
 }
