@@ -54,7 +54,7 @@ type AWSPerformanceInsightsSourceSpec struct {
 
 	Credentials AWSSecurityCredentials `json:"credentials"`
 
-	MetricQuerys []string `json:"metricQuery"`
+	MetricQueries []string `json:"metricQueries"`
 
 	Identifier string `json:"identifier"`
 
