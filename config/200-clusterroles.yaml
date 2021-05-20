@@ -280,14 +280,6 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: awsperformanceinsightssource-adapter
-rules: []
-
----
-
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
   name: awss3source-adapter
 rules: []
 
