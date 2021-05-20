@@ -34,7 +34,7 @@ import (
 
 const (
 	envPollingInterval = "POLLING_INTERVAL"
-	envMetricQuery     = "METRIC_QUERYS"
+	envMetricQueries   = "METRIC_QUERIES"
 	envIdentifier      = "IDENTIFIER"
 	envServiceType     = "SERVICE_TYPE"
 )
@@ -60,7 +60,7 @@ func (r *Reconciler) BuildAdapter(src v1alpha1.EventSource, sinkURI *apis.URL) *
 
 		resource.EnvVar(common.EnvARN, typedSrc.Spec.ARN.String()),
 		resource.EnvVar(envPollingInterval, typedSrc.Spec.PollingInterval.String()),
-		resource.EnvVar(envMetricQuery, strings.Join(typedSrc.Spec.MetricQuerys, ",")),
+		resource.EnvVar(envMetricQueries, strings.Join(typedSrc.Spec.MetricQueries, ",")),
 		resource.EnvVar(envIdentifier, typedSrc.Spec.Identifier),
 		resource.EnvVar(envServiceType, typedSrc.Spec.ServiceType),
 
