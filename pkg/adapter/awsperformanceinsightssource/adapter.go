@@ -18,7 +18,6 @@ package awsperformanceinsightssource
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -90,15 +89,6 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		logger.Panicf("Unable to parse interval duration: %v", zap.Error(err))
 	}
 
-	// var testMQL []string
-
-	// testMQL = append(testMQL, "os.cpuUtilization.idle.avg")
-	// testMQL = append(testMQL, "os.general.numVCPUs.avg")
-	// testMQL = append(testMQL, "os.network.rx.avg")
-	// testMQL = append(testMQL, "os.network.tx.avg")
-
-	// testMQL = append(testMQL, "os.network.rx.avg")
-
 	var mql []*pi.MetricQuery
 
 	for _, r := range env.MetricQuerys {
@@ -159,7 +149,7 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 		a.logger.Errorf("retrieving resource metrics: %v", err)
 		return
 	}
-	fmt.Println(rm)
+
 	for _, d := range rm.MetricList {
 		for _, metric := range d.DataPoints {
 			if metric.Value != nil {
@@ -167,10 +157,6 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 					Metric: *d.Key.Metric,
 					Value:  *metric.Value,
 				}
-
-				fmt.Println("________________")
-				fmt.Println(e)
-				fmt.Println("________________")
 
 				event := cloudevents.NewEvent(cloudevents.VersionV1)
 				event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSPerformanceInsightsGenericEventType))
