@@ -45,7 +45,7 @@ type envConfig struct {
 
 	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"`
 
-	MetricQuerys []string `envconfig:"METRIC_QUERYS" required:"true"`
+	MetricQueries []string `envconfig:"METRIC_QUERIES" required:"true"`
 
 	Identifier string `envconfig:"IDENTIFIER" required:"true"`
 
@@ -61,7 +61,7 @@ type adapter struct {
 
 	arn             arn.ARN
 	pollingInterval time.Duration
-	metricQuerys    []*pi.MetricQuery
+	metricQueries    []*pi.MetricQuery
 	identifier      string
 	serviceType     string
 }
@@ -95,9 +95,9 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		logger.Panicf("Unable to parse interval duration: %v", zap.Error(err))
 	}
 
-	var mql []*pi.MetricQuery
+	var mql []*pi.MetricQueries
 
-	for _, r := range env.MetricQuerys {
+	for _, r := range env.MetricQueries {
 		m := &pi.MetricQuery{Metric: aws.String(r)}
 		mql = append(mql, m)
 	}
@@ -111,7 +111,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		arn: a,
 
 		pollingInterval: interval,
-		metricQuerys:    mql,
+		metricQueries:    mql,
 		identifier:      env.Identifier,
 		serviceType:     env.ServiceType,
 	}
@@ -145,7 +145,7 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 		EndTime:       aws.Time(time.Now()),
 		StartTime:     aws.Time(priorTime),
 		Identifier:    aws.String(a.identifier),
-		MetricQueries: a.metricQuerys,
+		MetricQueries: a.metricQueries,
 		ServiceType:   aws.String(a.serviceType),
 	}
 
