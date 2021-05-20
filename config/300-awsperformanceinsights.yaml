@@ -53,7 +53,7 @@ spec:
                 type: string
               pollingInterval:
                 type: string
-              metricQuerys:
+              metricQueries:
                 type: array
                 items:
                   type: string
@@ -130,7 +130,7 @@ spec:
             - arn
             - sink
             - pollingInterval
-            - metricQuerys
+            - metricQueries
             - identifier
             - serviceType
           status:
