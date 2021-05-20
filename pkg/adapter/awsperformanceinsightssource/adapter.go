@@ -45,7 +45,7 @@ type envConfig struct {
 
 	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"`
 
-	MetricQuery string `envconfig:"METRIC_QUERY" required:"true"`
+	MetricQueries []string `envconfig:"METRIC_QUERIES" required:"true"`
 
 	Identifier string `envconfig:"IDENTIFIER" required:"true"`
 
@@ -61,9 +61,15 @@ type adapter struct {
 
 	arn             arn.ARN
 	pollingInterval time.Duration
-	metricQuery     []*pi.MetricQuery
+	metricQueries   []*pi.MetricQuery
 	identifier      string
 	serviceType     string
+}
+
+// event represents the structured event data to be sent as the payload of the Cloudevent
+type event struct {
+	Metric string  `json:"metric"`
+	Value  float64 `json:"value"`
 }
 
 // NewEnvConfig returns an accessor for the source's adapter envConfig.
@@ -90,8 +96,11 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	}
 
 	var mql []*pi.MetricQuery
-	m := &pi.MetricQuery{Metric: aws.String(env.MetricQuery)}
-	mql = append(mql, m)
+
+	for _, r := range env.MetricQueries {
+		m := &pi.MetricQuery{Metric: aws.String(r)}
+		mql = append(mql, m)
+	}
 
 	return &adapter{
 		logger: logger,
@@ -102,7 +111,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		arn: a,
 
 		pollingInterval: interval,
-		metricQuery:     mql,
+		metricQueries:   mql,
 		identifier:      env.Identifier,
 		serviceType:     env.ServiceType,
 	}
@@ -136,7 +145,7 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 		EndTime:       aws.Time(time.Now()),
 		StartTime:     aws.Time(priorTime),
 		Identifier:    aws.String(a.identifier),
-		MetricQueries: a.metricQuery,
+		MetricQueries: a.metricQueries,
 		ServiceType:   aws.String(a.serviceType),
 	}
 
@@ -150,11 +159,16 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 	for _, d := range rm.MetricList {
 		for _, metric := range d.DataPoints {
 			if metric.Value != nil {
+				e := &event{
+					Metric: *d.Key.Metric,
+					Value:  *metric.Value,
+				}
+
 				event := cloudevents.NewEvent(cloudevents.VersionV1)
 				event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSPerformanceInsightsGenericEventType))
-				event.SetSource(a.arn.String())
+				event.SetSource(*d.Key.Metric)
 
-				ceer := event.SetData(cloudevents.ApplicationJSON, metric)
+				ceer := event.SetData(cloudevents.ApplicationJSON, e)
 				if ceer != nil {
 					a.logger.Errorf("failed to set event data: %v", err)
 					return
