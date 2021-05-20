@@ -60,7 +60,6 @@ func (r *Reconciler) BuildAdapter(src v1alpha1.EventSource, sinkURI *apis.URL) *
 
 		resource.EnvVar(common.EnvARN, typedSrc.Spec.ARN.String()),
 		resource.EnvVar(envPollingInterval, typedSrc.Spec.PollingInterval.String()),
-		// resource.EnvVar(envMetricQuery, typedSrc.Spec.MetricQuerys),
 		resource.EnvVar(envMetricQuery, strings.Join(typedSrc.Spec.MetricQuerys, ",")),
 		resource.EnvVar(envIdentifier, typedSrc.Spec.Identifier),
 		resource.EnvVar(envServiceType, typedSrc.Spec.ServiceType),
