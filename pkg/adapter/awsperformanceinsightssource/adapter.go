@@ -18,6 +18,7 @@ package awsperformanceinsightssource
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -45,7 +46,7 @@ type envConfig struct {
 
 	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"`
 
-	MetricQuery string `envconfig:"METRIC_QUERY" required:"true"`
+	MetricQuerys []string `envconfig:"METRIC_QUERYS" required:"true"`
 
 	Identifier string `envconfig:"IDENTIFIER" required:"true"`
 
@@ -61,7 +62,7 @@ type adapter struct {
 
 	arn             arn.ARN
 	pollingInterval time.Duration
-	metricQuery     []*pi.MetricQuery
+	metricQuerys    []*pi.MetricQuery
 	identifier      string
 	serviceType     string
 }
@@ -89,9 +90,21 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		logger.Panicf("Unable to parse interval duration: %v", zap.Error(err))
 	}
 
+	// var testMQL []string
+
+	// testMQL = append(testMQL, "os.cpuUtilization.idle.avg")
+	// testMQL = append(testMQL, "os.general.numVCPUs.avg")
+	// testMQL = append(testMQL, "os.network.rx.avg")
+	// testMQL = append(testMQL, "os.network.tx.avg")
+
+	// testMQL = append(testMQL, "os.network.rx.avg")
+
 	var mql []*pi.MetricQuery
-	m := &pi.MetricQuery{Metric: aws.String(env.MetricQuery)}
-	mql = append(mql, m)
+
+	for _, r := range env.MetricQuerys {
+		m := &pi.MetricQuery{Metric: aws.String(r)}
+		mql = append(mql, m)
+	}
 
 	return &adapter{
 		logger: logger,
@@ -102,7 +115,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		arn: a,
 
 		pollingInterval: interval,
-		metricQuery:     mql,
+		metricQuerys:    mql,
 		identifier:      env.Identifier,
 		serviceType:     env.ServiceType,
 	}
@@ -136,7 +149,7 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 		EndTime:       aws.Time(time.Now()),
 		StartTime:     aws.Time(priorTime),
 		Identifier:    aws.String(a.identifier),
-		MetricQueries: a.metricQuery,
+		MetricQueries: a.metricQuerys,
 		ServiceType:   aws.String(a.serviceType),
 	}
 
@@ -146,15 +159,24 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 		a.logger.Errorf("retrieving resource metrics: %v", err)
 		return
 	}
-
+	fmt.Println(rm)
 	for _, d := range rm.MetricList {
 		for _, metric := range d.DataPoints {
 			if metric.Value != nil {
+				e := &event{
+					Metric: *d.Key.Metric,
+					Value:  *metric.Value,
+				}
+
+				fmt.Println("________________")
+				fmt.Println(e)
+				fmt.Println("________________")
+
 				event := cloudevents.NewEvent(cloudevents.VersionV1)
 				event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSPerformanceInsightsGenericEventType))
-				event.SetSource(a.arn.String())
+				event.SetSource(*d.Key.Metric)
 
-				ceer := event.SetData(cloudevents.ApplicationJSON, metric)
+				ceer := event.SetData(cloudevents.ApplicationJSON, e)
 				if ceer != nil {
 					a.logger.Errorf("failed to set event data: %v", err)
 					return
@@ -170,4 +192,9 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 		}
 	}
 
+}
+
+type event struct {
+	Metric string  `json:"metric"`
+	Value  float64 `json:"value"`
 }

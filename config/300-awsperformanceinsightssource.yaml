@@ -54,7 +54,10 @@ spec:
               pollingInterval:
                 type: string
               metricQuery:
-                type: string
+                type: array
+                items:
+                  type: string
+                  minLength: 1
               identifier:
                 type: string
               serviceType:

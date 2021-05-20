@@ -856,6 +856,11 @@ func (in *AWSPerformanceInsightsSourceSpec) DeepCopyInto(out *AWSPerformanceInsi
 		**out = **in
 	}
 	in.Credentials.DeepCopyInto(&out.Credentials)
+	if in.MetricQuerys != nil {
+		in, out := &in.MetricQuerys, &out.MetricQuerys
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 
