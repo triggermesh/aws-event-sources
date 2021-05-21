@@ -23,7 +23,7 @@ metadata:
   annotations:
     registry.knative.dev/eventTypes: |
       [
-        { "type": "com.amazon.pi.insight" }
+        { "type": "com.amazon.rds.pi.insight" }
       ]
 spec:
   group: sources.triggermesh.io
@@ -51,6 +51,7 @@ spec:
             properties:
               arn:
                 type: string
+                pattern: arn:aws(-cn|-us-gov)?:rds:[a-z]{2}(-gov)?-[a-z]+-\d:\d{12}:.+$
               pollingInterval:
                 type: string
               metricQueries:
@@ -58,10 +59,6 @@ spec:
                 items:
                   type: string
                   minLength: 1
-              identifier:
-                type: string
-              serviceType:
-                type: string
               credentials:
                 type: object
                 properties:
@@ -131,8 +128,6 @@ spec:
             - sink
             - pollingInterval
             - metricQueries
-            - identifier
-            - serviceType
           status:
             type: object
             properties:

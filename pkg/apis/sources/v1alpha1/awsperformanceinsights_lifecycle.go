@@ -53,7 +53,7 @@ func (s *AWSPerformanceInsightsSource) GetStatusManager() *EventSourceStatusMana
 
 // Supported event types
 const (
-	AWSPerformanceInsightsGenericEventType = "pi.insight"
+	AWSPerformanceInsightsGenericEventType = "com.amazon.rds.pi.insight"
 )
 
 // GetEventTypes implements EventSource.
