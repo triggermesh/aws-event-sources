@@ -101,9 +101,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	}
 
 	r := rds.New(cfg)
-
 	var resourceID string
-
 	dbi, err := r.DescribeDBInstances(&rds.DescribeDBInstancesInput{})
 	if err != nil {
 		logger.Panicf("Unable describe DB clusters: %v", zap.Error(err))
