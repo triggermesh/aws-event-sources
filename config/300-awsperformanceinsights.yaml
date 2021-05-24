@@ -51,7 +51,7 @@ spec:
             properties:
               arn:
                 type: string
-                pattern: arn:aws(-cn|-us-gov)?:rds:[a-z]{2}(-gov)?-[a-z]+-\d:\d{12}:.+$
+                pattern: ^arn:aws(-cn|-us-gov)?:rds:[a-z]{2}(-gov)?-[a-z]+-\d:\d{12}:.+$
               pollingInterval:
                 type: string
               metricQueries:
