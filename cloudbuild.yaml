@@ -1,6 +1,6 @@
 steps:
 
-- name: gcr.io/kaniko-project/executor:latest
+- name: gcr.io/kaniko-project/executor:v1.3.0
   args:
   - --dockerfile=cmd/${_CMD}/Dockerfile
   - --build-arg=VERSION=${_KANIKO_IMAGE_TAG}
