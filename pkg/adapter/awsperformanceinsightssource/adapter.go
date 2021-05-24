@@ -112,7 +112,6 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 	for _, instance := range dbi.DBInstances {
 		if *instance.DBInstanceArn == a.String() {
 			resourceID = *instance.DbiResourceId
-
 		}
 	}
 
@@ -180,7 +179,6 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 				event := cloudevents.NewEvent(cloudevents.VersionV1)
 				event.SetType(v1alpha1.AWSPerformanceInsightsGenericEventType)
 				event.SetSource(*d.Key.Metric)
-
 				ceer := event.SetData(cloudevents.ApplicationJSON, e)
 				if ceer != nil {
 					a.logger.Errorf("failed to set event data: %v", err)
@@ -196,5 +194,4 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 			}
 		}
 	}
-
 }
