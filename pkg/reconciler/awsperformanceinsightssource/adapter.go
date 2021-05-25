@@ -35,8 +35,6 @@ import (
 const (
 	envPollingInterval = "POLLING_INTERVAL"
 	envMetricQueries   = "METRIC_QUERIES"
-	envIdentifier      = "IDENTIFIER"
-	envServiceType     = "SERVICE_TYPE"
 )
 
 // adapterConfig contains properties used to configure the source's adapter.
@@ -61,8 +59,6 @@ func (r *Reconciler) BuildAdapter(src v1alpha1.EventSource, sinkURI *apis.URL) *
 		resource.EnvVar(common.EnvARN, typedSrc.Spec.ARN.String()),
 		resource.EnvVar(envPollingInterval, typedSrc.Spec.PollingInterval.String()),
 		resource.EnvVar(envMetricQueries, strings.Join(typedSrc.Spec.MetricQueries, ",")),
-		resource.EnvVar(envIdentifier, typedSrc.Spec.Identifier),
-		resource.EnvVar(envServiceType, typedSrc.Spec.ServiceType),
 
 		resource.EnvVars(common.MakeSecurityCredentialsEnvVars(typedSrc.Spec.Credentials)...),
 		resource.EnvVars(r.adapterCfg.configs.ToEnvVars()...),

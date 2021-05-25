@@ -55,10 +55,6 @@ type AWSPerformanceInsightsSourceSpec struct {
 	Credentials AWSSecurityCredentials `json:"credentials"`
 
 	MetricQueries []string `json:"metricQueries"`
-
-	Identifier string `json:"identifier"`
-
-	ServiceType string `json:"serviceType"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

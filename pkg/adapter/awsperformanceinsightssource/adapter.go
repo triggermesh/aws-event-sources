@@ -28,6 +28,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/arn"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/pi"
+	"github.com/aws/aws-sdk-go/service/rds"
 
 	pkgadapter "knative.dev/eventing/pkg/adapter/v2"
 	"knative.dev/pkg/logging"
@@ -35,6 +36,8 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/adapter/common"
 	"github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 )
+
+const serviceType = "RDS"
 
 // envConfig is a set parameters sourced from the environment for the source's
 // adapter.
@@ -46,10 +49,6 @@ type envConfig struct {
 	PollingInterval string `envconfig:"POLLING_INTERVAL" required:"true"`
 
 	MetricQueries []string `envconfig:"METRIC_QUERIES" required:"true"`
-
-	Identifier string `envconfig:"IDENTIFIER" required:"true"`
-
-	ServiceType string `envconfig:"SERVICE_TYPE" required:"true" `
 }
 
 // adapter implements the source's adapter.
@@ -62,8 +61,7 @@ type adapter struct {
 	arn             arn.ARN
 	pollingInterval time.Duration
 	metricQueries   []*pi.MetricQuery
-	identifier      string
-	serviceType     string
+	resourceID      string
 }
 
 // event represents the structured event data to be sent as the payload of the Cloudevent
@@ -102,6 +100,19 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 		mql = append(mql, m)
 	}
 
+	r := rds.New(cfg)
+	var resourceID string
+	dbi, err := r.DescribeDBInstances(&rds.DescribeDBInstancesInput{})
+	if err != nil {
+		logger.Panicf("Unable describe DB instances: %v", zap.Error(err))
+	}
+
+	for _, instance := range dbi.DBInstances {
+		if *instance.DBInstanceArn == a.String() {
+			resourceID = *instance.DbiResourceId
+		}
+	}
+
 	return &adapter{
 		logger: logger,
 
@@ -112,8 +123,7 @@ func NewAdapter(ctx context.Context, envAcc pkgadapter.EnvConfigAccessor, ceClie
 
 		pollingInterval: interval,
 		metricQueries:   mql,
-		identifier:      env.Identifier,
-		serviceType:     env.ServiceType,
+		resourceID:      resourceID,
 	}
 }
 
@@ -144,9 +154,9 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 	rmi := &pi.GetResourceMetricsInput{
 		EndTime:       aws.Time(time.Now()),
 		StartTime:     aws.Time(priorTime),
-		Identifier:    aws.String(a.identifier),
+		Identifier:    aws.String(a.resourceID),
 		MetricQueries: a.metricQueries,
-		ServiceType:   aws.String(a.serviceType),
+		ServiceType:   aws.String(serviceType),
 	}
 
 	rm, err := a.pIClient.GetResourceMetrics(rmi)
@@ -165,9 +175,9 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 				}
 
 				event := cloudevents.NewEvent(cloudevents.VersionV1)
-				event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSPerformanceInsightsGenericEventType))
-				event.SetSource(*d.Key.Metric)
-
+				event.SetType(v1alpha1.AWSPerformanceInsightsGenericEventType)
+				event.SetSource(a.arn.String())
+				event.SetExtension("pimetric", d.Key.Metric)
 				ceer := event.SetData(cloudevents.ApplicationJSON, e)
 				if ceer != nil {
 					a.logger.Errorf("failed to set event data: %v", err)
@@ -183,5 +193,4 @@ func (a *adapter) PollMetrics(priorTime time.Time, currentTime time.Time) {
 			}
 		}
 	}
-
 }
