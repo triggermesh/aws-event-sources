@@ -23,7 +23,7 @@ metadata:
   annotations:
     registry.knative.dev/eventTypes: |
       [
-        { "type": "com.amazon.rds.pi.insight" }
+        { "type": "com.amazon.rds.pi.metric" }
       ]
 spec:
   group: sources.triggermesh.io
