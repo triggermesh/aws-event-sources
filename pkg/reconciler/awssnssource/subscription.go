@@ -82,11 +82,20 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 			return fmt.Errorf("%w", reconciler.NewEvent(corev1.EventTypeWarning, ReasonFailedSubscribe,
 				"Subscription is pending confirmation, will retry"))
 		case isAWSError(err):
-			// All documented API errors require some user intervention and
+			status.MarkNotSubscribed(v1alpha1.AWSSNSReasonRejected, "Subscription request rejected")
+			event := subscribeErrorEvent(url, topicARN, err)
+
+			// Most documented API errors require some user intervention and
 			// are not to be retried.
 			// https://docs.aws.amazon.com/sns/latest/api/API_Subscribe.html#API_Subscribe_Errors
-			status.MarkNotSubscribed(v1alpha1.AWSSNSReasonRejected, "Subscription request rejected")
-			return controller.NewPermanentError(subscribeErrorEvent(url, topicARN, err))
+			//
+			// However "InvalidParameter" is returned if the subscription URL is not ready, which
+			// might be the case if the endpoint for the source is not exposed yet.
+			if awsErr := awserr.Error(nil); errors.As(err, &awsErr) && awsErr.Code() != "InvalidParameter" {
+				return event
+			}
+
+			return controller.NewPermanentError(event)
 		case err != nil:
 			status.MarkNotSubscribed(v1alpha1.AWSSNSReasonFailedSync, "Cannot subscribe endpoint")
 			return fmt.Errorf("%w", subscribeErrorEvent(url, topicARN, err))
