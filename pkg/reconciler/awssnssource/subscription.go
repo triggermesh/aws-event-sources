@@ -91,7 +91,7 @@ func (r *Reconciler) ensureSubscribed(ctx context.Context) error {
 			//
 			// However "InvalidParameter" is returned if the subscription URL is not ready, which
 			// might be the case if the endpoint for the source is not exposed yet.
-			if awsErr := awserr.Error(nil); errors.As(err, &awsErr) && awsErr.Code() != "InvalidParameter" {
+			if awsErr := awserr.Error(nil); errors.As(err, &awsErr) && awsErr.Code() == sns.ErrCodeInvalidParameterException {
 				return event
 			}
 
