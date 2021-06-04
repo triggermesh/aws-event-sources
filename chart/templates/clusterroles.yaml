@@ -1,10 +1,10 @@
-# Copyright (c) 2020 TriggerMesh Inc.
+# Copyright (c) 2020-2021 TriggerMesh Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -54,12 +54,16 @@ rules:
 - apiGroups:
   - sources.triggermesh.io
   resources:
+  - awscloudwatchlogssources
+  - awscloudwatchsources
   - awscodecommitsources
   - awscognitoidentitysources
   - awscognitouserpoolsources
   - awsdynamodbsources
   - awsiotsources
   - awskinesissources
+  - awsperformanceinsightssources
+  - awss3sources
   - awssnssources
   - awssqssources
   verbs:
@@ -69,12 +73,16 @@ rules:
 - apiGroups:
   - sources.triggermesh.io
   resources:
+  - awscloudwatchlogssources/status
+  - awscloudwatchsources/status
   - awscodecommitsources/status
   - awscognitoidentitysources/status
   - awscognitouserpoolsources/status
   - awsdynamodbsources/status
   - awsiotsources/status
   - awskinesissources/status
+  - awsperformanceinsightssources/status
+  - awss3sources/status
   - awssnssources/status
   - awssqssources/status
   verbs:
@@ -85,12 +93,16 @@ rules:
 - apiGroups:
   - sources.triggermesh.io
   resources:
+  - awscloudwatchlogssources/finalizers
+  - awscloudwatchsources/finalizers
   - awscodecommitsources/finalizers
   - awscognitoidentitysources/finalizers
   - awscognitouserpoolsources/finalizers
   - awsdynamodbsources/finalizers
   - awsiotsources/finalizers
   - awskinesissources/finalizers
+  - awsperformanceinsightssources/finalizers
+  - awss3sources/finalizers
   - awssnssources/finalizers
   - awssqssources/finalizers
   verbs:
@@ -100,9 +112,54 @@ rules:
 - apiGroups:
   - sources.triggermesh.io
   resources:
+  - awss3sources
   - awssnssources
   verbs:
   - patch
+
+# Manage resource-specific ServiceAccounts and RoleBindings
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  verbs:
+  - list
+  - watch
+  - create
+- apiGroups:
+  - ''
+  resources:
+  - serviceaccounts
+  resourceNames: &rbac-objects
+  - {{ template "aws-event-sources.fullname" . }}-awscloudwatchlogssource-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awscloudwatchsource-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awscodecommitsource-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awscognitoidentitysource-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awscognitouserpoolsource-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awsdynamodbsource-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awsiotsource-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awskinesissource-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awsperformanceinsightssource-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awss3source-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awssnssource-adapter
+  - {{ template "aws-event-sources.fullname" . }}-awssqssource-adapter
+  verbs:
+  - update
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  verbs:
+  - list
+  - watch
+  - create
+- apiGroups:
+  - rbac.authorization.k8s.io
+  resources:
+  - rolebindings
+  resourceNames: *rbac-objects
+  verbs:
+  - update
 
 # Read credentials
 - apiGroups:
@@ -137,22 +194,8 @@ rules:
   resources:
   - leases
   verbs:
-  - create
-- apiGroups:
-  - coordination.k8s.io
-  resourceNames:
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscodecommitsource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscognitoidentitysource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awscognitouserpoolsource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awsdynamodbsource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awsiotsource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awskinesissource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awssnssource.reconciler.00-of-01
-  - aws-event-sources-controller.github.com-triggermesh-aws-event-sources-pkg-reconciler-awssqssource.reconciler.00-of-01
-  resources:
-  - leases
-  verbs:
   - get
+  - create
   - update
 
 # Determine the exact reason why Deployments fail
@@ -161,7 +204,146 @@ rules:
   resources:
   - pods
   verbs:
+  - list
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awscloudwatchlogssource-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awscloudwatchsource-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awscodecommitsource-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awscognitoidentitysource-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awscognitouserpoolsource-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awsdynamodbsource-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awsiotsource-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awskinesissource-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awsperformanceinsightssource-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awss3source-adapter
+rules: []
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awssnssource-adapter
+rules:
+
+# Record Kubernetes events
+- apiGroups:
+  - ''
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update
+
+# Read Source resources and update their statuses
+- apiGroups:
+  - sources.triggermesh.io
+  resources:
+  - awssnssources
+  verbs:
+  - list
+  - watch
+- apiGroups:
+  - sources.triggermesh.io
+  resources:
+  - awssnssources/status
+  verbs:
+  - patch
+
+# Read credentials
+- apiGroups:
+  - ''
+  resources:
+  - secrets
+  verbs:
   - get
+
+# Acquire leases for leader election
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - create
+  - update
+
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "aws-event-sources.fullname" . }}-awssqssource-adapter
+rules: []
 
 ---
 
@@ -178,12 +360,15 @@ rules:
 - apiGroups:
   - sources.triggermesh.io
   resources:
+  - awscloudwatchlogssources
+  - awscloudwatchsources
   - awscodecommitsources
   - awscognitoidentitysources
   - awscognitouserpoolsources
   - awsdynamodbsources
   - awsiotsources
   - awskinesissources
+  - awsperformanceinsightssources
   - awssnssources
   - awssqssources
   verbs:

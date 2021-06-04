@@ -18,6 +18,7 @@ metadata:
   name: {{ include "aws-event-sources.fullname" . }}-controller
   labels:
     {{- include "aws-event-sources.labels" . | nindent 4 }}
+
 spec:
   replicas: 1
   selector:
@@ -31,6 +32,7 @@ spec:
       annotations:
         {{- toYaml . | nindent 8 }}
     {{- end }}
+
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -39,50 +41,60 @@ spec:
       serviceAccountName: {{ template "aws-event-sources.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+
       containers:
-        - name: controller
-          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy}}
-          terminationMessagePolicy: FallbackToLogsOnError
-          env:
-            - name: SYSTEM_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            # Logging/observability configuration
-            - name: CONFIG_LOGGING_NAME
-              value: config-logging
-            - name: CONFIG_OBSERVABILITY_NAME
-              value: config-observability
-            - name: METRICS_DOMAIN
-              value: triggermesh.io/sources
-            # Source adapters
-            - name: AWSCODECOMMITSOURCE_IMAGE
-              value: "{{ .Values.image.registry }}/{{ .Values.adapters.awscodecommit.repository }}:{{ default .Values.image.tag .Values.adapters.awscodecommit.tag }}"
-            - name: AWSCOGNITOIDENTITYSOURCE_IMAGE
-              value: "{{ .Values.image.registry }}/{{ .Values.adapters.awscognitoidentity.repository }}:{{ default .Values.image.tag .Values.adapters.awscognitoidentity.tag }}"
-            - name: AWSCOGNITOUSERPOOLSOURCE_IMAGE
-              value: "{{ .Values.image.registry }}/{{ .Values.adapters.awscognitouserpool.repository }}:{{ default .Values.image.tag .Values.adapters.awscognitouserpool.tag }}"
-            - name: AWSDYNAMODBSOURCE_IMAGE
-              value: "{{ .Values.image.registry }}/{{ .Values.adapters.awsdynamodb.repository }}:{{ default .Values.image.tag .Values.adapters.awsdynamodb.tag }}"
-            - name: AWSKINESISSOURCE_IMAGE
-              value: "{{ .Values.image.registry }}/{{ .Values.adapters.awskinesis.repository }}:{{ default .Values.image.tag .Values.adapters.awskinesis.tag }}"
-            - name: AWSSNSSOURCE_IMAGE
-              value: "{{ .Values.image.registry }}/{{ .Values.adapters.awssns.repository }}:{{ default .Values.image.tag .Values.adapters.awssns.tag }}"
-            - name: AWSSQSSOURCE_IMAGE
-              value: "{{ .Values.image.registry }}/{{ .Values.adapters.awssqs.repository }}:{{ default .Values.image.tag .Values.adapters.awssqs.tag }}"
-          ports:
-            - name: metrics
-              containerPort: 9090
-            - name: profiling
-              containerPort: 8008
-          securityContext:
-            allowPrivilegeEscalation: false
-            {{- with .Values.securityContext }}
-            {{- toYaml . | nindent 12 }}
-            {{- end }}
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
+      - name: controller
+        terminationMessagePolicy: FallbackToLogsOnError
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy}}
+
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+
+        env:
+        - name: SYSTEM_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        # Logging/observability configuration
+        - name: CONFIG_LOGGING_NAME
+          value: config-logging
+        - name: CONFIG_OBSERVABILITY_NAME
+          value: config-observability
+        - name: METRICS_DOMAIN
+          value: triggermesh.io/sources
+        # Source adapters
+        - name: AWSCLOUDWATCHSOURCE_IMAGE
+          value: "{{ .Values.image.registry }}/{{ .Values.adapters.awscloudwatch.repository }}:{{ default .Values.image.tag .Values.adapters.awscloudwatch.tag }}"
+        - name: AWSCLOUDWATCHLOGSSOURCE_IMAGE
+          value: "{{ .Values.image.registry }}/{{ .Values.adapters.awscloudwatchlogs.repository }}:{{ default .Values.image.tag .Values.adapters.awscloudwatchlogs.tag }}"
+        - name: AWSCODECOMMITSOURCE_IMAGE
+          value: "{{ .Values.image.registry }}/{{ .Values.adapters.awscodecommit.repository }}:{{ default .Values.image.tag .Values.adapters.awscodecommit.tag }}"
+        - name: AWSCOGNITOIDENTITYSOURCE_IMAGE
+          value: "{{ .Values.image.registry }}/{{ .Values.adapters.awscognitoidentity.repository }}:{{ default .Values.image.tag .Values.adapters.awscognitoidentity.tag }}"
+        - name: AWSCOGNITOUSERPOOLSOURCE_IMAGE
+          value: "{{ .Values.image.registry }}/{{ .Values.adapters.awscognitouserpool.repository }}:{{ default .Values.image.tag .Values.adapters.awscognitouserpool.tag }}"
+        - name: AWSDYNAMODBSOURCE_IMAGE
+          value: "{{ .Values.image.registry }}/{{ .Values.adapters.awsdynamodb.repository }}:{{ default .Values.image.tag .Values.adapters.awsdynamodb.tag }}"
+        - name: AWSKINESISSOURCE_IMAGE
+          value: "{{ .Values.image.registry }}/{{ .Values.adapters.awskinesis.repository }}:{{ default .Values.image.tag .Values.adapters.awskinesis.tag }}"
+        - name: AWSPERFORMANCEINSIGHTSSOURCE_IMAGE
+          value: "{{ .Values.image.registry }}/{{ .Values.adapters.awsperformanceinsights.repository }}:{{ default .Values.image.tag .Values.adapters.awsperformanceinsights.tag }}"
+        - name: AWSSNSSOURCE_IMAGE
+          value: "{{ .Values.image.registry }}/{{ .Values.adapters.awssns.repository }}:{{ default .Values.image.tag .Values.adapters.awssns.tag }}"
+        - name: AWSSQSSOURCE_IMAGE
+          value: "{{ .Values.image.registry }}/{{ .Values.adapters.awssqs.repository }}:{{ default .Values.image.tag .Values.adapters.awssqs.tag }}"
+        securityContext:
+          allowPrivilegeEscalation: false
+          {{- with .Values.securityContext }}
+          {{- toYaml . | nindent 12 }}
+          {{- end }}
+        ports:
+          - name: metrics
+            containerPort: 9090
+          - name: profiling
+            containerPort: 8008
+
       {{- with .Values.nodeSelector }}
       nodeSelector:
       {{- toYaml . | nindent 8 }}

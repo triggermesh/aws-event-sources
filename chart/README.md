@@ -71,37 +71,43 @@ $ kubectl delete crd awssqssources.sources.triggermesh.io
 
 ## Configuration
 
-|                Parameter                |                     Description                     |                  Default                   |
-|-----------------------------------------|-----------------------------------------------------|--------------------------------------------|
-| `nameOverride`                          | Override the name for controller resources          | `""`                                       |
-| `fullnameOverride`                      | Override the fullname for controller resources      | `""`                                       |
-| `rbac.create`                           | Create RBAC resources                               | `true`                                     |
-| `serviceAccount.create`                 | Create service account for the controller           | `true`                                     |
-| `serviceAccount.annotations`            | Annotations to add to controller service account    | `{}`                                       |
-| `serviceAccount.name`                   | Override the name for the service account           | `nil`                                      |
-| `imagePullSecrets`                      | Specify image pull secrets                          | `[]`                                       |
-| `image.registry`                        | Image registry name                                 | `gcr.io`                                   |
-| `image.repository`                      | Image repository name                               | `triggermesh/aws-event-sources-controller` |
-| `image.tag`                             | Image tag                                           | `{TAG_NAME}`                               |
-| `image.pullPolicy`                      | Image pull policy                                   | `IfNotPresent`                             |
-| `adapter.awscodecommit.repository`      | AWS CodeCommit adapter image name                   | `triggermesh/awscodecommitsource`          |
-| `adapter.awscodecommit.tag`             | AWS CodeCommit adapter image tag                    | _defaults to value of `.image.tag`_        |
-| `adapter.awscognitoidentity.repository` | AWS Cognito Identity adapter image name             | `triggermesh/awscognitoidentitysource`     |
-| `adapter.awscognitoidentity.tag`        | AWS Cognito Identity adapter image tag              | _defaults to value of `.image.tag`_        |
-| `adapter.awscognitouserpool.repository` | AWS Cognito Userpool adapter image name             | `triggermesh/awscognitouserpoolsource`     |
-| `adapter.awscognitouserpool.tag`        | AWS Cognito Userpool adapter image tag              | _defaults to value of `.image.tag`_        |
-| `adapter.awsdynamodb.repository`        | AWS DynomoDB adapter image name                     | `triggermesh/awsdynamodbsource`            |
-| `adapter.awsdynamodb.tag`               | AWS DynomoDB adapter image tag                      | _defaults to value of `.image.tag`_        |
-| `adapter.awskinesis.repository`         | AWS Kinesis adapter image name                      | `triggermesh/awskinesissource`             |
-| `adapter.awskinesis.tag`                | AWS Kinesis adapter image tag                       | _defaults to value of `.image.tag`_        |
-| `adapter.awssns.repository`             | AWS SNS adapter image name                          | `triggermesh/awssnssource`                 |
-| `adapter.awssns.tag`                    | AWS SNS adapter image tag                           | _defaults to value of `.image.tag`_        |
-| `adapter.awssqs.repository`             | AWS SQS adapter image name                          | `triggermesh/awssqssource`                 |
-| `adapter.awssqs.tag`                    | AWS SQS adapter image tag                           | _defaults to value of `.image.tag`_        |
-| `podAnnotations`                        | Annotations to add to the controller pod            | `{}``                                      |
-| `podSecurityContext`                    | Security context for controller pods                | `{}`                                       |
-| `securityContext`                       | Security context for controller containers          | `{}`                                       |
-| `resources`                             | Resource requests/limits for the controller         | `{requests: {cpu: 20m, memory: 20Mi}}`     |
-| `nodeSelector`                          | Controller node selector                            | `{}`                                       |
-| `tolerations`                           | Tolerations for use with node taints                | `[]`                                       |
-| `affinity`                              | Assign custom affinity rules to the controller pods | `{}`                                       |
+|                  Parameter                  |                     Description                     |                  Default                   |
+|---------------------------------------------|-----------------------------------------------------|--------------------------------------------|
+| `nameOverride`                              | Override the name for controller resources          | `""`                                       |
+| `fullnameOverride`                          | Override the fullname for controller resources      | `""`                                       |
+| `rbac.create`                               | Create RBAC resources                               | `true`                                     |
+| `serviceAccount.create`                     | Create service account for the controller           | `true`                                     |
+| `serviceAccount.annotations`                | Annotations to add to controller service account    | `{}`                                       |
+| `serviceAccount.name`                       | Override the name for the service account           | `nil`                                      |
+| `imagePullSecrets`                          | Specify image pull secrets                          | `[]`                                       |
+| `image.registry`                            | Image registry name                                 | `gcr.io`                                   |
+| `image.repository`                          | Image repository name                               | `triggermesh/aws-event-sources-controller` |
+| `image.tag`                                 | Image tag                                           | `{TAG_NAME}`                               |
+| `image.pullPolicy`                          | Image pull policy                                   | `IfNotPresent`                             |
+| `adapter.awscloudwatch.repository`          | AWS adapter Cloudwatch image name                   | `triggermesh/awscloudwatchsource`          |
+| `adapter.awscloudwatch.tag`                 | AWS adapter Cloudwatch image tag                    | `_defaults to value of `.image.tag`_`      |
+| `adapter.awscloudwatchlogs.repository`      | AWS adapter Cloudwatch Logs image name              | `triggermesh/awscloudwatchlogssource`      |
+| `adapter.awscloudwatchlogs.tag`             | AWS adapter Cloudwatch Logs image tag               | `_defaults to value of `.image.tag`_`      |
+| `adapter.awscodecommit.repository`          | AWS adapter CodeCommit image name                   | `triggermesh/awscodecommitsource`          |
+| `adapter.awscodecommit.tag`                 | AWS adapter CodeCommit image tag                    | `_defaults to value of `.image.tag`_`      |
+| `adapter.awscognitoidentity.repository`     | AWS adapter Cognito Identity image name             | `triggermesh/awscognitoidentitysource`     |
+| `adapter.awscognitoidentity.tag`            | AWS adapter Cognito Identity image tag              | `_defaults to value of `.image.tag`_`      |
+| `adapter.awscognitouserpool.repository`     | AWS adapter Cognito Userpool image name             | `triggermesh/awscognitouserpoolsource`     |
+| `adapter.awscognitouserpool.tag`            | AWS adapter Cognito Userpool image tag              | `_defaults to value of `.image.tag`_`      |
+| `adapter.awsdynamodb.repository`            | AWS adapter DynamoDB image name                     | `triggermesh/awsdynamodbsource`            |
+| `adapter.awsdynamodb.tag`                   | AWS adapter DynamoDB image tag                      | `_defaults to value of `.image.tag`_`      |
+| `adapter.awskinesis.repository`             | AWS adapter Kinesis image name                      | `triggermesh/awskinesissource`             |
+| `adapter.awskinesis.tag`                    | AWS adapter Kinesis image tag                       | `_defaults to value of `.image.tag`_`      |
+| `adapter.awsperformanceinsights.repository` | AWS adapter Performance Insights image name         | `triggermesh/awsperformanceinsightssource` |
+| `adapter.awsperformanceinsights.tag`        | AWS adapter Performance Insights image tag          | `_defaults to value of `.image.tag`_`      |
+| `adapter.awssns.repository`                 | AWS adapter SNS image name                          | `triggermesh/awssnssource`                 |
+| `adapter.awssns.tag`                        | AWS adapter SNS image tag                           | `_defaults to value of `.image.tag`_`      |
+| `adapter.awssqs.repository`                 | AWS adapter SQS image name                          | `triggermesh/awssqssource`                 |
+| `adapter.awssqs.tag`                        | AWS adapter SQS image tag                           | `_defaults to value of `.image.tag`_`      |
+| `podAnnotations`                            | Annotations to add to the controller pod            | `{}``                                      |
+| `podSecurityContext`                        | Security context for controller pods                | `{}`                                       |
+| `securityContext`                           | Security context for controller containers          | `{}`                                       |
+| `resources`                                 | Resource requests/limits for the controller         | `{requests: {cpu: 20m, memory: 20Mi}}`     |
+| `nodeSelector`                              | Controller node selector                            | `{}`                                       |
+| `tolerations`                               | Tolerations for use with node taints                | `[]`                                       |
+| `affinity`                                  | Assign custom affinity rules to the controller pods | `{}`                                       |

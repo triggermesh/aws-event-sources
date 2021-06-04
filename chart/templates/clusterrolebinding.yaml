@@ -1,10 +1,10 @@
-# Copyright (c) 2020 TriggerMesh Inc.
+# Copyright (c) 2021 TriggerMesh Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#    http://www.apache.org/licenses/LICENSE-2.0
+#     http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,7 +16,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-controller
+  name: &app {{ template "aws-event-sources.fullname" . }}-controller
   labels:
     {{- include "aws-event-sources.labels" . | nindent 4 }}
 subjects:
@@ -26,7 +26,172 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ template "aws-event-sources.fullname" . }}-controller
+  name: *app
+
+---
+
+# Permissions not required by controllers directly, but granted to
+# receive-adapters via RoleBindings.
+#
+# Without them, the following error is thrown:
+#   "attempting to grant RBAC permissions not currently held"
+#
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awscloudwatchlogssource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awscloudwatchsource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awscodecommitsource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awscognitoidentitysource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awscognitouserpoolsource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awsdynamodbsource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awsiotsource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awskinesissource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awsperformanceinsightssource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awss3source-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awssnssource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: &app {{ template "aws-event-sources.fullname" . }}-awssqssource-adapter
+subjects:
+- kind: ServiceAccount
+  name: {{ template "aws-event-sources.serviceAccountName" . }}
+  namespace: triggermesh
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: *app
 
 ---
 
