@@ -1,9 +1,10 @@
 version: 2.1
 
 orbs:
-  go: circleci/go@1
   gcp-cli: circleci/gcp-cli@1
+  go: circleci/go@1
   helm: circleci/helm@1
+  k8s: circleci/kubernetes@0
 
 jobs:
   checkout:
@@ -140,11 +141,16 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/
+      - k8s/install-kubectl:
+          kubectl-version: v1.20.4
       - run:
           name: Building release packages
           command: make release
           environment:
             DIST_DIR: /tmp/dist/
+      - run:
+          name: Generating YAML manifest
+          command: kubectl kustomize config | sed 's|ko://github.com/triggermesh/aws-event-sources/cmd/\(.*\)|gcr.io/triggermesh/\1:'${CIRCLE_TAG}'|' > /tmp/dist/aws-event-sources.yaml
       - run:
           name: Installing github-release tool
           command: go get github.com/meterup/github-release

@@ -1,0 +1,20 @@
+resources:
+- 100-namespace.yaml
+- 200-clusterroles.yaml
+- 201-serviceaccounts.yaml
+- 202-clusterrolebindings.yaml
+- 300-awscloudwatch.yaml
+- 300-awscloudwatchlogs.yaml
+- 300-awscodecommit.yaml
+- 300-awscognitoidentity.yaml
+- 300-awscognitouserpool.yaml
+- 300-awsdynamodb.yaml
+- 300-awsiot.yaml
+- 300-awskinesis.yaml
+- 300-awsperformanceinsights.yaml
+- 300-awss3.yaml
+- 300-awssns.yaml
+- 300-awssqs.yaml
+- 500-controller.yaml
+
+namespace: triggermesh
