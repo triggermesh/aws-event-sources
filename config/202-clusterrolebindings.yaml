@@ -1,4 +1,4 @@
-# Copyright (c) 2021 TriggerMesh Inc.
+# Copyright 2020-2021 TriggerMesh Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,15 +15,15 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app aws-event-sources-controller
+  name: aws-event-sources-controller
 subjects:
 - kind: ServiceAccount
-  name: *app
+  name: aws-event-sources-controller
   namespace: triggermesh
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: aws-event-sources-controller
 
 ---
 
@@ -37,7 +37,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awscloudwatchlogssource-adapter
+  name: awscloudwatchlogssource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -45,12 +45,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awscloudwatchlogssource-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awscloudwatchsource-adapter
+  name: awscloudwatchsource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -58,12 +58,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awscloudwatchsource-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awscodecommitsource-adapter
+  name: awscodecommitsource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -71,12 +71,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awscodecommitsource-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awscognitoidentitysource-adapter
+  name: awscognitoidentitysource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -84,12 +84,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awscognitoidentitysource-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awscognitouserpoolsource-adapter
+  name: awscognitouserpoolsource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -97,12 +97,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awscognitouserpoolsource-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awsdynamodbsource-adapter
+  name: awsdynamodbsource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -110,12 +110,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awsdynamodbsource-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awsiotsource-adapter
+  name: awsiotsource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -123,12 +123,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awsiotsource-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awskinesissource-adapter
+  name: awskinesissource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -136,12 +136,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awskinesissource-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awsperformanceinsightssource-adapter
+  name: awsperformanceinsightssource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -149,12 +149,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awsperformanceinsightssource-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awss3source-adapter
+  name: awss3source-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -162,12 +162,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awss3source-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awssnssource-adapter
+  name: awssnssource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -175,12 +175,12 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awssnssource-adapter
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app awssqssource-adapter
+  name: awssqssource-adapter
 subjects:
 - kind: ServiceAccount
   name: aws-event-sources-controller
@@ -188,7 +188,7 @@ subjects:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: *app
+  name: awssqssource-adapter
 
 ---
 
