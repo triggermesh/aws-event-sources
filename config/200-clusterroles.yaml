@@ -1,4 +1,4 @@
-# Copyright (c) 2020-2021 TriggerMesh Inc.
+# Copyright 2020-2021 TriggerMesh Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ rules:
   - apps
   resources:
   - deployments
-  verbs: &all
+  verbs:
   - get
   - list
   - watch
@@ -45,7 +45,14 @@ rules:
   - serving.knative.dev
   resources:
   - services
-  verbs: *all
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+  - patch
 
 # Read Source resources and update their statuses
 - apiGroups:
@@ -127,7 +134,7 @@ rules:
   - ''
   resources:
   - serviceaccounts
-  resourceNames: &rbac-objects
+  resourceNames:
   - awscloudwatchlogssource-adapter
   - awscloudwatchsource-adapter
   - awscodecommitsource-adapter
@@ -154,7 +161,18 @@ rules:
   - rbac.authorization.k8s.io
   resources:
   - rolebindings
-  resourceNames: *rbac-objects
+  resourceNames:
+  - awscloudwatchlogssource-adapter
+  - awscloudwatchsource-adapter
+  - awscodecommitsource-adapter
+  - awscognitoidentitysource-adapter
+  - awscognitouserpoolsource-adapter
+  - awsdynamodbsource-adapter
+  - awsiotsource-adapter
+  - awskinesissource-adapter
+  - awss3source-adapter
+  - awssnssource-adapter
+  - awssqssource-adapter
   verbs:
   - update
 
@@ -267,6 +285,7 @@ metadata:
   name: awskinesissource-adapter
 rules: []
 
+
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
@@ -274,7 +293,6 @@ kind: ClusterRole
 metadata:
   name: awsperformanceinsightssource-adapter
 rules: []
-
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1
