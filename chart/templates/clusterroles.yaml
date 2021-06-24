@@ -131,18 +131,18 @@ rules:
   resources:
   - serviceaccounts
   resourceNames: &rbac-objects
-  - {{ template "aws-event-sources.fullname" . }}-awscloudwatchlogssource-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awscloudwatchsource-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awscodecommitsource-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awscognitoidentitysource-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awscognitouserpoolsource-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awsdynamodbsource-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awsiotsource-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awskinesissource-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awsperformanceinsightssource-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awss3source-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awssnssource-adapter
-  - {{ template "aws-event-sources.fullname" . }}-awssqssource-adapter
+  - awscloudwatchlogssource-adapter
+  - awscloudwatchsource-adapter
+  - awscodecommitsource-adapter
+  - awscognitoidentitysource-adapter
+  - awscognitouserpoolsource-adapter
+  - awsdynamodbsource-adapter
+  - awsiotsource-adapter
+  - awskinesissource-adapter
+  - awsperformanceinsightssource-adapter
+  - awss3source-adapter
+  - awssnssource-adapter
+  - awssqssource-adapter
   verbs:
   - update
 - apiGroups:
@@ -211,7 +211,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awscloudwatchlogssource-adapter
+  name: awscloudwatchlogssource-adapter
 rules: []
 
 ---
@@ -219,7 +219,7 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awscloudwatchsource-adapter
+  name: awscloudwatchsource-adapter
 rules: []
 
 ---
@@ -227,7 +227,7 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awscodecommitsource-adapter
+  name: awscodecommitsource-adapter
 rules: []
 
 ---
@@ -235,7 +235,7 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awscognitoidentitysource-adapter
+  name: awscognitoidentitysource-adapter
 rules: []
 
 ---
@@ -243,7 +243,7 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awscognitouserpoolsource-adapter
+  name: awscognitouserpoolsource-adapter
 rules: []
 
 ---
@@ -251,7 +251,7 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awsdynamodbsource-adapter
+  name: awsdynamodbsource-adapter
 rules: []
 
 ---
@@ -259,7 +259,7 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awsiotsource-adapter
+  name: awsiotsource-adapter
 rules: []
 
 ---
@@ -267,7 +267,7 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awskinesissource-adapter
+  name: awskinesissource-adapter
 rules: []
 
 ---
@@ -275,7 +275,7 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awsperformanceinsightssource-adapter
+  name: awsperformanceinsightssource-adapter
 rules: []
 
 ---
@@ -283,7 +283,7 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awss3source-adapter
+  name: awss3source-adapter
 rules: []
 
 ---
@@ -291,7 +291,7 @@ rules: []
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awssnssource-adapter
+  name: awssnssource-adapter
 rules:
 
 # Record Kubernetes events
@@ -342,7 +342,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ template "aws-event-sources.fullname" . }}-awssqssource-adapter
+  name: awssqssource-adapter
 rules: []
 
 ---

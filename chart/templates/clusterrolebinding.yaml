@@ -40,7 +40,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awscloudwatchlogssource-adapter
+  name: &app awscloudwatchlogssource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -53,7 +53,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awscloudwatchsource-adapter
+  name: &app awscloudwatchsource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -66,7 +66,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awscodecommitsource-adapter
+  name: &app awscodecommitsource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -79,7 +79,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awscognitoidentitysource-adapter
+  name: &app awscognitoidentitysource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -92,7 +92,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awscognitouserpoolsource-adapter
+  name: &app awscognitouserpoolsource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -105,7 +105,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awsdynamodbsource-adapter
+  name: &app awsdynamodbsource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -118,7 +118,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awsiotsource-adapter
+  name: &app awsiotsource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -131,7 +131,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awskinesissource-adapter
+  name: &app awskinesissource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -144,7 +144,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awsperformanceinsightssource-adapter
+  name: &app awsperformanceinsightssource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -157,7 +157,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awss3source-adapter
+  name: &app awss3source-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -170,7 +170,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awssnssource-adapter
+  name: &app awssnssource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
@@ -183,7 +183,7 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: &app {{ template "aws-event-sources.fullname" . }}-awssqssource-adapter
+  name: &app awssqssource-adapter
 subjects:
 - kind: ServiceAccount
   name: {{ template "aws-event-sources.serviceAccountName" . }}
