@@ -3,7 +3,6 @@ version: 2.1
 orbs:
   gcp-cli: circleci/gcp-cli@1
   go: circleci/go@1
-  helm: circleci/helm@1
   k8s: circleci/kubernetes@0
 
 jobs:
@@ -113,27 +112,6 @@ jobs:
             git commit -m "Update overlays/<< parameters.cluster >>/sources aws deployments to '${CIRCLE_TAG:-${CIRCLE_SHA1}}'"
             git push origin master
 
-  publish-chart:
-    executor:
-      name: gcp-cli/google
-    steps:
-      - attach_workspace:
-          at: ~/
-      - gcp-cli/initialize
-      - helm/install-helm-client:
-          version: v3.2.4
-      - run:
-          name: Packaging chart
-          command: helm package chart/ -d repo/
-      - run:
-          name: Generating repository index
-          command: |
-            gsutil cp gs://${GOOGLE_PROJECT_ID}-charts/index.yaml upstream.yaml
-            helm repo index --merge upstream.yaml --url https://storage.googleapis.com/${GOOGLE_PROJECT_ID}-charts repo/
-      - run:
-          name: Publishing charts
-          command: gsutil rsync -r repo/  gs://${GOOGLE_PROJECT_ID}-charts/
-
   release:
     executor:
       name: go/default
@@ -187,15 +165,6 @@ workflows:
           requires:
             - build
             - test
-          filters:
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-            branches:
-              only: master
-      - publish-chart:
-          context: production
-          requires:
-            - publish-image
           filters:
             tags:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/

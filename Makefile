@@ -20,7 +20,7 @@ IMAGE_SHA         ?= $(shell git rev-parse HEAD)
 
 GO                ?= go
 GOFMT             ?= gofmt
-GOLINT            ?= golangci-lint run
+GOLINT            ?= golangci-lint run --timeout 5m
 GOTOOL            ?= go tool
 GOTEST            ?= gotestsum --junitfile $(TEST_OUTPUT_DIR)/$(KREPO)-unit-tests.xml --format pkgname-and-test-fails --
 
