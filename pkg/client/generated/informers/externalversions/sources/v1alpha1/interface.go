@@ -36,8 +36,6 @@ type Interface interface {
 	AWSCognitoUserPoolSources() AWSCognitoUserPoolSourceInformer
 	// AWSDynamoDBSources returns a AWSDynamoDBSourceInformer.
 	AWSDynamoDBSources() AWSDynamoDBSourceInformer
-	// AWSIoTSources returns a AWSIoTSourceInformer.
-	AWSIoTSources() AWSIoTSourceInformer
 	// AWSKinesisSources returns a AWSKinesisSourceInformer.
 	AWSKinesisSources() AWSKinesisSourceInformer
 	// AWSPerformanceInsightsSources returns a AWSPerformanceInsightsSourceInformer.
@@ -89,11 +87,6 @@ func (v *version) AWSCognitoUserPoolSources() AWSCognitoUserPoolSourceInformer {
 // AWSDynamoDBSources returns a AWSDynamoDBSourceInformer.
 func (v *version) AWSDynamoDBSources() AWSDynamoDBSourceInformer {
 	return &aWSDynamoDBSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
-}
-
-// AWSIoTSources returns a AWSIoTSourceInformer.
-func (v *version) AWSIoTSources() AWSIoTSourceInformer {
-	return &aWSIoTSourceInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
 }
 
 // AWSKinesisSources returns a AWSKinesisSourceInformer.

@@ -32,7 +32,6 @@ type SourcesV1alpha1Interface interface {
 	AWSCognitoIdentitySourcesGetter
 	AWSCognitoUserPoolSourcesGetter
 	AWSDynamoDBSourcesGetter
-	AWSIoTSourcesGetter
 	AWSKinesisSourcesGetter
 	AWSPerformanceInsightsSourcesGetter
 	AWSS3SourcesGetter
@@ -67,10 +66,6 @@ func (c *SourcesV1alpha1Client) AWSCognitoUserPoolSources(namespace string) AWSC
 
 func (c *SourcesV1alpha1Client) AWSDynamoDBSources(namespace string) AWSDynamoDBSourceInterface {
 	return newAWSDynamoDBSources(c, namespace)
-}
-
-func (c *SourcesV1alpha1Client) AWSIoTSources(namespace string) AWSIoTSourceInterface {
-	return newAWSIoTSources(c, namespace)
 }
 
 func (c *SourcesV1alpha1Client) AWSKinesisSources(namespace string) AWSKinesisSourceInterface {

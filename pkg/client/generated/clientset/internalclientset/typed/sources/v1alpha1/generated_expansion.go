@@ -30,8 +30,6 @@ type AWSCognitoUserPoolSourceExpansion interface{}
 
 type AWSDynamoDBSourceExpansion interface{}
 
-type AWSIoTSourceExpansion interface{}
-
 type AWSKinesisSourceExpansion interface{}
 
 type AWSPerformanceInsightsSourceExpansion interface{}

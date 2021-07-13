@@ -128,11 +128,6 @@ func (l *Listers) GetAWSDynamoDBSourceLister() listersv1alpha1.AWSDynamoDBSource
 	return listersv1alpha1.NewAWSDynamoDBSourceLister(l.IndexerFor(&v1alpha1.AWSDynamoDBSource{}))
 }
 
-// GetAWSIoTSourceLister returns a Lister for AWSIoTSource objects.
-func (l *Listers) GetAWSIoTSourceLister() listersv1alpha1.AWSIoTSourceLister {
-	return listersv1alpha1.NewAWSIoTSourceLister(l.IndexerFor(&v1alpha1.AWSIoTSource{}))
-}
-
 // GetAWSKinesisSourceLister returns a Lister for AWSKinesisSource objects.
 func (l *Listers) GetAWSKinesisSourceLister() listersv1alpha1.AWSKinesisSourceLister {
 	return listersv1alpha1.NewAWSKinesisSourceLister(l.IndexerFor(&v1alpha1.AWSKinesisSource{}))

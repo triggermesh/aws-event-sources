@@ -58,12 +58,6 @@ var (
 		Resource: "awsdynamodbsources",
 	}
 
-	// AWSIoTSourceResource respresents an event source for AWS IoT.
-	AWSIoTSourceResource = schema.GroupResource{
-		Group:    GroupName,
-		Resource: "awsiotsources",
-	}
-
 	// AWSKinesisSourceResource respresents an event source for AWS Kinesis.
 	AWSKinesisSourceResource = schema.GroupResource{
 		Group:    GroupName,
