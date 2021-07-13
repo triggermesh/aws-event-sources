@@ -115,19 +115,6 @@ roleRef:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: awsiotsource-adapter
-subjects:
-- kind: ServiceAccount
-  name: aws-event-sources-controller
-  namespace: triggermesh
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: awsiotsource-adapter
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
   name: awskinesissource-adapter
 subjects:
 - kind: ServiceAccount

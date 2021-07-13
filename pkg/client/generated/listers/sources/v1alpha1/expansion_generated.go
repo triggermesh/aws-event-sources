@@ -66,14 +66,6 @@ type AWSDynamoDBSourceListerExpansion interface{}
 // AWSDynamoDBSourceNamespaceLister.
 type AWSDynamoDBSourceNamespaceListerExpansion interface{}
 
-// AWSIoTSourceListerExpansion allows custom methods to be added to
-// AWSIoTSourceLister.
-type AWSIoTSourceListerExpansion interface{}
-
-// AWSIoTSourceNamespaceListerExpansion allows custom methods to be added to
-// AWSIoTSourceNamespaceLister.
-type AWSIoTSourceNamespaceListerExpansion interface{}
-
 // AWSKinesisSourceListerExpansion allows custom methods to be added to
 // AWSKinesisSourceLister.
 type AWSKinesisSourceListerExpansion interface{}

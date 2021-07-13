@@ -9,7 +9,6 @@ resources:
 - 300-awscognitoidentity.yaml
 - 300-awscognitouserpool.yaml
 - 300-awsdynamodb.yaml
-- 300-awsiot.yaml
 - 300-awskinesis.yaml
 - 300-awsperformanceinsights.yaml
 - 300-awss3.yaml

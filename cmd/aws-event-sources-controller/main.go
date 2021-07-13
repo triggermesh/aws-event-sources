@@ -25,7 +25,6 @@ import (
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitoidentitysource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awscognitouserpoolsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsdynamodbsource"
-	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsiotsource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awskinesissource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awsperformanceinsightssource"
 	"github.com/triggermesh/aws-event-sources/pkg/reconciler/awss3source"
@@ -41,7 +40,6 @@ func main() {
 		awscognitoidentitysource.NewController,
 		awscognitouserpoolsource.NewController,
 		awsdynamodbsource.NewController,
-		awsiotsource.NewController,
 		awskinesissource.NewController,
 		awsperformanceinsightssource.NewController,
 		awss3source.NewController,

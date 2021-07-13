@@ -1,2 +1,0 @@
-AWSIoTPythonSDK==1.4.2
-cloudevents==0.2.0
