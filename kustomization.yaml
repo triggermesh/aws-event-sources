@@ -1,0 +1,31 @@
+# Copyright 2020-2021 TriggerMesh Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+resources:
+- config/200-clusterroles.yaml
+- config/201-serviceaccounts.yaml
+- config/202-clusterrolebindings.yaml
+- config/300-awscloudwatch.yaml
+- config/300-awscloudwatchlogs.yaml
+- config/300-awscodecommit.yaml
+- config/300-awscognitoidentity.yaml
+- config/300-awscognitouserpool.yaml
+- config/300-awsdynamodb.yaml
+- config/300-awskinesis.yaml
+- config/300-awsperformanceinsights.yaml
+- config/300-awss3.yaml
+- config/300-awssns.yaml
+- config/300-awssqs.yaml
+- config/500-controller.yaml
+
