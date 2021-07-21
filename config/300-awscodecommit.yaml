@@ -20,6 +20,7 @@ metadata:
     eventing.knative.dev/source: 'true'
     duck.knative.dev/source: 'true'
     knative.dev/crd-install: 'true'
+    triggermesh.io/crd-install: 'true'
   annotations:
     registry.knative.dev/eventTypes: |
       [

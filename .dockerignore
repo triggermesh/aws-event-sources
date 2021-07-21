@@ -7,6 +7,7 @@
 /.dockerignore
 /.gcloudignore
 /cloudbuild.yaml
+/kustomization.yaml
 
 # Files copied to KO_DATA_PATH directory
 !/.git/HEAD
