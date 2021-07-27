@@ -127,9 +127,6 @@ jobs:
           environment:
             DIST_DIR: /tmp/dist/
       - run:
-          name: Generating YAML manifest
-          command: kubectl kustomize config | sed 's|ko://github.com/triggermesh/aws-event-sources/cmd/\(.*\)|gcr.io/triggermesh/\1:'${CIRCLE_TAG}'|' > /tmp/dist/aws-event-sources.yaml
-      - run:
           name: Installing github-release tool
           command: go get github.com/meterup/github-release
       - run:
