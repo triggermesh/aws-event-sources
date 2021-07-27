@@ -24,6 +24,9 @@ GOLINT            ?= golangci-lint run --timeout 5m
 GOTOOL            ?= go tool
 GOTEST            ?= gotestsum --junitfile $(TEST_OUTPUT_DIR)/$(KREPO)-unit-tests.xml --format pkgname-and-test-fails --
 
+KUBECTL           ?= kubectl
+SED               ?= sed
+
 GOPKGS             = ./cmd/... ./pkg/apis/... ./pkg/adapter/... ./pkg/reconciler/...
 LDFLAGS            = -extldflags=-static -w -s
 
@@ -67,6 +70,8 @@ release: ## Build release binaries
 			GOOS=$${GOOS} GOARCH=$${GOARCH} $(GO) build -ldflags "$(LDFLAGS)" -o $(DIST_DIR)/$${RELEASE_BINARY} ./cmd/$$bin ; \
 		done ; \
 	done
+	$(KUBECTL) create -f config --dry-run=client -o yaml |\
+	  $(SED) 's|ko://github.com/triggermesh/aws-event-sources/cmd/\(.*\)|$(IMAGE_REPO)/\1:$(IMAGE_TAG)|' > $(DIST_DIR)/aws-event-sources.yaml
 
 test: install-gotestsum ## Run unit tests
 	@mkdir -p $(TEST_OUTPUT_DIR)
@@ -113,6 +118,7 @@ clean: ## Clean build artifacts
 		done ; \
 		$(RM) -v $(BIN_OUTPUT_DIR)/$$bin; \
 	done
+	@$(RM) -v $(DIST_DIR)/aws-event-sources.yaml
 	@$(RM) -v $(TEST_OUTPUT_DIR)/$(KREPO)-c.out $(TEST_OUTPUT_DIR)/$(KREPO)-unit-tests.xml
 	@$(RM) -v $(COVER_OUTPUT_DIR)/$(KREPO)-coverage.html
 
