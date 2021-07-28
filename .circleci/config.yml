@@ -103,6 +103,10 @@ jobs:
               sed -i overlays/<< parameters.cluster >>/sources/deployments.yaml \
                 -e "s|\(gcr.io/triggermesh/${cmd}:\).*|\1${CIRCLE_TAG:-${CIRCLE_SHA1}}|g"
             done
+
+            sed -i overlays/<< parameters.cluster >>/sources/kustomization.yaml \
+              -e "s|github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}\(?ref=.*\)\?|github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}?ref=${CIRCLE_TAG:-${CIRCLE_SHA1}}|g"
+
             git --no-pager diff
       - run:
           name: Committing overlays/<< parameters.cluster >>/sources updates
