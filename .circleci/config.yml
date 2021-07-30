@@ -114,7 +114,7 @@ jobs:
           command: |
             git add overlays
             git commit -m "Update overlays/<< parameters.cluster >>/sources aws deployments to '${CIRCLE_TAG:-${CIRCLE_SHA1}}'"
-            git push origin master
+            git push origin main
 
   release:
     executor:
