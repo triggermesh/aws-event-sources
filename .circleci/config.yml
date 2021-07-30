@@ -128,7 +128,7 @@ jobs:
           aws-region: $AWS_REGION
       - run:
           name: Building release packages
-          command: make release
+          command: IMAGE_TAG=${CIRCLE_TAG:-latest} make release
           environment:
             DIST_DIR: /tmp/dist/
       - run:

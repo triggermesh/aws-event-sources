@@ -71,7 +71,7 @@ release: ## Build release binaries
 		done ; \
 	done
 	$(KUBECTL) create -f config --dry-run=client -o yaml |\
-	  $(SED) 's|ko://github.com/triggermesh/aws-event-sources/cmd/\(.*\)|$(IMAGE_REPO)/\1:$(IMAGE_TAG)|' > $(DIST_DIR)/aws-event-sources.yaml
+	  $(SED) 's|ko://github.com/triggermesh/aws-event-sources/cmd/\(.*\)|$(IMAGE_REPO)/\1:${IMAGE_TAG}|' > $(DIST_DIR)/aws-event-sources.yaml
 
 test: install-gotestsum ## Run unit tests
 	@mkdir -p $(TEST_OUTPUT_DIR)
