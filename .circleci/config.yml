@@ -1,9 +1,9 @@
 version: 2.1
 
 orbs:
+  aws-eks: circleci/aws-eks@1
   gcp-cli: circleci/gcp-cli@1
   go: circleci/go@1
-  k8s: circleci/kubernetes@0
 
 jobs:
   checkout:
@@ -123,8 +123,9 @@ jobs:
     steps:
       - attach_workspace:
           at: ~/
-      - k8s/install-kubectl:
-          kubectl-version: v1.20.4
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: $AWS_CLUSTER_NAME
+          aws-region: $AWS_REGION
       - run:
           name: Building release packages
           command: make release
