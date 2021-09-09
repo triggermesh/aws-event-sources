@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -48,31 +48,39 @@ var (
 type AWSCloudWatchSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// AWS Region for metrics
+	// Code of the AWS region to source metrics from.
+	// Available region codes are documented at
+	// https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints.
 	Region string `json:"region"`
-	// List of metric queries
-	// +optional
-	MetricQueries []AWSCloudWatchMetricQuery `json:"metricQueries,omitempty"`
-	// PollingInterval in a duration format for how often to pull metrics data from. Default is 5m
+
+	// Duration which defines how often metrics should be pulled from Amazon CloudWatch.
+	// Expressed as a duration string, which format is documented at https://pkg.go.dev/time#ParseDuration.
+	//
+	// Defaults to 5m
+	//
 	// +optional
 	PollingInterval *apis.Duration `json:"pollingInterval,omitempty"`
 
-	// Credentials to interact with the AWS CloudWatch API.
+	// List of queries that determine what metrics will be sourced from Amazon CloudWatch.
+	// +optional
+	MetricQueries []AWSCloudWatchMetricQuery `json:"metricQueries,omitempty"`
+
+	// Credentials to interact with the Amazon CloudWatch API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
-// Define the metric to return. Consult the AWS CloudWatch API Guide for details:
-// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/Welcome.html
+// AWSCloudWatchMetricQuery represents a CloudWatch MetricDataQuery.
+// https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_MetricDataQuery.html
 type AWSCloudWatchMetricQuery struct {
-	// Unique short-name identify the query
+	// Unique short name that identifies the query.
 	Name string `json:"name"`
 
 	// Optional: no more than one of the following may be specified.
 
-	// Math expression for calculating metrics
+	// Math expression to be performed on the metric data.
 	// +optional
 	Expression *string `json:"expression,omitempty"`
-	// Metric for retrieving specific metrics
+	// Representation of a metric with statistics, period, and units, but no math expression.
 	// +optional
 	Metric *AWSCloudWatchMetricStat `json:"metric,omitempty"`
 }
