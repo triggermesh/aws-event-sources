@@ -71,7 +71,7 @@ type AWSS3SourceSpec struct {
 	// +optional
 	QueueARN *apis.ARN `json:"queueARN,omitempty"`
 
-	// Credentials to interact with the AWS S3 and SQS APIs.
+	// Credentials to interact with the Amazon S3 and SQS APIs.
 	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
