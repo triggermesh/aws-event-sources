@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -48,13 +48,22 @@ var (
 type AWSPerformanceInsightsSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
+	// ARN of the RDS instance to receive metrics for.
+	// https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonrds.html#amazonrds-resources-for-iam-policies
 	ARN apis.ARN `json:"arn"`
 
-	PollingInterval *apis.Duration `json:"pollingInterval"`
+	// Duration which defines how often metrics should be pulled from Amazon Performance Insights.
+	// Expressed as a duration string, which format is documented at https://pkg.go.dev/time#ParseDuration.
+	PollingInterval apis.Duration `json:"pollingInterval"`
 
-	Credentials AWSSecurityCredentials `json:"credentials"`
-
+	// List of queries that determine what metrics will be sourced from Amazon Performance Insights.
+	//
+	// Each item represents the 'metric' attribute of a MetricQuery.
+	// https://docs.aws.amazon.com/performance-insights/latest/APIReference/API_MetricQuery.html
 	MetricQueries []string `json:"metricQueries"`
+
+	// Credentials to interact with the Amazon RDS and Performance Insights APIs.
+	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
