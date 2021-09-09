@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -48,14 +48,19 @@ var (
 type AWSCloudWatchLogsSourceSpec struct {
 	duckv1.SourceSpec `json:",inline"`
 
-	// ARN for Log Group
+	// ARN of the Log Group to source data from.
 	// https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncloudwatchlogs.html#amazoncloudwatchlogs-resources-for-iam-policies
 	ARN apis.ARN `json:"arn"`
-	// PollingInterval in a duration format for how often to pull metrics data from. Default is 5m
+
+	// Duration which defines how often logs should be pulled from Amazon CloudWatch Logs.
+	// Expressed as a duration string, which format is documented at https://pkg.go.dev/time#ParseDuration.
+	//
+	// Defaults to 5m
+	//
 	// +optional
 	PollingInterval *apis.Duration `json:"pollingInterval,omitempty"`
 
-	// Credentials to interact with the AWS CloudWatch Logs API.
+	// Credentials to interact with the Amazon CloudWatch Logs API.
 	Credentials AWSSecurityCredentials `json:"credentials"`
 }
 
