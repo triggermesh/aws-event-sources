@@ -13,6 +13,11 @@
 # limitations under the License.
 
 # Sample AWSS3Source object.
+#
+# For a list and description of all available attributes, execute the following command against a cluster where this
+# Custom Resource Definition has been registered:
+#
+#   kubectl explain awss3sources.sources.triggermesh.io
 
 apiVersion: sources.triggermesh.io/v1alpha1
 kind: AWSS3Source
@@ -24,8 +29,6 @@ spec:
   eventTypes:
   - s3:ObjectCreated:*
   - s3:ObjectRemoved:*
-
-  queueARN: arn:aws:sqs:us-west-2:123456789012:triggermeshtest # optional
 
   credentials:
     accessKeyID:
