@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -114,9 +114,17 @@ poll:
 
 	// asserting a single event suffices since the entire data set is mocked
 	ev := ceClient.Sent()[0]
-	assert.Contains(t, ev.Type(), "com.amazon.dynamodb.")
+	assert.Equal(t, ev.Type(), "com.amazon.dynamodb.stream_record")
 	assert.Equal(t, "arn:aws:dynamodb:us-fake-0:123456789012:table/MyTable", ev.Source())
 	assert.Contains(t, []string{"id,name", "name,id"}, ev.Subject())
+	assert.Contains(t, validDynamoDBOperations, ev.Extensions()[ceExtDynamoDBOperation])
+}
+
+// Enumerates valid DynamoDB operations / event names.
+var validDynamoDBOperations = []string{
+	dynamodbstreams.OperationTypeInsert,
+	dynamodbstreams.OperationTypeModify,
+	dynamodbstreams.OperationTypeRemove,
 }
 
 // makeARN returns a fake DynamoDB ARN for the given resource.

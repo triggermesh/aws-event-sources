@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -45,6 +45,13 @@ import (
 const (
 	streamRecheckPeriod = 15 * time.Second
 	getRecordsPeriod    = 3 * time.Second
+)
+
+// CloudEvents extensions
+const (
+	// The type of data modification that was performed on the DynamoDB table
+	// https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_streams_Record.html#DDB-Type-streams_Record-eventName
+	ceExtDynamoDBOperation = "dynamodboperation"
 )
 
 // envConfig is a set parameters sourced from the environment for the source's
@@ -307,10 +314,11 @@ loop:
 // sendDynamoDBEvent sends the given Record as a CloudEvent.
 func (a *adapter) sendDynamoDBEvent(r *dynamodbstreams.Record) error {
 	event := cloudevents.NewEvent(cloudevents.VersionV1)
-	event.SetType(v1alpha1.AWSEventType(a.arn.Service, strings.ToLower(*r.EventName)))
+	event.SetType(v1alpha1.AWSEventType(a.arn.Service, v1alpha1.AWSDynamoDBGenericEventType))
 	event.SetSubject(asEventSubject(r))
 	event.SetSource(a.arn.String())
 	event.SetID(*r.EventID)
+	event.SetExtension(ceExtDynamoDBOperation, *r.EventName)
 	if err := event.SetData(cloudevents.ApplicationJSON, r); err != nil {
 		return fmt.Errorf("failed to set event data: %w", err)
 	}

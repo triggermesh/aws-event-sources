@@ -24,9 +24,7 @@ metadata:
   annotations:
     registry.knative.dev/eventTypes: |
       [
-        { "type": "com.amazon.dynamodb.insert" },
-        { "type": "com.amazon.dynamodb.modify" },
-        { "type": "com.amazon.dynamodb.remove" }
+        { "type": "com.amazon.dynamodb.stream_record" }
       ]
 spec:
   group: sources.triggermesh.io

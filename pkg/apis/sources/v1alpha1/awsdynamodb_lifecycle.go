@@ -1,11 +1,11 @@
 /*
-Copyright (c) 2020 TriggerMesh Inc.
+Copyright (c) 2020-2021 TriggerMesh Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -17,10 +17,6 @@ limitations under the License.
 package v1alpha1
 
 import (
-	"strings"
-
-	"github.com/aws/aws-sdk-go/service/dynamodbstreams"
-
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"knative.dev/pkg/apis"
@@ -55,21 +51,16 @@ func (s *AWSDynamoDBSource) GetStatusManager() *EventSourceStatusManager {
 	}
 }
 
+// Supported event types
+const (
+	AWSDynamoDBGenericEventType = "stream_record"
+)
+
 // GetEventTypes implements EventSource.
 func (s *AWSDynamoDBSource) GetEventTypes() []string {
-	const numEventTypes = 3
-
-	types := make([]string, numEventTypes)
-
-	for i, typ := range [numEventTypes]string{
-		dynamodbstreams.OperationTypeInsert,
-		dynamodbstreams.OperationTypeModify,
-		dynamodbstreams.OperationTypeRemove,
-	} {
-		types[i] = AWSEventType(s.Spec.ARN.Service, strings.ToLower(typ))
+	return []string{
+		AWSEventType(s.Spec.ARN.Service, AWSDynamoDBGenericEventType),
 	}
-
-	return types
 }
 
 // AsEventSource implements EventSource.
