@@ -754,8 +754,8 @@ func (in *AWSPerformanceInsightsSourceSpec) DeepCopyInto(out *AWSPerformanceInsi
 	*out = *in
 	in.SourceSpec.DeepCopyInto(&out.SourceSpec)
 	out.ARN = in.ARN
-	if in.MetricQueries != nil {
-		in, out := &in.MetricQueries, &out.MetricQueries
+	if in.Metrics != nil {
+		in, out := &in.Metrics, &out.Metrics
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
