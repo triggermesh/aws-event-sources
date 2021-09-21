@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-   http://www.apache.org/licenses/LICENSE-2.0
+    http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -165,6 +165,8 @@ func TestAdapter(t *testing.T) {
 			assrt.Equal(sentEvents[0].Type(), "com.amazon.sqs.message")
 			assrt.Equal("arn:aws:sqs:us-fake-0:123456789012:MyQueue", sentEvents[0].Source(), "CloudEvent source should match queue ARN")
 			assrt.Contains(sentEvents[0].ID(), tMsgIDPrefix, "CloudEvent id should match SQS message ID")
+			assrt.Contains(sentEvents[0].Extensions(), "sqsmsgcountryspaincapital", "String/Number attributes should be included as extensions")
+			assrt.Len(sentEvents[0].Extensions(), 1, "Binary message attributes shouldn't be included as extensions")
 
 			// assertions on post-test queue state
 			assrt.Len(ceCli.Sent(), tc.numMsgs, "Received more events than expected")
@@ -277,6 +279,19 @@ func makeMockMessages(n int) []*sqs.Message {
 		msgs[i] = &sqs.Message{
 			MessageId:     aws.String(fmt.Sprintf(tMsgIDPrefix+"%03d", i+1)),
 			ReceiptHandle: aws.String(receiptHandle),
+			MessageAttributes: map[string]*sqs.MessageAttributeValue{
+				"Country.Spain.Capital": &sqs.MessageAttributeValue{
+					DataType:    aws.String("String.CityName"),
+					StringValue: aws.String("Madrid"),
+				},
+				"Blue_Pixel": &sqs.MessageAttributeValue{
+					DataType: aws.String("Binary.png"),
+					// base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQImWNgaPj/HwAEggJ/xY9R+AAAAABJRU5ErkJggg==
+					BinaryValue: []byte("\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00" +
+						"\x00\x00\x01\b\x06\x00\x00\x00\x1f\x15ĉ\x00\x00\x00\rIDAT\b\x99c`h\xf8" +
+						"\xff\x1f\x00\x04\x82\x02\u007fŏQ\xf8\x00\x00\x00\x00IEND\xaeB`\x82"),
+				},
+			},
 		}
 	}
 
