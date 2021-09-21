@@ -98,12 +98,15 @@ func (ml messageList) MarshalLogArray(arr zapcore.ArrayEncoder) error {
 func receiveMessages(ctx context.Context, cli sqsiface.SQSAPI,
 	queueURL string, visibilityTimeoutSeconds *int64) ([]*sqs.Message, error) {
 
+	allAttributes := aws.StringSlice([]string{sqs.QueueAttributeNameAll})
+
 	resp, err := cli.ReceiveMessageWithContext(ctx, &sqs.ReceiveMessageInput{
-		AttributeNames:      aws.StringSlice([]string{sqs.QueueAttributeNameAll}),
-		QueueUrl:            &queueURL,
-		MaxNumberOfMessages: aws.Int64(maxReceiveMsgBatchSize),
-		WaitTimeSeconds:     aws.Int64(maxLongPollingWaitTimeSeconds),
-		VisibilityTimeout:   visibilityTimeoutSeconds,
+		AttributeNames:        allAttributes,
+		MessageAttributeNames: allAttributes,
+		QueueUrl:              &queueURL,
+		MaxNumberOfMessages:   aws.Int64(maxReceiveMsgBatchSize),
+		WaitTimeSeconds:       aws.Int64(maxLongPollingWaitTimeSeconds),
+		VisibilityTimeout:     visibilityTimeoutSeconds,
 	})
 	if err != nil {
 		return nil, err
