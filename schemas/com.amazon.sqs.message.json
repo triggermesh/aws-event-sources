@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-04/schema#",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "$ref": "#/definitions/Message",
   "definitions": {
     "Message": {
@@ -65,7 +65,10 @@
       ],
       "properties": {
         "BinaryListValues": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "string",
             "media": {
@@ -74,7 +77,10 @@
           }
         },
         "BinaryValue": {
-          "type": "string",
+          "type": [
+            "string",
+            "null"
+          ],
           "media": {
             "binaryEncoding": "base64"
           }
@@ -83,13 +89,19 @@
           "type": "string"
         },
         "StringListValues": {
-          "type": "array",
+          "type": [
+            "array",
+            "null"
+          ],
           "items": {
             "type": "string"
           }
         },
         "StringValue": {
-          "type": "string"
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "additionalProperties": false,
