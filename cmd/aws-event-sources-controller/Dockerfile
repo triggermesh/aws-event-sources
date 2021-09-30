@@ -30,7 +30,7 @@ RUN BIN_OUTPUT_DIR=/bin make aws-event-sources-controller && \
     rm -rf ${GOPATH} && \
     rm -rf ${HOME}/.cache
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.2
+FROM registry.access.redhat.com/ubi8/ubi-minimal
 
 ARG VERSION
 
