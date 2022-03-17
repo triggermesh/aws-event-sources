@@ -20,25 +20,44 @@ package client
 
 import (
 	context "context"
+	json "encoding/json"
+	errors "errors"
+	fmt "fmt"
 
+	v1alpha1 "github.com/triggermesh/aws-event-sources/pkg/apis/sources/v1alpha1"
 	internalclientset "github.com/triggermesh/aws-event-sources/pkg/client/generated/clientset/internalclientset"
+	typedsourcesv1alpha1 "github.com/triggermesh/aws-event-sources/pkg/client/generated/clientset/internalclientset/typed/sources/v1alpha1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	runtime "k8s.io/apimachinery/pkg/runtime"
+	schema "k8s.io/apimachinery/pkg/runtime/schema"
+	types "k8s.io/apimachinery/pkg/types"
+	watch "k8s.io/apimachinery/pkg/watch"
+	discovery "k8s.io/client-go/discovery"
+	dynamic "k8s.io/client-go/dynamic"
 	rest "k8s.io/client-go/rest"
 	injection "knative.dev/pkg/injection"
+	dynamicclient "knative.dev/pkg/injection/clients/dynamicclient"
 	logging "knative.dev/pkg/logging"
 )
 
 func init() {
-	injection.Default.RegisterClient(withClient)
+	injection.Default.RegisterClient(withClientFromConfig)
 	injection.Default.RegisterClientFetcher(func(ctx context.Context) interface{} {
 		return Get(ctx)
 	})
+	injection.Dynamic.RegisterDynamicClient(withClientFromDynamic)
 }
 
 // Key is used as the key for associating information with a context.Context.
 type Key struct{}
 
-func withClient(ctx context.Context, cfg *rest.Config) context.Context {
+func withClientFromConfig(ctx context.Context, cfg *rest.Config) context.Context {
 	return context.WithValue(ctx, Key{}, internalclientset.NewForConfigOrDie(cfg))
+}
+
+func withClientFromDynamic(ctx context.Context) context.Context {
+	return context.WithValue(ctx, Key{}, &wrapClient{dyn: dynamicclient.Get(ctx)})
 }
 
 // Get extracts the internalclientset.Interface client from the context.
@@ -54,4 +73,1612 @@ func Get(ctx context.Context) internalclientset.Interface {
 		}
 	}
 	return untyped.(internalclientset.Interface)
+}
+
+type wrapClient struct {
+	dyn dynamic.Interface
+}
+
+var _ internalclientset.Interface = (*wrapClient)(nil)
+
+func (w *wrapClient) Discovery() discovery.DiscoveryInterface {
+	panic("Discovery called on dynamic client!")
+}
+
+func convert(from interface{}, to runtime.Object) error {
+	bs, err := json.Marshal(from)
+	if err != nil {
+		return fmt.Errorf("Marshal() = %w", err)
+	}
+	if err := json.Unmarshal(bs, to); err != nil {
+		return fmt.Errorf("Unmarshal() = %w", err)
+	}
+	return nil
+}
+
+// SourcesV1alpha1 retrieves the SourcesV1alpha1Client
+func (w *wrapClient) SourcesV1alpha1() typedsourcesv1alpha1.SourcesV1alpha1Interface {
+	return &wrapSourcesV1alpha1{
+		dyn: w.dyn,
+	}
+}
+
+type wrapSourcesV1alpha1 struct {
+	dyn dynamic.Interface
+}
+
+func (w *wrapSourcesV1alpha1) RESTClient() rest.Interface {
+	panic("RESTClient called on dynamic client!")
+}
+
+func (w *wrapSourcesV1alpha1) AWSCloudWatchLogsSources(namespace string) typedsourcesv1alpha1.AWSCloudWatchLogsSourceInterface {
+	return &wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awscloudwatchlogssources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSCloudWatchLogsSourceInterface = (*wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl) Create(ctx context.Context, in *v1alpha1.AWSCloudWatchLogsSource, opts v1.CreateOptions) (*v1alpha1.AWSCloudWatchLogsSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCloudWatchLogsSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchLogsSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSCloudWatchLogsSource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchLogsSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSCloudWatchLogsSourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchLogsSourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSCloudWatchLogsSource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchLogsSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl) Update(ctx context.Context, in *v1alpha1.AWSCloudWatchLogsSource, opts v1.UpdateOptions) (*v1alpha1.AWSCloudWatchLogsSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCloudWatchLogsSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchLogsSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSCloudWatchLogsSource, opts v1.UpdateOptions) (*v1alpha1.AWSCloudWatchLogsSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCloudWatchLogsSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchLogsSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchLogsSourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSCloudWatchSources(namespace string) typedsourcesv1alpha1.AWSCloudWatchSourceInterface {
+	return &wrapSourcesV1alpha1AWSCloudWatchSourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awscloudwatchsources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSCloudWatchSourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSCloudWatchSourceInterface = (*wrapSourcesV1alpha1AWSCloudWatchSourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchSourceImpl) Create(ctx context.Context, in *v1alpha1.AWSCloudWatchSource, opts v1.CreateOptions) (*v1alpha1.AWSCloudWatchSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCloudWatchSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchSourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchSourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchSourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSCloudWatchSource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchSourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSCloudWatchSourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchSourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchSourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSCloudWatchSource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchSourceImpl) Update(ctx context.Context, in *v1alpha1.AWSCloudWatchSource, opts v1.UpdateOptions) (*v1alpha1.AWSCloudWatchSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCloudWatchSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchSourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSCloudWatchSource, opts v1.UpdateOptions) (*v1alpha1.AWSCloudWatchSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCloudWatchSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCloudWatchSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCloudWatchSourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSCodeCommitSources(namespace string) typedsourcesv1alpha1.AWSCodeCommitSourceInterface {
+	return &wrapSourcesV1alpha1AWSCodeCommitSourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awscodecommitsources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSCodeCommitSourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSCodeCommitSourceInterface = (*wrapSourcesV1alpha1AWSCodeCommitSourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSCodeCommitSourceImpl) Create(ctx context.Context, in *v1alpha1.AWSCodeCommitSource, opts v1.CreateOptions) (*v1alpha1.AWSCodeCommitSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCodeCommitSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCodeCommitSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCodeCommitSourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSCodeCommitSourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSCodeCommitSourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSCodeCommitSource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCodeCommitSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCodeCommitSourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSCodeCommitSourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCodeCommitSourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCodeCommitSourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSCodeCommitSource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCodeCommitSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCodeCommitSourceImpl) Update(ctx context.Context, in *v1alpha1.AWSCodeCommitSource, opts v1.UpdateOptions) (*v1alpha1.AWSCodeCommitSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCodeCommitSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCodeCommitSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCodeCommitSourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSCodeCommitSource, opts v1.UpdateOptions) (*v1alpha1.AWSCodeCommitSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCodeCommitSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCodeCommitSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCodeCommitSourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSCognitoIdentitySources(namespace string) typedsourcesv1alpha1.AWSCognitoIdentitySourceInterface {
+	return &wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awscognitoidentitysources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSCognitoIdentitySourceInterface = (*wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl) Create(ctx context.Context, in *v1alpha1.AWSCognitoIdentitySource, opts v1.CreateOptions) (*v1alpha1.AWSCognitoIdentitySource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCognitoIdentitySource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoIdentitySource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSCognitoIdentitySource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoIdentitySource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSCognitoIdentitySourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoIdentitySourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSCognitoIdentitySource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoIdentitySource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl) Update(ctx context.Context, in *v1alpha1.AWSCognitoIdentitySource, opts v1.UpdateOptions) (*v1alpha1.AWSCognitoIdentitySource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCognitoIdentitySource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoIdentitySource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSCognitoIdentitySource, opts v1.UpdateOptions) (*v1alpha1.AWSCognitoIdentitySource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCognitoIdentitySource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoIdentitySource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoIdentitySourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSCognitoUserPoolSources(namespace string) typedsourcesv1alpha1.AWSCognitoUserPoolSourceInterface {
+	return &wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awscognitouserpoolsources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSCognitoUserPoolSourceInterface = (*wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl) Create(ctx context.Context, in *v1alpha1.AWSCognitoUserPoolSource, opts v1.CreateOptions) (*v1alpha1.AWSCognitoUserPoolSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCognitoUserPoolSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoUserPoolSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSCognitoUserPoolSource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoUserPoolSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSCognitoUserPoolSourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoUserPoolSourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSCognitoUserPoolSource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoUserPoolSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl) Update(ctx context.Context, in *v1alpha1.AWSCognitoUserPoolSource, opts v1.UpdateOptions) (*v1alpha1.AWSCognitoUserPoolSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCognitoUserPoolSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoUserPoolSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSCognitoUserPoolSource, opts v1.UpdateOptions) (*v1alpha1.AWSCognitoUserPoolSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSCognitoUserPoolSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSCognitoUserPoolSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSCognitoUserPoolSourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSDynamoDBSources(namespace string) typedsourcesv1alpha1.AWSDynamoDBSourceInterface {
+	return &wrapSourcesV1alpha1AWSDynamoDBSourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awsdynamodbsources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSDynamoDBSourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSDynamoDBSourceInterface = (*wrapSourcesV1alpha1AWSDynamoDBSourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSDynamoDBSourceImpl) Create(ctx context.Context, in *v1alpha1.AWSDynamoDBSource, opts v1.CreateOptions) (*v1alpha1.AWSDynamoDBSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSDynamoDBSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSDynamoDBSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSDynamoDBSourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSDynamoDBSourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSDynamoDBSourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSDynamoDBSource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSDynamoDBSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSDynamoDBSourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSDynamoDBSourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSDynamoDBSourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSDynamoDBSourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSDynamoDBSource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSDynamoDBSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSDynamoDBSourceImpl) Update(ctx context.Context, in *v1alpha1.AWSDynamoDBSource, opts v1.UpdateOptions) (*v1alpha1.AWSDynamoDBSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSDynamoDBSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSDynamoDBSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSDynamoDBSourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSDynamoDBSource, opts v1.UpdateOptions) (*v1alpha1.AWSDynamoDBSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSDynamoDBSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSDynamoDBSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSDynamoDBSourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSIoTSources(namespace string) typedsourcesv1alpha1.AWSIoTSourceInterface {
+	return &wrapSourcesV1alpha1AWSIoTSourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awsiotsources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSIoTSourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSIoTSourceInterface = (*wrapSourcesV1alpha1AWSIoTSourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSIoTSourceImpl) Create(ctx context.Context, in *v1alpha1.AWSIoTSource, opts v1.CreateOptions) (*v1alpha1.AWSIoTSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSIoTSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSIoTSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSIoTSourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSIoTSourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSIoTSourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSIoTSource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSIoTSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSIoTSourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSIoTSourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSIoTSourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSIoTSourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSIoTSource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSIoTSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSIoTSourceImpl) Update(ctx context.Context, in *v1alpha1.AWSIoTSource, opts v1.UpdateOptions) (*v1alpha1.AWSIoTSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSIoTSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSIoTSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSIoTSourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSIoTSource, opts v1.UpdateOptions) (*v1alpha1.AWSIoTSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSIoTSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSIoTSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSIoTSourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSKinesisSources(namespace string) typedsourcesv1alpha1.AWSKinesisSourceInterface {
+	return &wrapSourcesV1alpha1AWSKinesisSourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awskinesissources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSKinesisSourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSKinesisSourceInterface = (*wrapSourcesV1alpha1AWSKinesisSourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSKinesisSourceImpl) Create(ctx context.Context, in *v1alpha1.AWSKinesisSource, opts v1.CreateOptions) (*v1alpha1.AWSKinesisSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSKinesisSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSKinesisSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSKinesisSourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSKinesisSourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSKinesisSourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSKinesisSource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSKinesisSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSKinesisSourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSKinesisSourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSKinesisSourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSKinesisSourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSKinesisSource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSKinesisSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSKinesisSourceImpl) Update(ctx context.Context, in *v1alpha1.AWSKinesisSource, opts v1.UpdateOptions) (*v1alpha1.AWSKinesisSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSKinesisSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSKinesisSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSKinesisSourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSKinesisSource, opts v1.UpdateOptions) (*v1alpha1.AWSKinesisSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSKinesisSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSKinesisSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSKinesisSourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSPerformanceInsightsSources(namespace string) typedsourcesv1alpha1.AWSPerformanceInsightsSourceInterface {
+	return &wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awsperformanceinsightssources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSPerformanceInsightsSourceInterface = (*wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl) Create(ctx context.Context, in *v1alpha1.AWSPerformanceInsightsSource, opts v1.CreateOptions) (*v1alpha1.AWSPerformanceInsightsSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSPerformanceInsightsSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSPerformanceInsightsSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSPerformanceInsightsSource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSPerformanceInsightsSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSPerformanceInsightsSourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSPerformanceInsightsSourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSPerformanceInsightsSource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSPerformanceInsightsSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl) Update(ctx context.Context, in *v1alpha1.AWSPerformanceInsightsSource, opts v1.UpdateOptions) (*v1alpha1.AWSPerformanceInsightsSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSPerformanceInsightsSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSPerformanceInsightsSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSPerformanceInsightsSource, opts v1.UpdateOptions) (*v1alpha1.AWSPerformanceInsightsSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSPerformanceInsightsSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSPerformanceInsightsSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSPerformanceInsightsSourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSS3Sources(namespace string) typedsourcesv1alpha1.AWSS3SourceInterface {
+	return &wrapSourcesV1alpha1AWSS3SourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awss3sources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSS3SourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSS3SourceInterface = (*wrapSourcesV1alpha1AWSS3SourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSS3SourceImpl) Create(ctx context.Context, in *v1alpha1.AWSS3Source, opts v1.CreateOptions) (*v1alpha1.AWSS3Source, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSS3Source",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSS3Source{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSS3SourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSS3SourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSS3SourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSS3Source, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSS3Source{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSS3SourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSS3SourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSS3SourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSS3SourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSS3Source, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSS3Source{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSS3SourceImpl) Update(ctx context.Context, in *v1alpha1.AWSS3Source, opts v1.UpdateOptions) (*v1alpha1.AWSS3Source, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSS3Source",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSS3Source{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSS3SourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSS3Source, opts v1.UpdateOptions) (*v1alpha1.AWSS3Source, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSS3Source",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSS3Source{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSS3SourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSSNSSources(namespace string) typedsourcesv1alpha1.AWSSNSSourceInterface {
+	return &wrapSourcesV1alpha1AWSSNSSourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awssnssources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSSNSSourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSSNSSourceInterface = (*wrapSourcesV1alpha1AWSSNSSourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSSNSSourceImpl) Create(ctx context.Context, in *v1alpha1.AWSSNSSource, opts v1.CreateOptions) (*v1alpha1.AWSSNSSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSSNSSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSNSSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSNSSourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSSNSSourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSSNSSourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSSNSSource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSNSSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSNSSourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSSNSSourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSNSSourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSNSSourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSSNSSource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSNSSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSNSSourceImpl) Update(ctx context.Context, in *v1alpha1.AWSSNSSource, opts v1.UpdateOptions) (*v1alpha1.AWSSNSSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSSNSSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSNSSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSNSSourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSSNSSource, opts v1.UpdateOptions) (*v1alpha1.AWSSNSSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSSNSSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSNSSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSNSSourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
+func (w *wrapSourcesV1alpha1) AWSSQSSources(namespace string) typedsourcesv1alpha1.AWSSQSSourceInterface {
+	return &wrapSourcesV1alpha1AWSSQSSourceImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "sources.triggermesh.io",
+			Version:  "v1alpha1",
+			Resource: "awssqssources",
+		}),
+
+		namespace: namespace,
+	}
+}
+
+type wrapSourcesV1alpha1AWSSQSSourceImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+
+	namespace string
+}
+
+var _ typedsourcesv1alpha1.AWSSQSSourceInterface = (*wrapSourcesV1alpha1AWSSQSSourceImpl)(nil)
+
+func (w *wrapSourcesV1alpha1AWSSQSSourceImpl) Create(ctx context.Context, in *v1alpha1.AWSSQSSource, opts v1.CreateOptions) (*v1alpha1.AWSSQSSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSSQSSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSQSSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSQSSourceImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Namespace(w.namespace).Delete(ctx, name, opts)
+}
+
+func (w *wrapSourcesV1alpha1AWSSQSSourceImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.Namespace(w.namespace).DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapSourcesV1alpha1AWSSQSSourceImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.AWSSQSSource, error) {
+	uo, err := w.dyn.Namespace(w.namespace).Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSQSSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSQSSourceImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.AWSSQSSourceList, error) {
+	uo, err := w.dyn.Namespace(w.namespace).List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSQSSourceList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSQSSourceImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.AWSSQSSource, err error) {
+	uo, err := w.dyn.Namespace(w.namespace).Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSQSSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSQSSourceImpl) Update(ctx context.Context, in *v1alpha1.AWSSQSSource, opts v1.UpdateOptions) (*v1alpha1.AWSSQSSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSSQSSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSQSSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSQSSourceImpl) UpdateStatus(ctx context.Context, in *v1alpha1.AWSSQSSource, opts v1.UpdateOptions) (*v1alpha1.AWSSQSSource, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "sources.triggermesh.io",
+		Version: "v1alpha1",
+		Kind:    "AWSSQSSource",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Namespace(w.namespace).UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.AWSSQSSource{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapSourcesV1alpha1AWSSQSSourceImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
 }
