@@ -1,6 +1,6 @@
 [![Release](https://img.shields.io/github/v/release/triggermesh/aws-event-sources?label=release)](https://github.com/triggermesh/aws-event-sources/releases) [![Downloads](https://img.shields.io/github/downloads/triggermesh/aws-event-sources/total?label=downloads)](https://github.com/triggermesh/aws-event-sources/releases) [![CircleCI](https://circleci.com/gh/triggermesh/aws-event-sources/tree/master.svg?style=shield)](https://circleci.com/gh/triggermesh/aws-event-sources/tree/master) [![Go Report Card](https://goreportcard.com/badge/github.com/triggermesh/aws-event-sources)](https://goreportcard.com/report/github.com/triggermesh/aws-event-sources) [![License](https://img.shields.io/github/license/triggermesh/aws-event-sources?label=license)](LICENSE)
 
-THIS REPOSITORY IS NOW ARCHIVED IN FAVOR OF (https://github.com/triggermesh/triggermesh)[https://github.com/triggermesh/triggermesh]
+THIS REPOSITORY IS NOW ARCHIVED IN FAVOR OF [https://github.com/triggermesh/triggermesh](https://github.com/triggermesh/triggermesh)
 
 ![Sources for Amazon Web Services](./images/saws.png "Sources for Amazon Web Services")
 
