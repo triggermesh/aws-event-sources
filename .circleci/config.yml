@@ -9,7 +9,7 @@ jobs:
   checkout:
     executor:
       name: go/default
-      tag: '1.15'
+      tag: '1.16'
     steps:
       - checkout
       - go/mod-download-cached
@@ -22,7 +22,7 @@ jobs:
   build:
     executor:
       name: go/default
-      tag: '1.15'
+      tag: '1.16'
     steps:
       - attach_workspace:
           at: ~/
@@ -33,7 +33,7 @@ jobs:
   test:
     executor:
       name: go/default
-      tag: '1.15'
+      tag: '1.16'
     steps:
       - attach_workspace:
           at: ~/
@@ -72,7 +72,7 @@ jobs:
     description: Patches target cluster configuration
     executor:
       name: go/default
-      tag: '1.15'
+      tag: '1.16'
     parameters:
       cluster:
         type: string
@@ -136,7 +136,7 @@ jobs:
   release:
     executor:
       name: go/default
-      tag: '1.15'
+      tag: '1.16'
     steps:
       - attach_workspace:
           at: ~/
@@ -181,35 +181,6 @@ workflows:
           requires:
             - build
             - test
-          filters:
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-            branches:
-              only: master
-      - publish-chart:
-          context: production
-          requires:
-            - publish-image
-          filters:
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-            branches:
-              only: master
-      - deploy:
-          name: update-staging-config
-          cluster: staging
-          requires:
-            - publish-image
-          filters:
-            branches:
-              only: master
-            tags:
-              only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
-      - deploy:
-          name: update-production-config
-          cluster: prod
-          requires:
-            - update-staging-config
           filters:
             tags:
               only: /^v([0-9]+)\.([0-9]+)\.([0-9]+)(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+)?$/
