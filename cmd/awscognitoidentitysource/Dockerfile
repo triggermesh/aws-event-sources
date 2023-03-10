@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.16-buster AS builder
+FROM golang:1.19-buster AS builder
 
 ENV CGO_ENABLED 0
 ENV GOOS linux

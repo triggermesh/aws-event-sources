@@ -20,7 +20,7 @@ IMAGE_SHA         ?= $(shell git rev-parse HEAD)
 
 GO                ?= go
 GOFMT             ?= gofmt
-GOLINT            ?= golangci-lint run --timeout 5m
+GOLINT            ?= golangci-lint run --timeout 15m
 GOTOOL            ?= go tool
 GOTEST            ?= gotestsum --junitfile $(TEST_OUTPUT_DIR)/$(KREPO)-unit-tests.xml --format pkgname-and-test-fails --
 
@@ -41,7 +41,7 @@ endif
 
 install-golangci-lint:
 ifndef HAS_GOLANGCI_LINT
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.26.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin
 endif
 
 $(COMMANDS):
@@ -77,7 +77,9 @@ cover: test ## Generate code coverage
 	$(GOTOOL) cover -html=$(TEST_OUTPUT_DIR)/$(KREPO)-c.out -o $(COVER_OUTPUT_DIR)/$(KREPO)-coverage.html
 
 lint: install-golangci-lint ## Lint source files
-	$(GOLINT) $(GOPKGS)
+	@for pkg in $(GOPKGS) ; do \
+		GOGC=10 $(GOLINT) $$pkg ; \
+	done ;
 
 fmt: ## Format source files
 	$(GOFMT) -s -w $(shell $(GO) list -f '{{$$d := .Dir}}{{range .GoFiles}}{{$$d}}/{{.}} {{end}} {{$$d := .Dir}}{{range .TestGoFiles}}{{$$d}}/{{.}} {{end}}' $(GOPKGS))
